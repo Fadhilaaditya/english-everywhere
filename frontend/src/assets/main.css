@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+    --font-poppins: 'Poppins', sans-serif;
+    --font-quicksand: 'Quicksand', sans-serif;
+
+    --color-primary: #FF9F1C;
+    /* Orange from the design */
+    --color-secondary: #2EC4B6;
+    /* Teal/Cyan from the design */
+    --color-accent: #FFBF69;
+    /* Lighter orange */
+    --color-text-dark: #2B2D42;
+    /* Dark text */
+    --color-text-light: #8D99AE;
+    /* Light text */
+    --color-bg-light: #F8F9FA;
+    /* Light background */
+}
+
+body {
+    font-family: var(--font-poppins);
+    color: var(--color-text-dark);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-quicksand);
+    font-weight: 700;
+}
