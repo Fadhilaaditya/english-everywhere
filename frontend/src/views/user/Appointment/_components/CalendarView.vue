@@ -128,7 +128,7 @@ const handleModalSubmit = (data: any) => {
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div class="flex items-center gap-4">
-        <h2 class="text-2xl font-bold text-gray-900">{{ currentMonth }} {{ currentYear }}</h2>
+        <h2 class="text-2xl font-bold text-gray-900 w-64">{{ currentMonth }} {{ currentYear }}</h2>
          <div class="flex items-center gap-1">
             <button @click="prevMonth" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
                 <ChevronLeft class="w-6 h-6 text-gray-600" />

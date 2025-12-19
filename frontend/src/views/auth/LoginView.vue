@@ -45,8 +45,12 @@ const handleLogin = async () => {
             role: data.role
         }))
         
-        // Redirect to homepage
-        router.push('/')
+        // Redirect based on role
+        if (data.role === 'admin') {
+            router.push('/admin')
+        } else {
+            router.push('/')
+        }
         
     } catch (error: any) {
         errorMessage.value = error.message

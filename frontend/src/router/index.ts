@@ -45,6 +45,54 @@ const router = createRouter({
             path: '/appointment',
             name: 'appointment',
             component: () => import('../views/user/Appointment/Appointment.vue')
+        },
+        {
+            path: '/admin',
+            name: 'admin-dashboard',
+            component: () => import('../views/admin/Dashboard/DashboardAdmin.vue'),
+            meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/applicant-data',
+            name: 'admin-applicant',
+            component: () => import('../views/admin/ApplicantData/Applicant.vue'),
+            meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/account',
+            name: 'admin-account',
+            component: () => import('../views/admin/Account/Account.vue'),
+            meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/appointment',
+            name: 'admin-appointment',
+            component: () => import('../views/admin/Appointment/Appointment.vue'),
+            meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/events',
+            name: 'admin-events',
+            component: () => import('../views/admin/Events/Events.vue'),
+            meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/english-corner',
+            name: 'admin-english-corner',
+            component: () => import('../views/admin/EnglishCorner/EnglishCorner.vue'),
+            meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/english-corner/create',
+            name: 'admin-english-corner-create',
+            component: () => import('../views/admin/EnglishCorner/CRUD/CRUDView.vue'),
+            meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/english-corner/edit/:id',
+            name: 'admin-english-corner-edit',
+            component: () => import('../views/admin/EnglishCorner/CRUD/CRUDView.vue'),
+            meta: { hideLayout: true }
         }
     ]
 })
