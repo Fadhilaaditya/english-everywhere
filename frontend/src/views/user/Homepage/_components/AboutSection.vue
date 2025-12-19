@@ -1,26 +1,21 @@
 <script setup lang="ts">
-import { Hexagon } from 'lucide-vue-next'
+
 </script>
 
 <template>
   <section class="py-16 px-6 md:px-12 bg-white relative overflow-hidden">
-    <!-- Decorative Honeycomb (Top Right) -->
-    <div class="absolute top-0 right-0 p-4 flex gap-2 opacity-80">
-      <Hexagon class="text-primary w-12 h-12 fill-current" />
-      <Hexagon class="text-secondary w-10 h-10 fill-current mt-8" />
+    <img src="/hex-hero.svg" alt="Decoration" class="absolute top-5 right-0 w-36 md:w-44 pointer-events-none opacity-80" />
+
+    <div class="absolute bottom-5 left-20 text-primary">
+       <img src="/iconhero2.svg" alt="Decorative Icon" class="w-18 h-18" />
     </div>
 
-    <!-- Decorative Star (Bottom Left) -->
-    <div class="absolute bottom-10 left-10 text-primary">
-       <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-    </div>
-
-    <div class="max-w-4xl mx-auto">
-      <h3 class="text-accent font-bold text-lg mb-2 uppercase tracking-wide">About Us</h3>
+    <div class="max-w-4xl mx-auto mb-10">
+      <h3 class="text-accent font-bold text-3xl mb-15 uppercase tracking-wide">About Us</h3>
       <h2 class="text-3xl md:text-4xl font-bold text-text-dark mb-4">
         LET'S SPEAK ENGLISH EVERYWHERE!
       </h2>
-      <p class="text-text-dark mb-8 font-medium">
+      <p class="text-text-dark mb-10 font-medium">
         Karena dunia dimulai dari keberanian untuk berbicara
       </p>
 

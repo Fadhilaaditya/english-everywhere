@@ -75,12 +75,8 @@ const toggleFaq = (index: number) => {
 <template>
   <section class="py-16 px-6 md:px-12 bg-white relative overflow-hidden">
     <!-- Decorative Elements -->
-    <div class="absolute top-10 left-10 text-green-300 opacity-60">
-      <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"></polygon></svg>
-    </div>
-    <div class="absolute bottom-20 right-10 text-green-300 opacity-60 rotate-45">
-       <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-    </div>
+    <img src="/hex-ijo.svg" alt="Decoration" class="absolute top-10 left-0 w-50 h-50 opacity-50 pointer-events-none" />
+    <img src="/daun.svg" alt="Decoration" class="absolute bottom-10 -right-12 w-56 h-56 opacity-80 pointer-events-none" />
 
     <div class="max-w-4xl mx-auto text-center mb-10">
       <h2 class="text-2xl md:text-3xl font-bold text-text-dark uppercase">
@@ -88,7 +84,7 @@ const toggleFaq = (index: number) => {
       </h2>
     </div>
 
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
       <div v-for="(faq, index) in faqs" :key="index" class="border border-gray-200 rounded-lg overflow-hidden">
         <button 
           @click="toggleFaq(index)"

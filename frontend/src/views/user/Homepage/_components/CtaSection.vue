@@ -4,7 +4,7 @@
 
 <template>
   <section class="py-16 px-6 md:px-12 bg-white">
-    <div class="max-w-6xl mx-auto bg-primary rounded-2xl p-8 md:p-12 relative overflow-hidden shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+    <div class="max-w-6xl mx-auto bg-[#FF9213] rounded-2xl p-8 md:p-12 relative overflow-hidden shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
       <!-- Decorative Background Elements -->
       <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -20,7 +20,7 @@
       </div>
 
       <div class="relative z-10">
-        <button class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition-colors shadow-md cursor-pointer">
+        <button class="bg-white text-[#FF9213] hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition-colors shadow-md cursor-pointer">
           Daftar Class
         </button>
       </div>

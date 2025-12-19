@@ -9,7 +9,7 @@ const programs = [
     title: 'Funny Phonics',
     price: 'Mulai Rp 350.000',
     desc: 'Belajar membaca & mengeja seru dengan metode Phonics.',
-    image: 'bg-yellow-200', // Placeholder color
+    image: '/class1.svg', // Placeholder color
     category: 'REGULAR'
   },
   {
@@ -17,7 +17,7 @@ const programs = [
     title: 'Hi Kids!',
     price: 'Mulai Rp 350.000',
     desc: 'Kelas dasar anak-anak. Fokus pada Bahasa Inggris sehari-hari.',
-    image: 'bg-blue-200',
+    image: '/class2.svg',
     category: 'REGULAR'
   },
   {
@@ -25,7 +25,7 @@ const programs = [
     title: 'Oxford Phonics',
     price: 'Mulai Rp 350.000',
     desc: 'Metode Phonics dari Oxford untuk membaca & menulis handal.',
-    image: 'bg-green-200',
+    image: '/class3.svg',
     category: 'REGULAR'
   },
   {
@@ -33,7 +33,7 @@ const programs = [
     title: 'Abracadabra',
     price: 'Mulai Rp 350.000',
     desc: 'Program seru untuk kosakata dasar & percakapan awal.',
-    image: 'bg-blue-400',
+    image: '/class4.svg',
     category: 'REGULAR'
   },
   {
@@ -41,7 +41,7 @@ const programs = [
     title: 'Get Smart',
     price: 'Mulai Rp 350.000',
     desc: 'Kurikulum dinamis, tingkatan 6 kemampuan dasar bahasa.',
-    image: 'bg-pink-300',
+    image: '/class5.svg',
     category: 'REGULAR'
   },
   {
@@ -49,14 +49,14 @@ const programs = [
     title: 'Full Blast',
     price: 'Mulai Rp 350.000',
     desc: 'Program lengkap untuk siswa. Kuasai English level menengah.',
-    image: 'bg-red-400',
+    image: '/class6.svg',
     category: 'REGULAR'
   }
 ]
 </script>
 
 <template>
-  <section class="py-16 px-6 md:px-12 bg-primary relative">
+  <section class="py-16 px-8 md:px-32 bg-[#FF9213] relative">
     <!-- Decorative Stars -->
     <div class="absolute top-10 left-5 text-white opacity-80">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -100,12 +100,15 @@ const programs = [
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="program in programs" :key="program.id" class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-          <!-- Image Placeholder -->
-          <div :class="['h-40 w-full flex items-center justify-center text-white font-bold text-xl', program.image]">
-            {{ program.title }} Image
-          </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+        <div 
+            v-for="program in programs" 
+            :key="program.id" 
+            @click="$router.push('/appointment')"
+            class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full cursor-pointer transform hover:-translate-y-1 duration-300"
+        >
+          <!-- Image -->
+          <img :src="program.image" :alt="program.title" class="h-[198px] w-full object-cover" />
           
           <div class="p-6">
             <h3 class="font-bold text-lg text-text-dark mb-1">{{ program.title }}</h3>
