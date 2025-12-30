@@ -11,6 +11,7 @@ const props = defineProps<{
     time: string
     programName?: string
     status?: string
+    applicantName?: string
   }
 }>()
 
@@ -54,6 +55,8 @@ const formattedDate = computed(() => {
 })
 
 const isBooked = computed(() => props.schedule?.status === 'BOOKED')
+const isPending = computed(() => props.schedule?.status === 'PENDING')
+const isReadOnly = computed(() => isBooked.value || isPending.value)
 
 const validateForm = () => {
     errors.value = {}
@@ -103,17 +106,31 @@ const processSubmission = () => {
 }
 
 // Reset form when modal opens with new schedule
-watch(() => props.schedule, () => {
-    formData.value = {
-        fullName: '',
-        gender: 'Male',
-        address: '',
-        fatherName: '',
-        motherName: '',
-        birthPlace: '',
-        birthDate: '',
-        phone: '',
-        email: ''
+watch(() => props.schedule, (newVal) => {
+    if (newVal?.applicantName) {
+        formData.value = {
+            fullName: newVal.applicantName,
+            gender: 'Male',
+            address: '',
+            fatherName: '',
+            motherName: '',
+            birthPlace: '',
+            birthDate: '',
+            phone: '',
+            email: ''
+        }
+    } else {
+        formData.value = {
+            fullName: '',
+            gender: 'Male',
+            address: '',
+            fatherName: '',
+            motherName: '',
+            birthPlace: '',
+            birthDate: '',
+            phone: '',
+            email: ''
+        }
     }
 })
 </script>
@@ -170,7 +187,7 @@ watch(() => props.schedule, () => {
                         type="text"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all placeholder:text-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
                         :class="{ 'border-red-500 focus:ring-red-200': errors.fullName }"
-                        :disabled="isBooked"
+                        :disabled="isReadOnly"
                     />
                     <p v-if="errors.fullName" class="text-red-500 text-xs mt-1">{{ errors.fullName }}</p>
                 </div>
@@ -183,7 +200,7 @@ watch(() => props.schedule, () => {
                             v-model="formData.gender"
                             class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all bg-white appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                             :class="{ 'border-red-500 focus:ring-red-200': errors.gender }"
-                            :disabled="isBooked"
+                            :disabled="isReadOnly"
                         >
                             <option value="Male">Laki-laki</option>
                             <option value="Female">Perempuan</option>
@@ -202,7 +219,7 @@ watch(() => props.schedule, () => {
                     rows="3"
                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all resize-none placeholder:text-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
                     :class="{ 'border-red-500 focus:ring-red-200': errors.address }"
-                    :disabled="isBooked"
+                    :disabled="isReadOnly"
                 ></textarea>
                 <p v-if="errors.address" class="text-red-500 text-xs mt-1">{{ errors.address }}</p>
             </div>
@@ -214,8 +231,9 @@ watch(() => props.schedule, () => {
                     <input 
                         v-model="formData.fatherName"
                         type="text"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
                         :class="{ 'border-red-500 focus:ring-red-200': errors.fatherName }"
+                        :disabled="isReadOnly"
                     />
                     <p v-if="errors.fatherName" class="text-red-500 text-xs mt-1">{{ errors.fatherName }}</p>
                 </div>
@@ -224,8 +242,9 @@ watch(() => props.schedule, () => {
                     <input 
                         v-model="formData.motherName"
                         type="text"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
                         :class="{ 'border-red-500 focus:ring-red-200': errors.motherName }"
+                        :disabled="isReadOnly"
                     />
                     <p v-if="errors.motherName" class="text-red-500 text-xs mt-1">{{ errors.motherName }}</p>
                 </div>
@@ -236,8 +255,9 @@ watch(() => props.schedule, () => {
                     <input 
                         v-model="formData.birthPlace"
                         type="text"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
                         :class="{ 'border-red-500 focus:ring-red-200': errors.birthPlace }"
+                        :disabled="isReadOnly"
                     />
                     <p v-if="errors.birthPlace" class="text-red-500 text-xs mt-1">{{ errors.birthPlace }}</p>
                 </div>
@@ -249,7 +269,7 @@ watch(() => props.schedule, () => {
                             type="date"
                             class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
                             :class="{ 'border-red-500 focus:ring-red-200': errors.birthDate }"
-                            :disabled="isBooked"
+                            :disabled="isReadOnly"
                         />
                     </div>
                     <p v-if="errors.birthDate" class="text-red-500 text-xs mt-1">{{ errors.birthDate }}</p>
@@ -261,8 +281,9 @@ watch(() => props.schedule, () => {
                     <input 
                         v-model="formData.phone"
                         type="number"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
                         :class="{ 'border-red-500 focus:ring-red-200': errors.phone }"
+                        :disabled="isReadOnly"
                     />
                     <p v-if="errors.phone" class="text-red-500 text-xs mt-1">{{ errors.phone }}</p>
                 </div>
@@ -271,9 +292,10 @@ watch(() => props.schedule, () => {
                     <input 
                         v-model="formData.email"
                         type="email"
-                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
                         :class="{ 'border-red-500 focus:ring-red-200': emailError }"
                         @blur="validateEmail"
+                        :disabled="isReadOnly"
                     />
                      <p v-if="emailError" class="text-red-500 text-xs mt-1">{{ emailError }}</p>
                 </div>
@@ -282,10 +304,10 @@ watch(() => props.schedule, () => {
              <!-- Submit Button -->
             <button 
                 @click="handleSubmit"
-                :disabled="isSubmitting || isBooked"
+                :disabled="isSubmitting || isReadOnly"
                 class="w-full py-4 rounded-lg text-white text-xl font-medium transition-colors mt-4 bg-[#FF6B6B] hover:bg-[#ff5252] shadow-lg shadow-[#FF6B6B]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             >
-                {{ isSubmitting ? 'Processing...' : isBooked ? 'Booked' : 'Daftar Sekarang' }}
+                {{ isSubmitting ? 'Processing...' : isBooked ? 'Booked' : isPending ? 'Pending Approval' : 'Daftar Sekarang' }}
             </button>
         </div>
     </div>

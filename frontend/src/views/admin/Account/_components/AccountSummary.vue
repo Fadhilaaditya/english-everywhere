@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const stats = ref([
   { label: 'Total Account', value: '0' },
@@ -23,8 +23,16 @@ const fetchStats = async () => {
     }
 }
 
+let intervalId: any = null
+
 onMounted(() => {
     fetchStats()
+    // Poll every 3 seconds for real-time updates
+    intervalId = setInterval(fetchStats, 3000)
+})
+
+onUnmounted(() => {
+    if (intervalId) clearInterval(intervalId)
 })
 </script>
 

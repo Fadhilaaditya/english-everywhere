@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { User, Edit, X } from 'lucide-vue-next'
+import ConfirmationModal from './ConfirmationModal.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -57,9 +58,15 @@ watch(() => props.account, (newVal) => {
     }
 }, { immediate: true })
 
-const handleSubmit = async () => {
-    if (!props.account) return // Handle create logic later if needed
-    
+const isConfirmOpen = ref(false)
+
+const handleSubmit = () => {
+    if (!props.account) return
+    isConfirmOpen.value = true
+}
+
+const processSubmission = async () => {
+    isConfirmOpen.value = false // Close confirm modal
     isLoading.value = true
     try {
         const response = await fetch(`http://localhost:3000/api/students/${props.account.id}`, {
@@ -76,7 +83,7 @@ const handleSubmit = async () => {
         emit('close')
     } catch (e) {
         console.error('Error updating account:', e)
-        alert('Failed to update account')
+        // Let parent handle error toast if needed or emit error
     } finally {
         isLoading.value = false
     }
@@ -234,5 +241,14 @@ const handleSubmit = async () => {
             </div>
         </div>
     </div>
+    
+    <ConfirmationModal 
+        :is-open="isConfirmOpen"
+        title="Save Changes"
+        message="Are you sure you want to save these changes to the account?"
+        confirm-text="Save"
+        @close="isConfirmOpen = false"
+        @confirm="processSubmission"
+    />
   </div>
 </template>

@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { SquarePen, Trash2, ArrowUpDown, Plus } from 'lucide-vue-next'
 import AccountEditModal from './AccountEditModal.vue'
+import Toast from '@/components/Toast.vue'
+import ConfirmationModal from './ConfirmationModal.vue'
 
 const accounts = ref<any[]>([])
 const isModalOpen = ref(false)
@@ -42,9 +44,21 @@ onMounted(() => {
     fetchAccounts()
 })
 
+const isDeleteConfirmOpen = ref(false)
+const accountToDelete = ref<number | null>(null)
+
+// Toast State
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
+
+const showToastNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    toastMessage.value = message
+    toastType.value = type
+    showToast.value = true
+}
+
 const handleEdit = (account: any) => {
-    // For now we edit the basic info we have, or pass fullData if modal supports it
-    // Assuming modal wants basic account info for now based on previous mock
     selectedAccount.value = account
     isModalOpen.value = true
 }
@@ -56,15 +70,35 @@ const handleCreate = () => {
 
 const handleModalSubmit = (data: any) => {
     console.log('Account saved:', data)
-    alert('Account Saved Successfully!')
+    showToastNotification('Account Saved Successfully!')
     isModalOpen.value = false
-    fetchAccounts() // Refresh list
+    fetchAccounts()
 }
 
 const handleDelete = (id: number) => {
-     if(confirm('Are you sure you want to delete this account?')) {
-        console.log('Delete account:', id)
-        // Implement delete API call here if needed later
+    accountToDelete.value = id
+    isDeleteConfirmOpen.value = true
+}
+
+const processDelete = async () => {
+    if (!accountToDelete.value) return
+    
+    isDeleteConfirmOpen.value = false
+    try {
+        // Implement delete API call
+         const response = await fetch(`http://localhost:3000/api/students/${accountToDelete.value}`, {
+            method: 'DELETE'
+        })
+        
+        if (response.ok) {
+            showToastNotification('Account deleted successfully')
+            fetchAccounts()
+        } else {
+            throw new Error('Failed to delete')
+        }
+    } catch (e) {
+        console.error('Failed to delete account', e)
+        showToastNotification('Failed to delete account', 'error')
     }
 }
 </script>
@@ -158,6 +192,23 @@ const handleDelete = (id: number) => {
         :account="selectedAccount"
         @close="isModalOpen = false"
         @submit="handleModalSubmit"
+    />
+
+    <ConfirmationModal
+        :is-open="isDeleteConfirmOpen"
+        title="Delete Account"
+        message="Are you sure you want to delete this account? This action cannot be undone."
+        confirm-text="Delete"
+        type="danger"
+        @close="isDeleteConfirmOpen = false"
+        @confirm="processDelete"
+    />
+
+    <Toast 
+        :show="showToast" 
+        :message="toastMessage" 
+        :type="toastType"
+        @close="showToast = false"
     />
   </div>
 </template>

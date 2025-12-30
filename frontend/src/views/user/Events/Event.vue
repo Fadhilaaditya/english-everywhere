@@ -8,7 +8,7 @@ const searchQuery = ref('')
 </script>
 
 <template>
-  <div class="px-8 md:px-20 lg:px-32 py-16 md:py-24 max-w-[1440px] mx-auto min-h-screen bg-bg-light font-poppins relative overflow-hidden">
+  <div class="px-4 md:px-20 lg:px-32 py-16 md:py-24 max-w-[1440px] mx-auto min-h-screen bg-bg-light font-poppins relative overflow-hidden">
     <!-- Decorative Hexagons (Right Side) -->
     <img src="/hex.svg" class="absolute top-60 right-10 translate-x-1/4 hidden lg:block pointer-events-none w-[150px] h-[150px]" alt="Hexagon Outline" />
 

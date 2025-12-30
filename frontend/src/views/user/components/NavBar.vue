@@ -70,25 +70,29 @@ onMounted(() => {
       <X v-else />
     </button>
 
-    <div v-if="isMenuOpen" class="absolute top-full left-0 w-full bg-white shadow-md flex flex-col items-center gap-4 py-6 md:hidden font-poppins font-medium">
-      <a href="#" class="hover:text-primary transition-colors">Homepage</a>
-      <a href="#AboutUs" class="hover:text-primary transition-colors">About Us</a>
-      <a href="#" class="hover:text-primary transition-colors">Daftar Kelas</a>
-      <router-link to="/events" class="hover:text-primary transition-colors" active-class="font-bold text-gray-900">Events</router-link>
-      <router-link to="/english-corner" class="hover:text-primary transition-colors" active-class="font-bold text-gray-900">English Corner</router-link>
+    <div 
+      v-if="isMenuOpen" 
+      class="border-t border-gray-100 absolute top-full left-0 w-full bg-white shadow-xl flex flex-col items-center gap-4 py-8 md:hidden font-poppins font-medium z-50"
+    >
+      <router-link to="/" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">Homepage</router-link>
+      <router-link to="/about-us" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">About Us</router-link>
+      <router-link to="#" class="hover:text-primary transition-colors text-lg" @click="toggleMenu">Daftar Kelas</router-link>
+      <router-link to="/events" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">Events</router-link>
+      <router-link to="/english-corner" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">English Corner</router-link>
        <router-link 
         v-if="user?.role === 'student'" 
         to="/payment" 
-        class="hover:text-primary transition-colors" 
+        class="hover:text-primary transition-colors text-lg" 
         active-class="font-bold text-gray-900"
+        @click="toggleMenu"
       >
         Payment
       </router-link>
 
-      <button v-if="user" @click="handleLogout" class="bg-[#F4838D] hover:bg-[#F4838D]/80 text-white px-6 py-2 rounded-full font-bold transition-colors cursor-pointer inline-block text-center">
+      <button v-if="user" @click="() => { handleLogout(); toggleMenu() }" class="bg-[#F4838D] hover:bg-[#F4838D]/80 text-white px-8 py-3 rounded-full font-bold transition-colors cursor-pointer inline-block text-center mt-2">
         Logout  
       </button>
-      <router-link v-else to="/login" class="bg-[#F4838D] hover:bg-[#F4838D]/80 text-white px-6 py-2 rounded-full font-bold transition-colors cursor-pointer inline-block text-center">
+      <router-link v-else to="/login" class="bg-[#F4838D] hover:bg-[#F4838D]/80 text-white px-8 py-3 rounded-full font-bold transition-colors cursor-pointer inline-block text-center mt-2" @click="toggleMenu">
         Login
       </router-link>
     </div>  

@@ -27,14 +27,14 @@
     <div class="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto flex justify-between items-end px-4 md:px-0 pointer-events-none z-0">
       
       <div class="w-1/2 flex justify-start pl-0 md:pl-8">
-        <img src="/boy1.svg" alt="Boy raising hand" class="w-80 h-auto md:w-[450px]" />
+        <img src="/boy1.svg" alt="Boy raising hand" class="w-32 sm:w-48 md:w-[450px] h-auto object-contain" />
       </div>
 
       <div class="w-1/2 flex justify-end pr-0 md:pr-8 relative">
-        <div class="absolute -top-30 right-60 text-secondary opacity-60">
+        <div class="absolute -top-30 right-60 text-secondary opacity-60 hidden md:block">
             <img src="/iconhero1.svg" alt="Decorative Icon" class="w-30 h-30" />
         </div>
-        <img src="/boy2.svg" alt="Boy reading" class="w-80 h-auto md:w-[450px]" />
+        <img src="/boy2.svg" alt="Boy reading" class="w-28 sm:w-44 md:w-[450px] h-auto object-contain" />
       </div>
     </div>
   </section>

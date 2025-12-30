@@ -29,7 +29,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="py-16 px-8 md:px-32 bg-[#FF9213] relative">
+  <section class="py-16 px-4 md:px-32 bg-[#FF9213] relative">
     <!-- Decorative Stars -->
     <div class="absolute top-10 left-5 text-white opacity-80">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -39,10 +39,10 @@ onMounted(() => {
     </div>
 
     <div class="max-w-6xl mx-auto">
-      <div class="flex flex-col md:flex-row justify-between items-center mb-10">
-        <h2 class="text-3xl font-bold text-white mb-6 md:mb-0">OUR PROGRAMS</h2>
+      <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+        <h2 class="text-3xl font-bold text-white text-center md:text-left">OUR PROGRAMS</h2>
         
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap justify-center">
           <button 
             @click="activeFilter = 'REGULAR'"
             :class="[

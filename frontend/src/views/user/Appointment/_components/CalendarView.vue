@@ -37,8 +37,6 @@ const fetchSchedules = async () => {
     if (!response.ok) throw new Error('Failed to fetch schedules')
     const data = await response.json()
     
-    // Transform API data to events object matching component structure
-    // API returns: [{ date: '2025-09-08', time: '09:00', status: 'AVAILABLE' }]
     const newEvents: any = {}
     data.forEach((schedule: any) => {
       const status = schedule.status ? schedule.status.trim().toUpperCase() : ''
@@ -64,7 +62,6 @@ let pollingInterval: any = null
 
 onMounted(() => {
   fetchSchedules()
-  // Poll every 3 seconds for real-time updates
   pollingInterval = setInterval(fetchSchedules, 3000)
 })
 
@@ -87,15 +84,12 @@ const daysInMonth = computed(() => {
 const firstDayOfMonth = computed(() => {
     const year = currentDate.value.getFullYear()
     const month = currentDate.value.getMonth()
-    // 0 = Sunday, 1 = Monday. We want 0 = Monday.
     let day = new Date(year, month, 1).getDay()
     return day === 0 ? 6 : day - 1
 })
 
 const calendarDays = computed(() => {
     const days = []
-    
-    // Previous month days
     const prevMonthDays = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth(), 0).getDate()
     for (let i = firstDayOfMonth.value - 1; i >= 0; i--) {
         days.push({
@@ -104,8 +98,6 @@ const calendarDays = computed(() => {
             fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, prevMonthDays - i)
         })
     }
-
-    // Current month days
     for (let i = 1; i <= daysInMonth.value; i++) {
          days.push({
             date: i,
@@ -113,8 +105,6 @@ const calendarDays = computed(() => {
             fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth(), i)
         })
     }
-    
-    // Next month days to fill grid (42 cells total for 6 rows max)
     const remainingCells = 42 - days.length
     for (let i = 1; i <= remainingCells; i++) {
          days.push({
@@ -123,7 +113,6 @@ const calendarDays = computed(() => {
              fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, i)
         })
     }
-    
     return days
 })
 
@@ -135,17 +124,9 @@ const getFullDate = (year: number, month: number, day: number) => {
     return `${y}-${m}-${da}`
 }
 
-const prevMonth = () => {
-    currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
-}
-
-const nextMonth = () => {
-    currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
-}
-
-const goToToday = () => {
-    currentDate.value = new Date()
-}
+const prevMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1) }
+const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1) }
+const goToToday = () => { currentDate.value = new Date() }
 
 const openDayModal = (date: string, events: any[]) => {
     selectedDayDate.value = date
@@ -153,38 +134,28 @@ const openDayModal = (date: string, events: any[]) => {
     isDayModalOpen.value = true
 }
 
-const handleEventClick = (date: string, time: string, type: string, id: number) => {
-    // Allow clicking AVAILABLE and BOOKED (for read-only view)
-    if (type === 'AVAILABLE' || type === 'BOOKED') {
-        selectedSchedule.value = {
-            id: id,
-            date: date,
-            time: time,
-            programName: 'Program', // ideally fetch program name too or pass it
-            status: type // Pass status to modal to handle read-only state
-        }
+const handleEventClick = (date: string, time: string, type: string, id: number, name?: string) => {
+    if (type === 'AVAILABLE' || type === 'BOOKED' || type === 'PENDING') {
+        selectedSchedule.value = { id, date, time, programName: 'Program', status: type, applicantName: name }
         isModalOpen.value = true
     }
 }
 
 const handleModalSubmit = async (payload: any) => {
     if (!programId.value || !selectedSchedule.value) return
-
     try {
         const response = await fetch(`http://localhost:3000/api/programs/${programId.value}/schedules/${selectedSchedule.value.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-
         if (!response.ok) {
             const err = await response.json()
             throw new Error(err.message || 'Failed to book')
         }
-
         showToastNotification('Registration successful! Waiting for admin approval.')
         isModalOpen.value = false
-        fetchSchedules() // Refresh calendar
+        fetchSchedules()
     } catch (e: any) {
         showToastNotification(e.message, 'error')
     }
@@ -192,58 +163,57 @@ const handleModalSubmit = async (payload: any) => {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-2 md:p-6">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <div class="flex items-center gap-4">
-        <h2 class="text-2xl font-bold text-gray-900 w-64">{{ currentMonth }} {{ currentYear }}</h2>
-         <div class="flex items-center gap-1">
-            <button @click="prevMonth" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                <ChevronLeft class="w-6 h-6 text-gray-600" />
-            </button>
-            <button @click="nextMonth" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                <ChevronRight class="w-6 h-6 text-gray-600" />
-            </button>
-         </div>
-      </div>
+    <div class="flex flex-row items-center justify-between mb-4 md:mb-8 gap-2">
+       <div class="flex items-center gap-2">
+            <div class="flex bg-gray-100 rounded-lg p-1">
+                <button @click="prevMonth" class="p-1 sm:p-2 hover:bg-white rounded-md transition-all shadow-sm">
+                    <ChevronLeft class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                </button>
+                <button @click="nextMonth" class="p-1 sm:p-2 hover:bg-white rounded-md transition-all shadow-sm">
+                    <ChevronRight class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                </button>
+            </div>
+            <h2 class="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 uppercase tracking-wide">{{ currentMonth }} {{ currentYear }}</h2>
+       </div>
       
       <button 
         @click="goToToday"
-        class="px-6 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+        class="hidden md:block px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
       >
         Today
       </button>
+       <!-- Mobile Today Button (Icon or smaller) -->
+        <button 
+            @click="goToToday"
+            class="md:hidden px-3 py-1 bg-gray-100 rounded text-xs font-bold text-gray-600"
+        >
+            Today
+        </button>
     </div>
 
     <!-- Calendar Grid -->
     <div class="border border-gray-200 rounded-lg overflow-hidden">
-        <!-- Days Header -->
-        <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
-            <div 
-                v-for="day in weekDays" 
-                :key="day"
-                class="py-3 px-4 text-xs font-bold text-gray-500 uppercase border-r border-gray-200 last:border-r-0"
-            >
+          <!-- Days Header -->
+          <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+            <div v-for="day in weekDays" :key="day" class="py-2 sm:py-3 text-center text-[10px] sm:text-xs font-bold text-gray-500 uppercase border-r border-gray-200 last:border-r-0">
                 {{ day }}
             </div>
-        </div>
+          </div>
 
-        <!-- Calendar Body -->
-        <div class="grid grid-cols-7 bg-white">
+          <div class="grid grid-cols-7 bg-white">
             <div 
                 v-for="(day, index) in calendarDays" 
                 :key="index"
-                class="min-h-[120px] p-2 border-b border-r border-gray-200 last:border-r-0 relative group hover:bg-gray-50 transition-colors"
-                :class="{ 
-                    'text-gray-900': day.isCurrentMonth, 
-                    'text-gray-400 bg-gray-50/50': !day.isCurrentMonth,
-                    'border-l-0': index % 7 === 0 // fix left border
-                }"
+                class="min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-b border-r border-gray-200 last:border-r-0 relative group hover:bg-gray-50 transition-colors"
+                :class="{ 'text-gray-900': day.isCurrentMonth, 'text-gray-400 bg-gray-50/50': !day.isCurrentMonth }"
+                @click="openDayModal(day.fullDate, events[day.fullDate] || [])"
             >
-                <div class="flex justify-between items-start mb-2">
+                <div class="flex justify-end sm:justify-between items-start mb-1 sm:mb-2">
                     <span 
-                        class="text-lg font-medium w-8 h-8 flex items-center justify-center rounded-full"
-                         :class="{ 'bg-primary text-white': day.fullDate === getFullDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()) }"
+                        class="text-xs sm:text-lg font-medium w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full"
+                        :class="{ 'bg-primary text-white': day.fullDate === getFullDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()) }"
                     >
                         {{ day.date }}
                     </span>
@@ -251,35 +221,59 @@ const handleModalSubmit = async (payload: any) => {
 
                 <!-- Events -->
                 <div class="space-y-1">
-                    <div 
-                        v-for="(event, eIndex) in (events[day.fullDate] || []).slice(0, 1)" 
-                        :key="eIndex"
-                        @click.stop="handleEventClick(day.fullDate, event.time, event.type, event.id)"
-                        class="text-[10px] px-2 py-1 rounded-md font-medium text-white shadow-sm transition-opacity"
-                        :class="{
-                            'bg-[#00B027] hover:opacity-90 cursor-pointer': event.type === 'AVAILABLE',
-                            'bg-[#EB7A52] cursor-not-allowed': event.type === 'PENDING',
-                            'bg-[#BCC1C9] hover:opacity-90 cursor-pointer': event.type === 'BOOKED'
-                        }"
-                    >
-                        {{ event.time }} 
-                        <span v-if="event.name">({{ event.name }})</span>
-                        <span v-else>({{ event.type === 'AVAILABLE' ? 'Available' : event.type === 'PENDING' ? 'Waiting' : 'Booked' }})</span>
+                    <!-- MOBILE VIEW: Condensed -->
+                    <div class="md:hidden flex flex-col items-center">
+                        <template v-if="(events[day.fullDate] || []).length > 0">
+                             <!-- Show first event time only -->
+                             <div 
+                                class="text-[10px] px-1 py-0.5 rounded text-white font-bold w-full text-center truncate mb-0.5"
+                                :class="{
+                                    'bg-[#00B027]': (events[day.fullDate] || [])[0]?.type === 'AVAILABLE',
+                                    'bg-[#EB7A52]': (events[day.fullDate] || [])[0]?.type === 'PENDING',
+                                    'bg-[#BCC1C9]': (events[day.fullDate] || [])[0]?.type === 'BOOKED'
+                                }"
+                                @click.stop="handleEventClick(day.fullDate, (events[day.fullDate] || [])[0]?.time || '', (events[day.fullDate] || [])[0]?.type || '', (events[day.fullDate] || [])[0]?.id || 0, (events[day.fullDate] || [])[0]?.name)"
+                             >
+                                {{ (events[day.fullDate] || [])[0]?.time }}
+                             </div>
+                             <!-- Count (+N) -->
+                             <span v-if="(events[day.fullDate] || []).length > 1" class="text-[10px] text-gray-500 font-bold">
+                                +{{ (events[day.fullDate] || []).length - 1 }}
+                             </span>
+                        </template>
                     </div>
-                     <!-- Show +N more if there are additional events -->
-                    <div 
-                        v-if="(events[day.fullDate] || []).length > 1"
-                        class="text-xs text-gray-500 font-medium px-1 hover:text-gray-700 hover:bg-gray-100 rounded cursor-pointer mt-1"
-                        @click.stop="openDayModal(day.fullDate, events[day.fullDate] || [])"
-                    >
-                        +{{ (events[day.fullDate] || []).length - 1 }} more
+
+                    <!-- DESKTOP VIEW: Detailed list -->
+                    <div class="hidden md:block space-y-1">
+                        <div 
+                            v-for="(event, eIndex) in (events[day.fullDate] || []).slice(0, 2)" 
+                            :key="eIndex"
+                            @click.stop="handleEventClick(day.fullDate, event.time, event.type, event.id, event.name)"
+                            class="text-[10px] px-2 py-1 rounded-md font-medium text-white shadow-sm transition-opacity truncate"
+                            :class="{
+                                'bg-[#00B027] hover:opacity-90 cursor-pointer': event.type === 'AVAILABLE',
+                                'bg-[#EB7A52] hover:opacity-90 cursor-pointer': event.type === 'PENDING',
+                                'bg-[#BCC1C9] hover:opacity-90 cursor-pointer': event.type === 'BOOKED'
+                            }"
+                        >
+                            {{ event.time }} 
+                            <span v-if="event.name">({{ event.name }})</span>
+                            <span v-else>({{ event.type === 'AVAILABLE' ? 'Avl' : event.type === 'PENDING' ? 'Wait' : 'Bkd' }})</span>
+                        </div>
+                         <!-- Show +N more if there are additional events -->
+                        <div 
+                            v-if="(events[day.fullDate] || []).length > 2"
+                            class="text-xs text-gray-500 font-medium px-1 hover:text-gray-700 hover:bg-gray-100 rounded cursor-pointer mt-1 text-center"
+                            @click.stop="openDayModal(day.fullDate, events[day.fullDate] || [])"
+                        >
+                            +{{ (events[day.fullDate] || []).length - 2 }} more
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal -->
+          </div>
+      </div>
+    
     <FormAppointmentModal 
         :is-open="isModalOpen"
         :schedule="selectedSchedule"
@@ -295,11 +289,6 @@ const handleModalSubmit = async (payload: any) => {
         @click-event="(e) => { isDayModalOpen = false; handleEventClick(selectedDayDate, e.time, e.type, e.id) }"
     />
 
-    <Toast 
-        :show="showToast" 
-        :message="toastMessage" 
-        :type="toastType"
-        @close="showToast = false"
-    />
+    <Toast :show="showToast" :message="toastMessage" :type="toastType" @close="showToast = false" />
   </div>
 </template>

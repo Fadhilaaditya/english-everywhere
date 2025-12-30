@@ -12,5 +12,8 @@ module.exports = app => {
     // Update Student
     router.put("/:id", students.update);
 
+    // Delete Student
+    router.delete("/:id", students.delete);
+
     app.use('/api/students', router);
 };

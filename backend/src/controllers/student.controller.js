@@ -126,3 +126,33 @@ exports.update = async (req, res) => {
         });
     }
 };
+
+// Delete a Student
+exports.delete = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const student = await Student.findByPk(id);
+        if (!student) {
+            return res.status(404).send({ message: "Student not found" });
+        }
+
+        // Delete the student record
+        await Student.destroy({
+            where: { id: id }
+        });
+
+        // If the student has an associated User account, delete it too
+        if (student.userId) {
+            await User.destroy({
+                where: { id: student.userId }
+            });
+        }
+
+        res.send({ message: "Student was deleted successfully!" });
+    } catch (err) {
+        res.status(500).send({
+            message: "Could not delete Student with id=" + id
+        });
+    }
+};
