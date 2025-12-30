@@ -1,105 +1,55 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
 
-// Data (Moved from Parent)
-const articles = [
-  {
-    id: 1,
-    title: "5 Tips Seru untuk Belajar Bahasa Inggris di Rumah",
-    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop",
-    intro: [
-      "Belajar Bahasa Inggris tidak harus selalu membosankan dengan buku tebal atau hafalan grammar. Dengan sedikit kreativitas, Anda bisa mengubah rumah menjadi sekolah Bahasa Inggris pribadi yang menyenangkan.",
-      "Berikut adalah 5 tips seru dari English Everywhere agar proses belajar Anda di rumah lebih efektif dan menyenangkan:"
-    ],
-    sections: [
-      {
-        title: "1. Ubah Media Hiburan Anda Menjadi Kelas Bahasa Inggris",
-        text: "Alihkan kebiasaan menonton atau mendengarkan Anda sepenuhnya ke dalam Bahasa Inggris. Ini adalah cara paling efektif untuk melatih listening skill dan memperkaya kosakata secara kontekstual."
-      },
-      {
-        title: "2. Labeli Benda-Benda di Rumah",
-        text: "Tempelkan sticky note pada benda-benda di sekitar rumah dengan nama bahasa Inggrisnya. Misalnya 'Refrigerator', 'Mirror', 'Wardrobe'. Ini membantu mengingat vocabulary sehari-hari tanpa terasa sedang belajar."
-      },
-      {
-        title: "3. Biasakan Self-Talk dalam Bahasa Inggris",
-        text: "Cobalah untuk menarasikan kegiatan Anda sehari-hari dalam bahasa Inggris. 'I am making coffee now', 'I need to find my keys'. Ini melatih kelancaran berbicara dan berpikir dalam bahasa Inggris."
-      },
-      {
-        title: "4. Baca Buku Cerita Anak-anak",
-        text: "Buku anak-anak memiliki bahasa yang sederhana dan gambar yang menarik, sangat bagus untuk pemula. Kosakatanya dasar namun esensial."
-      },
-      {
-        title: "5. Gunakan Aplikasi Belajar Bahasa yang Interaktif",
-        text: "Manfaatkan teknologi. Aplikasi seperti Duolingo atau Quizlet membuat belajar jadi seperti bermain game. Sisihkan 15 menit setiap hari untuk bermain sambil belajar."
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: "Kapan Menggunakan 'A' dan 'An'?",
-    image: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?q=80&w=2000&auto=format&fit=crop",
-    intro: [
-      "Penggunaan article 'a' dan 'an' seringkali membingungkan bagi pemula. Padahal aturannya cukup sederhana jika kita memahami kuncinya: bunyi awal kata.",
-      "Mari kita bahas tuntas kapan harus menggunakan 'a' dan kapan menggunakan 'an'."
-    ],
-    sections: [
-      {
-        title: "1. Gunakan 'A' untuk Bunyi Konsonan",
-        text: "Gunakan 'a' sebelum kata benda tunggal yang diawali dengan bunyi konsonan. Contoh: a cat, a dog, a university (bunyi 'yu' adalah konsonan)."
-      },
-      {
-        title: "2. Gunakan 'An' untuk Bunyi Vokal",
-        text: "Gunakan 'an' sebelum kata benda tunggal yang diawali dengan bunyi vokal (a, i, u, e, o). Contoh: an apple, an egg, an hour (huruf 'h' tidak dibaca)."
-      }
-    ]
-  },
-  {
-    id: 3,
-    title: "Pentingnya Dongeng dalam Meningkatkan Kosakata",
-    image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=2000&auto=format&fit=crop",
-    intro: [
-      "Mendongeng bukan hanya aktivitas pengantar tidur, tapi juga metode ampuh untuk mengajarkan bahasa Inggris kepada anak-anak.",
-      "Melalui cerita, anak-anak belajar kosakata baru dalam konteks yang menyenangkan dan mudah diingat."
-    ],
-    sections: [
-      {
-        title: "1. Konteks yang Kuat",
-        text: "Anak-anak lebih mudah mengingat kata ketika dikaitkan dengan alur cerita dan emosi karakter dalam dongeng."
-      },
-      {
-        title: "2. Pengulangan Alami",
-        text: "Dongeng sering menggunakan frasa yang diulang-ulang, membantu penyerapan pola kalimat secara tidak sadar."
-      }
-    ]
+const articles = ref<any[]>([])
+
+const fetchArticles = async () => {
+  try {
+    const response = await fetch('http://localhost:3000/api/articles')
+    if (!response.ok) throw new Error('Failed to fetch articles')
+    const data = await response.json()
+    
+    // Ensure JSON fields are parsed (handling potential stringified data from DB)
+    articles.value = data.map((article: any) => ({
+      ...article,
+      intro: typeof article.intro === 'string' ? JSON.parse(article.intro) : article.intro,
+      sections: typeof article.sections === 'string' ? JSON.parse(article.sections) : article.sections
+    }))
+  } catch (error) {
+    console.error('Error fetching articles:', error)
   }
-]
+}
+
+onMounted(() => {
+    fetchArticles()
+})
 
 const currentId = computed(() => Number(route.params.slug) || 1)
 
 const article = computed(() => {
-  return articles.find(a => a.id === currentId.value) ?? articles[0]
+  return articles.value.find((a: any) => a.id === currentId.value) ?? articles.value[0]
 })
 
 const goPrev = () => {
-  const currentIndex = articles.findIndex(a => a.id === currentId.value)
+  const currentIndex = articles.value.findIndex((a: any) => a.id === currentId.value)
   if (currentIndex === -1) return
-  const prevIndex = currentIndex > 0 ? currentIndex - 1 : articles.length - 1
-  const prevArticle = articles[prevIndex]
+  const prevIndex = currentIndex > 0 ? currentIndex - 1 : articles.value.length - 1
+  const prevArticle = articles.value[prevIndex]
   if (prevArticle) {
     router.push({ name: 'article-detail', params: { slug: prevArticle.id } })
   }
 }
 
 const goNext = () => {
-  const currentIndex = articles.findIndex(a => a.id === currentId.value)
+  const currentIndex = articles.value.findIndex((a: any) => a.id === currentId.value)
   if (currentIndex === -1) return
-  const nextIndex = currentIndex < articles.length - 1 ? currentIndex + 1 : 0
-  const nextArticle = articles[nextIndex]
+  const nextIndex = currentIndex < articles.value.length - 1 ? currentIndex + 1 : 0
+  const nextArticle = articles.value[nextIndex]
   if (nextArticle) {
     router.push({ name: 'article-detail', params: { slug: nextArticle.id } })
   }

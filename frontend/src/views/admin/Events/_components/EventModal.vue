@@ -12,39 +12,39 @@ const emit = defineEmits(['close', 'submit'])
 const formData = ref({
     title: '',
     price: '',
-    description: '',
-    location: '',
-    linkRegistration: '',
+    desc: '',
     date: '',
-    time: ''
+    time: '',
+    image: '',
+    category: ''
 })
 
 const isEditMode = computed(() => !!props.event)
-const title = computed(() => isEditMode.value ? 'Edit Events' : 'Create Events') // User requested "Create Events"
+const title = computed(() => isEditMode.value ? 'Edit Events' : 'Create Events')
 const submitButtonText = computed(() => isEditMode.value ? 'Save' : 'Submit')
 
 watch(() => props.event, (newVal) => {
     if (newVal) {
-        // Edit mode - Populate with event data
+        // Edit mode
         formData.value = {
-            title: newVal.title || '',
-            price: newVal.price || '',
-            description: newVal.description || 'Join us for a fun and educational English session!',
-            location: newVal.location || 'English Everywhere Center',
-            linkRegistration: newVal.linkRegistration || 'https://bit.ly/register-event',
-            date: newVal.date || '',
-            time: newVal.time ? newVal.time.split(' ')[0] : '' // Basic parsing
+            title: newVal.title,
+            price: newVal.price,
+            desc: newVal.desc, // Model uses 'desc'
+            date: newVal.date,
+            time: newVal.time,
+            image: newVal.image,
+            category: newVal.category
         }
     } else {
-        // Create mode - Reset
+        // Create mode
         formData.value = {
             title: '',
             price: '',
-            description: '',
-            location: '',
-            linkRegistration: '',
+            desc: '',
             date: '',
-            time: ''
+            time: '',
+            image: '/class1.svg', // Default for now
+            category: ''
         }
     }
 }, { immediate: true })
@@ -106,31 +106,13 @@ const handleSubmit = () => {
                 <div class="space-y-1">
                     <label class="block text-sm font-medium text-gray-700">Description<span class="text-red-500">*</span></label>
                     <textarea 
-                        v-model="formData.description"
+                        v-model="formData.desc"
                         rows="4"
                         class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 resize-none"
                     ></textarea>
                 </div>
 
-                <!-- Location -->
-                <div class="space-y-1">
-                     <label class="block text-sm font-medium text-gray-700">Location<span class="text-red-500">*</span></label>
-                    <input 
-                        v-model="formData.location"
-                        type="text" 
-                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
-                    />
-                </div>
 
-                 <!-- Link Registration -->
-                <div class="space-y-1">
-                     <label class="block text-sm font-medium text-gray-700">Link Registration<span class="text-red-500">*</span></label>
-                    <input 
-                        v-model="formData.linkRegistration"
-                        type="text" 
-                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
-                    />
-                </div>
 
                 <!-- Date & Time -->
                  <div class="grid grid-cols-2 gap-4">
@@ -150,7 +132,8 @@ const handleSubmit = () => {
                         <div class="relative">
                              <input 
                                 v-model="formData.time"
-                                type="time"
+                                type="text"
+                                placeholder="19.00 - 20.30 WIB"
                                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
                             />
                         </div>

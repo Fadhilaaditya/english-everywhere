@@ -1,58 +1,31 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+
+interface Program {
+  id: number
+  title: string
+  price: string
+  desc: string
+  image: string
+  category: string
+}
 
 const activeFilter = ref('REGULAR')
+const programs = ref<Program[]>([])
 
-const programs = [
-  {
-    id: 1,
-    title: 'Funny Phonics',
-    price: 'Mulai Rp 350.000',
-    desc: 'Belajar membaca & mengeja seru dengan metode Phonics.',
-    image: '/class1.svg', // Placeholder color
-    category: 'REGULAR'
-  },
-  {
-    id: 2,
-    title: 'Hi Kids!',
-    price: 'Mulai Rp 350.000',
-    desc: 'Kelas dasar anak-anak. Fokus pada Bahasa Inggris sehari-hari.',
-    image: '/class2.svg',
-    category: 'REGULAR'
-  },
-  {
-    id: 3,
-    title: 'Oxford Phonics',
-    price: 'Mulai Rp 350.000',
-    desc: 'Metode Phonics dari Oxford untuk membaca & menulis handal.',
-    image: '/class3.svg',
-    category: 'REGULAR'
-  },
-  {
-    id: 4,
-    title: 'Abracadabra',
-    price: 'Mulai Rp 350.000',
-    desc: 'Program seru untuk kosakata dasar & percakapan awal.',
-    image: '/class4.svg',
-    category: 'REGULAR'
-  },
-  {
-    id: 5,
-    title: 'Get Smart',
-    price: 'Mulai Rp 350.000',
-    desc: 'Kurikulum dinamis, tingkatan 6 kemampuan dasar bahasa.',
-    image: '/class5.svg',
-    category: 'REGULAR'
-  },
-  {
-    id: 6,
-    title: 'Full Blast',
-    price: 'Mulai Rp 350.000',
-    desc: 'Program lengkap untuk siswa. Kuasai English level menengah.',
-    image: '/class6.svg',
-    category: 'REGULAR'
+const fetchPrograms = async () => {
+  try {
+    const response = await fetch('http://localhost:3000/api/programs')
+    if (!response.ok) throw new Error('Failed to fetch programs')
+    programs.value = await response.json()
+  } catch (error) {
+    console.error('Error fetching programs:', error)
   }
-]
+}
+
+onMounted(() => {
+  fetchPrograms()
+})
 </script>
 
 <template>
@@ -104,7 +77,7 @@ const programs = [
         <div 
             v-for="program in programs" 
             :key="program.id" 
-            @click="$router.push('/appointment')"
+            @click="$router.push({ path: '/appointment', query: { programId: program.id } })"
             class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full cursor-pointer transform hover:-translate-y-1 duration-300"
         >
           <!-- Image -->

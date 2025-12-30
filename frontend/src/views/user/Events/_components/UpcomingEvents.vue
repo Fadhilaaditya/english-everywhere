@@ -1,58 +1,45 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { Calendar, Clock } from 'lucide-vue-next'
 import EventModal from './EventModal.vue'
 
+const props = defineProps({
+  searchQuery: {
+    type: String,
+    default: ''
+  }
+})
+
 const isModalOpen = ref(false)
 const selectedEvent = ref<any>(null)
+const events = ref<any[]>([])
+
+const filteredEvents = computed(() => {
+  if (!props.searchQuery) return events.value
+  const query = props.searchQuery.toLowerCase()
+  return events.value.filter(event => 
+    event.title.toLowerCase().includes(query)
+  )
+})
 
 const openModal = (event: any) => {
   selectedEvent.value = event
   isModalOpen.value = true
 }
 
-const events = [
-  {
-    id: 1,
-    title: 'Funtastic Build — Open House English Everywhere',
-    date: 'January 15, 2025',
-    time: '19.00 - 20.30 WIB',
-    price: 'FREE',
-    desc: 'A relaxed discussion about New Year goals and how to achieve them, conducted in English.',
-    image: '/class1.svg', // Placeholder
-    category: 'Word Play'
-  },
-  {
-    id: 2,
-    title: 'English Playdate: Cooking with Friends',
-    date: 'January 15, 2025',
-    time: '19.00 - 20.30 WIB',
-    price: '25K',
-    desc: 'A relaxed discussion about New Year goals and how to achieve them, conducted in English.',
-    image: '/class2.svg', // Placeholder
-    category: 'Cooking'
-  },
-  {
-    id: 3,
-    title: 'Holiday Prep: Christmas Carol Karaoke',
-    date: 'January 15, 2025',
-    time: '19.00 - 20.30 WIB',
-    price: '25K',
-    desc: 'A relaxed discussion about New Year goals and how to achieve them, conducted in English.',
-    image: '/class3.svg', // Placeholder
-    category: 'Music'
-  },
-  {
-    id: 4,
-    title: 'Speaking Club: New Year Resolutions',
-    date: 'January 15, 2025',
-    time: '19.00 - 20.30 WIB',
-    price: '25K',
-    desc: 'A relaxed discussion about New Year goals and how to achieve them, conducted in English.',
-    image: '/class4.svg', // Placeholder
-    category: 'Speaking'
-  }
-]
+const fetchEvents = async () => {
+    try {
+        const response = await fetch('http://localhost:3000/api/events/upcoming');
+        if (!response.ok) throw new Error('Failed to fetch events');
+        events.value = await response.json();
+    } catch (error) {
+        console.error('Error fetching events:', error);
+    }
+}
+
+onMounted(() => {
+    fetchEvents();
+})
 </script>
 
 <template>
@@ -61,7 +48,7 @@ const events = [
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div 
-        v-for="event in events" 
+        v-for="event in filteredEvents" 
         :key="event.id" 
         @click="openModal(event)"
         class="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex gap-5 items-start cursor-pointer hover:ring-2 hover:ring-primary/20"

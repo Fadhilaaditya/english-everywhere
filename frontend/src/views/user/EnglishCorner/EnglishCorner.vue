@@ -4,26 +4,23 @@ import { ref } from 'vue'
 import ArticleCard from './_components/ArticleCard.vue'
 
 // Dummy Data
-const articles = ref([
-  {
-    id: 1,
-    title: "5 Tips Seru untuk Belajar Bahasa Inggris di Rumah",
-    description: "Mencari cara agar anak-anak tetap semangat belajar? Kami merangkum 5 tips dan trik yang bisa Anda terapkan di rumah dengan mudah dan menyenangkan.",
-    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop"
-  },
-  {
-    id: 2,
-    title: "Kapan Menggunakan 'A' dan 'An'?",
-    description: "Bingung mengajarkan penggunaan articles? Ini penjelasan sederhana dengan contoh yang mudah diingat si kecil.",
-    image: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?q=80&w=2000&auto=format&fit=crop"
-  },
-  {
-    id: 3,
-    title: "Pentingnya Dongeng dalam Meningkatkan Kosakata",
-    description: "Ketahui mengapa mendengarkan dongeng dalam bahasa Inggris adalah cara terbaik untuk memperkaya vocabulary anak.",
-    image: "https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=2000&auto=format&fit=crop"
+const articles = ref<any[]>([])
+
+const fetchArticles = async () => {
+  try {
+    const response = await fetch('http://localhost:3000/api/articles')
+    if (!response.ok) throw new Error('Failed to fetch articles')
+    articles.value = await response.json()
+  } catch (error) {
+    console.error('Error fetching articles:', error)
   }
-])
+}
+
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  fetchArticles()
+})
 
 const searchQuery = ref('')
 </script>

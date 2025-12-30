@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { User, Edit, X } from 'lucide-vue-next'
+// Import ConfirmModal from relative path as it's in a sibling view's components
+// Alternatively could move to shared components, but for now relative path
+import ConfirmModal from '../../Appointment/_components/ConfirmModal.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -18,25 +21,36 @@ const formData = ref({
     birthDate: '',
     level: '',
     username: '',
-    password: ''
+    password: '',
+    fatherName: '',
+    motherName: '',
+    birthPlace: '',
+    scheduleId: null as number | null
 })
 
 // Initialize form when applicant changes
 watch(() => props.applicant, (newVal) => {
     if (newVal) {
         formData.value = {
-            fullName: newVal.name || '',
-            gender: newVal.gender || 'Male',
-            address: 'Jl. Anggrek No. 15, Tangerang Selatan', // Mock default
-            phone: '0812-3456-7890', // Mock default
-            email: 'yoga.amatir@gmail.com', // Mock default
-            birthDate: '2017-03-12', // Mock default
-            level: newVal.program || '', // Map program to level
+            fullName: newVal.applicantName || '',
+            gender: newVal.applicantGender || 'Male',
+            address: newVal.applicantAddress || '',
+            phone: newVal.applicantPhone || '',
+            email: newVal.applicantEmail || '',
+            birthDate: newVal.applicantBirthDate || '',
+            level: props.applicant.program?.title || '',
             username: '',
-            password: ''
+            password: '',
+            fatherName: newVal.applicantFather || '',
+            motherName: newVal.applicantMother || '',
+            birthPlace: newVal.applicantBirthPlace || '',
+            scheduleId: newVal.id
         }
     }
 }, { immediate: true })
+
+const isSubmitting = ref(false)
+const isConfirmOpen = ref(false)
 
 const handleSubmit = () => {
     // Basic validation
@@ -44,7 +58,37 @@ const handleSubmit = () => {
         alert('Please fill in username and password')
         return
     }
-    emit('submit', formData.value)
+
+    // Open Confirmation Modal
+    isConfirmOpen.value = true
+}
+
+const executeCreateAccount = async () => {
+    // Close confirmation modal
+    isConfirmOpen.value = false
+    
+    isSubmitting.value = true
+    try {
+        const response = await fetch('http://localhost:3000/api/students/account', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData.value)
+        })
+
+        if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.message || 'Failed to create account')
+        }
+
+        const data = await response.json()
+        emit('submit', data)
+    } catch (e: any) {
+        alert(e.message)
+    } finally {
+        isSubmitting.value = false
+    }
 }
 </script>
 
@@ -184,12 +228,24 @@ const handleSubmit = () => {
                 </button>
                 <button 
                     @click="handleSubmit"
-                    class="w-full px-4 py-3 rounded-lg bg-[#4FD1C5] text-white text-lg font-medium hover:bg-[#3dbdb0] transition-colors shadow-lg shadow-[#4FD1C5]/30"
+                    :disabled="isSubmitting"
+                    class="w-full px-4 py-3 rounded-lg bg-[#4FD1C5] text-white text-lg font-medium hover:bg-[#3dbdb0] transition-colors shadow-lg shadow-[#4FD1C5]/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Create Account
+                    {{ isSubmitting ? 'Creating...' : 'Create Account' }}
                 </button>
             </div>
         </div>
     </div>
+
+    <ConfirmModal 
+        :is-open="isConfirmOpen"
+        title="Create Student Account"
+        message="Are you sure you want to create this student account? This will create a user login and student profile."
+        confirm-text="Create Account"
+        type="info"
+        :is-loading="isSubmitting"
+        @close="isConfirmOpen = false"
+        @confirm="executeCreateAccount"
+    />
   </div>
 </template>

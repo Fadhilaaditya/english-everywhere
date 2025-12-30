@@ -4,10 +4,11 @@ import { X, Calendar, Clock } from 'lucide-vue-next'
 
 const props = defineProps<{
   isOpen: boolean
+  programName?: string
   appointment?: any
 }>()
 
-const emit = defineEmits(['close', 'approve'])
+const emit = defineEmits(['close', 'approve', 'update', 'delete'])
 
 const formData = ref({
     fullName: '',
@@ -16,68 +17,86 @@ const formData = ref({
     phone: '',
     email: '',
     birthDate: '',
-    level: 'Hi Kids!', // Default mock
-    course: 'Hi Kids!',
+    level: '', 
+    course: '',
     date: '',
     startTime: '',
-    endTime: ''
+    endTime: '',
+    fatherName: '',
+    motherName: '',
+    birthPlace: ''
 })
 
 watch(() => props.appointment, (newVal) => {
     if (newVal) {
-        // Parse date for display (e.g., 2025-09-18)
-        // Set course/time always from appointment
-        formData.value.course = 'Hi Kids!' // Mock default or derive
+        formData.value.course = props.programName || '' 
         formData.value.date = formatDate(newVal.date)
         formData.value.startTime = newVal.time
         formData.value.endTime = calculateEndTime(newVal.time)
 
         if (newVal.status === 'available') {
-            // Empty identity
+            // Edit Mode keys
             formData.value.fullName = ''
             formData.value.gender = 'Male'
             formData.value.address = ''
             formData.value.phone = ''
             formData.value.email = ''
             formData.value.birthDate = ''
-            formData.value.level = 'Hi Kids!'
+            formData.value.level = props.programName || ''
         } else {
-            // Waiting or Taken - fill mock data or real data
-            formData.value.fullName = newVal.name || 'Yoga Amatir'
-            formData.value.gender = 'Male'
-            formData.value.address = 'Jl. Anggrek No. 15, Tangerang Selatan'
-            formData.value.phone = '0812-3456-7890'
-            formData.value.email = 'yoga.amatir@email.com'
-            formData.value.birthDate = '2017-03-12' // 12/03/2017
-            formData.value.level = 'Hi Kids!'
+            // Waiting or Taken - fill real data
+            formData.value.fullName = newVal.applicantName || newVal.name || ''
+            formData.value.gender = newVal.applicantGender || 'Male'
+            formData.value.address = newVal.applicantAddress || ''
+            formData.value.phone = newVal.applicantPhone || ''
+            formData.value.email = newVal.applicantEmail || ''
+            formData.value.birthDate = newVal.applicantBirthDate || ''
+            formData.value.level = props.programName || ''
+            formData.value.fatherName = newVal.applicantFather || ''
+            formData.value.motherName = newVal.applicantMother || ''
+            formData.value.birthPlace = newVal.applicantBirthPlace || ''
         }
     }
 }, { immediate: true })
 
-const isTaken = computed(() => props.appointment?.status === 'taken')
+const isTaken = computed(() => props.appointment?.status === 'taken' || props.appointment?.status === 'booked')
+const isAvailable = computed(() => props.appointment?.status === 'available')
 
 const formatDate = (dateString: string) => {
     if (!dateString) return ''
     const date = new Date(dateString)
-    // Format dd/mm/yyyy
-    return date.toLocaleDateString('en-GB')
+    return date.toLocaleDateString('en-GB') 
 }
+// We need raw date for input
+const rawDate = computed(() => props.appointment?.date || '')
 
 const calculateEndTime = (startTime: string) => {
     if (!startTime) return ''
     const parts = startTime.split(':').map(Number)
     if (parts.length < 2) return startTime
-    
     const [hours, minutes] = parts
-    if (typeof hours === 'undefined') return startTime
     
-    const endHour = hours + 2 // Assume 2 hours duration
+    if (hours === undefined) return startTime
+    
+    const endHour = hours + 2 
     const minStr = typeof minutes !== 'undefined' ? minutes.toString().padStart(2, '0') : '00'
     return `${endHour.toString().padStart(2, '0')}:${minStr}`
 }
 
 const handleApprove = () => {
     emit('approve', formData.value)
+}
+
+const handleUpdate = () => {
+    emit('update', { 
+        id: props.appointment.id,
+        date: rawDate.value, 
+        time: formData.value.startTime
+    })
+}
+
+const handleDelete = () => {
+    emit('delete', props.appointment.id)
 }
 </script>
 
@@ -96,8 +115,49 @@ const handleApprove = () => {
             <X class="w-6 h-6" />
         </button>
 
-        <!-- Form -->
-        <div class="space-y-6 mt-2">
+        <!-- Edit/Delete Mode for Available Slots -->
+        <div v-if="isAvailable" class="space-y-6 mt-2">
+             <h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Schedule</h2>
+             
+             <!-- Course -->
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">Course</label>
+                <div class="w-full px-4 py-3 rounded-lg bg-gray-200 border border-gray-300 text-gray-700">
+                    {{ formData.course }}
+                </div>
+            </div>
+
+             <!-- Time Editing -->
+             <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">Time</label>
+                 <div class="relative">
+                     <input 
+                        v-model="formData.startTime"
+                        type="time"
+                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
+                    />
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-4 pt-4">
+                 <button 
+                    @click="handleDelete"
+                    class="flex-1 py-3 rounded-lg text-white font-medium transition-colors bg-red-500 hover:bg-red-600"
+                >
+                    Delete
+                </button>
+                 <button 
+                    @click="handleUpdate"
+                    class="flex-1 py-3 rounded-lg text-white font-medium transition-colors bg-[#4FD1C5] hover:bg-[#3dbdb0]"
+                >
+                    Save Changes
+                </button>
+            </div>
+        </div>
+
+        <!-- Default Applicant View (Existing) -->
+        <div v-else class="space-y-6 mt-2">
             <!-- Course (Read Only) -->
             <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">Course</label>
@@ -170,6 +230,22 @@ const handleApprove = () => {
                     ></textarea>
                 </div>
 
+                <!-- Parents -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Nama Ayah</label>
+                    <input v-model="formData.fatherName" type="text" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50" />
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Nama Ibu</label>
+                    <input v-model="formData.motherName" type="text" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50" />
+                </div>
+
+                <!-- Birth Place -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Tempat Lahir</label>
+                    <input v-model="formData.birthPlace" type="text" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50" />
+                </div>
+
                 <!-- Phone -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">No Telp</label>
@@ -199,11 +275,10 @@ const handleApprove = () => {
                             type="date"
                             class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
                         />
-                        <!-- Note: Standard date input has its own icon, but design shows custom right icon. styling native date is tricky, stick to native for now or overlay -->
                     </div>
                 </div>
 
-                 <!-- Level (Grayed out in design, assuming read only or disabled look) -->
+                 <!-- Level -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Level</label>
                     <div class="relative">
@@ -212,8 +287,7 @@ const handleApprove = () => {
                              class="w-full px-4 py-2.5 rounded-lg bg-gray-200 border border-gray-300 focus:outline-none text-gray-700 appearance-none"
                              disabled
                         >
-                            <option value="Hi Kids!">Hi Kids!</option>
-                            <option value="Get Smart">Get Smart</option>
+                            <option :value="formData.level">{{ formData.level }}</option>
                         </select>
                         <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
                             <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -229,7 +303,7 @@ const handleApprove = () => {
                 class="w-full py-4 rounded-lg text-white text-xl font-medium transition-colors mt-8 shadow-lg shadow-[#4FD1C5]/30 flex items-center justify-center gap-2"
                  :class="isTaken ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-[#4FD1C5] hover:bg-[#3dbdb0]'"
             >
-                Approve
+                {{ isTaken ? 'Approved' : 'Approve' }}
             </button>
         </div>
     </div>

@@ -1,23 +1,50 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { SquarePen, Trash2, ArrowUpDown, Plus } from 'lucide-vue-next'
 import AccountEditModal from './AccountEditModal.vue'
 
-const accounts = [
-  { id: 1, name: 'Yoga Amatir', username: 'yoga.amatir', dob: '15/04/2003', role: 'Student' },
-  { id: 2, name: 'Budi Santoso', username: 'budi.santoso', dob: '12/11/2005', role: 'Student' },
-  { id: 3, name: 'Siti Aminah', username: 'siti.aminah', dob: '05/03/2006', role: 'Student' },
-  { id: 4, name: 'Kevin Wijaya', username: 'kevin.wijaya', dob: '21/08/2004', role: 'Student' },
-  { id: 5, name: 'Tono Susanto', username: 'tono.susanto', dob: '25/07/1988', role: 'Teacher' },
-  { id: 6, name: 'Maya Sari', username: 'maya.sari', dob: '09/01/2007', role: 'Student' },
-  { id: 7, name: 'Anisa Putri', username: 'anisa.putri', dob: '03/09/1990', role: 'Teacher' },
-  { id: 8, name: 'Agung Pramono', username: 'agung.pramono', dob: '15/04/2003', role: 'Student' },
-]
-
+const accounts = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedAccount = ref<any>(null)
 
+const fetchAccounts = async () => {
+    try {
+        const response = await fetch('http://localhost:3000/api/students')
+        if (response.ok) {
+            const data = await response.json()
+            accounts.value = data.map((item: any) => ({
+                id: item.id,
+                name: item.name,
+                username: item.user ? item.user.username : '-',
+                dob: formatDate(item.birthDate),
+                role: item.user ? capitalize(item.user.role) : 'Student',
+                fullData: item 
+            }))
+        }
+    } catch (e) {
+        console.error('Failed to fetch accounts', e)
+    }
+}
+
+const formatDate = (dateString: string) => {
+    if (!dateString) return '-'
+    const date = new Date(dateString)
+    // Format DD/MM/YYYY
+    return date.toLocaleDateString('en-GB')
+}
+
+const capitalize = (s: string) => {
+    if (typeof s !== 'string') return ''
+    return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+onMounted(() => {
+    fetchAccounts()
+})
+
 const handleEdit = (account: any) => {
+    // For now we edit the basic info we have, or pass fullData if modal supports it
+    // Assuming modal wants basic account info for now based on previous mock
     selectedAccount.value = account
     isModalOpen.value = true
 }
@@ -31,11 +58,13 @@ const handleModalSubmit = (data: any) => {
     console.log('Account saved:', data)
     alert('Account Saved Successfully!')
     isModalOpen.value = false
+    fetchAccounts() // Refresh list
 }
 
 const handleDelete = (id: number) => {
      if(confirm('Are you sure you want to delete this account?')) {
         console.log('Delete account:', id)
+        // Implement delete API call here if needed later
     }
 }
 </script>

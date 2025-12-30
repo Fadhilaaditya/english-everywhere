@@ -1,78 +1,45 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { Calendar, Clock } from 'lucide-vue-next'
 import EventModal from './EventModal.vue'
 
+const props = defineProps({
+  searchQuery: {
+    type: String,
+    default: ''
+  }
+})
+
 const isModalOpen = ref(false)
 const selectedEvent = ref<any>(null)
+const events = ref<any[]>([])
+
+const filteredEvents = computed(() => {
+  if (!props.searchQuery) return events.value
+  const query = props.searchQuery.toLowerCase()
+  return events.value.filter(event => 
+    event.title.toLowerCase().includes(query)
+  )
+})
 
 const openModal = (event: any) => {
   selectedEvent.value = event
   isModalOpen.value = true
 }
 
-const events = [
-  {
-    id: 1,
-    title: 'Spelling Bee Challenge 2025',
-    date: 'January 15, 2025',
-    time: '19.00 - 20.30 WIB',
-    price: '25K',
-    desc: 'A relaxed discussion about New Year goals and how to achieve them, conducted in English.',
-    image: '/class1.svg',
-    category: 'Competition'
-  },
-  {
-    id: 2,
-    title: 'Grammar Clinic: Present Tenses Mastery',
-    date: 'February 27, 2025',
-    time: '14.00 - 16.00 WIB',
-    price: 'Free',
-    desc: 'An intensive workshop focusing on the usage of the three main present tenses that often cause confusion.',
-    image: '/class2.svg',
-    category: 'Workshop'
-  },
-  {
-    id: 3,
-    title: 'TOEFL Simulation Test',
-    date: 'March 10, 2025',
-    time: '09.00 - 12.00 WIB',
-    price: '75K',
-    desc: 'A complete ITP TOEFL simulation exam to measure participants\' readiness.',
-    image: '/class3.svg',
-    category: 'Exam'
-  },
-  {
-    id: 4,
-    title: 'English Movie Night: "The King\'s Speech"',
-    date: 'March 22, 2025',
-    time: '19.30 - 21.30 WIB',
-    price: '35K',
-    desc: 'A movie screening to practice listening skills, followed by a short discussion.',
-    image: '/class4.svg',
-    category: 'Entertainment'
-  },
-  {
-    id: 5,
-    title: 'IELTS Speaking Practice with Native Speaker',
-    date: 'May 5, 2025',
-    time: '10.00 - 12.00 WIB',
-    price: '100K',
-    desc: 'An intensive speaking practice session with a native speaker for IELTS test preparation.',
-    image: '/class1.svg',
-    category: 'Practice'
-  },
-  {
-    id: 6,
-    title: 'Vocabulary Booster: Travel & Culture',
-    date: 'June 25, 2025',
-    time: '19.00 - 21.00 WIB',
-    price: '40K',
-    desc: 'Learning specific vocabulary needed when traveling and interacting with other cultures.',
-    image: '/class2.svg',
-    category: 'Workshop'
-  }
-]
+const fetchEvents = async () => {
+    try {
+        const response = await fetch('http://localhost:3000/api/events/past');
+        if (!response.ok) throw new Error('Failed to fetch events');
+        events.value = await response.json();
+    } catch (error) {
+        console.error('Error fetching events:', error);
+    }
+}
+
+onMounted(() => {
+    fetchEvents();
+})
 </script>
 
 <template>
@@ -81,7 +48,7 @@ const events = [
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div 
-        v-for="event in events" 
+        v-for="event in filteredEvents" 
         :key="event.id" 
         @click="openModal(event)"
         class="bg-gray-100/50 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex gap-5 items-start cursor-pointer hover:ring-2 hover:ring-gray-300/50"

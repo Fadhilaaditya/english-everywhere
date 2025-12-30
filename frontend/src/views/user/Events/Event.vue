@@ -33,10 +33,10 @@ const searchQuery = ref('')
     </div>
 
     <!-- Upcoming Events Component -->
-    <UpcomingEvents />
+    <UpcomingEvents :searchQuery="searchQuery" />
 
     <!-- Past Events Component -->
-    <PastEvent />
+    <PastEvent :searchQuery="searchQuery" />
 
     <!-- Decorative Hexagons (Left Side) -->
     <img src="/hex.svg" class="absolute bottom-20 left-10 -translate-x-1/4 hidden lg:block pointer-events-none w-[150px] h-[150px]" alt="Hexagon Outline" />

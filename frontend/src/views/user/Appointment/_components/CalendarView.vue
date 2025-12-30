@@ -1,38 +1,64 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
 import FormAppointmentModal from './FormAppointmentModal.vue'
+import Toast from '@/components/Toast.vue'
+
+const route = useRoute()
+const programId = computed(() => route.query.programId)
 
 const currentDate = ref(new Date())
 const isModalOpen = ref(false)
-const selectedDate = ref('')
-const selectedTime = ref('')
+const selectedSchedule = ref<any>(null)
 
-// Mock events data matching the design
-const events: Record<string, { type: 'API_AVAILABLE' | 'AVAILABLE' | 'PENDING', time: string }[]> = {
-  '2025-09-08': [
-    { type: 'AVAILABLE', time: '9:00' },
-    { type: 'AVAILABLE', time: '13:00' }
-  ],
-  '2025-09-11': [
-    { type: 'PENDING', time: '13:00' },
-    { type: 'PENDING', time: '13:00' }
-  ],
-  '2025-09-17': [
-      { type: 'PENDING', time: '21:00' }
-  ],
-  '2025-09-18': [
-      { type: 'AVAILABLE', time: '13:00' },
-      { type: 'PENDING', time: '19:00' }
-  ],
-  '2025-09-24': [
-      { type: 'AVAILABLE', time: '13:00' }
-  ],
-  '2025-09-21': [
-       { type: 'PENDING', time: '13:00' },
-       { type: 'PENDING', time: '13:00' }
-  ]
+// Toast state
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
+const showToastNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    toastMessage.value = message
+    toastType.value = type
+    showToast.value = true
 }
+
+// Events state
+const events = ref<Record<string, { id: number, type: 'AVAILABLE' | 'PENDING' | 'BOOKED', time: string, name?: string }[]>>({})
+
+const fetchSchedules = async () => {
+  if (!programId.value) return;
+
+  try {
+    const response = await fetch(`http://localhost:3000/api/programs/${programId.value}/schedules?t=${new Date().getTime()}`)
+    if (!response.ok) throw new Error('Failed to fetch schedules')
+    const data = await response.json()
+    
+    // Transform API data to events object matching component structure
+    // API returns: [{ date: '2025-09-08', time: '09:00', status: 'AVAILABLE' }]
+    const newEvents: any = {}
+    data.forEach((schedule: any) => {
+      const status = schedule.status ? schedule.status.trim().toUpperCase() : ''
+      if (status === 'ACCEPTED') return
+
+      if (!newEvents[schedule.date]) {
+        newEvents[schedule.date] = []
+      }
+      newEvents[schedule.date].push({
+        id: schedule.id,
+        type: schedule.status, 
+        time: schedule.time,
+        name: schedule.applicantName
+      })
+    })
+    events.value = newEvents
+  } catch (error) {
+    console.error('Error fetching schedules:', error)
+  }
+}
+
+onMounted(() => {
+  fetchSchedules()
+})
 
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
@@ -109,17 +135,41 @@ const goToToday = () => {
     currentDate.value = new Date()
 }
 
-const handleEventClick = (date: string, time: string, type: string) => {
-    if (type === 'AVAILABLE') {
-        selectedDate.value = date
-        selectedTime.value = time
+const handleEventClick = (date: string, time: string, type: string, id: number) => {
+    // Allow clicking AVAILABLE and BOOKED (for read-only view)
+    if (type === 'AVAILABLE' || type === 'BOOKED') {
+        selectedSchedule.value = {
+            id: id,
+            date: date,
+            time: time,
+            programName: 'Program', // ideally fetch program name too or pass it
+            status: type // Pass status to modal to handle read-only state
+        }
         isModalOpen.value = true
     }
 }
 
-const handleModalSubmit = (data: any) => {
-    console.log('Appointment Data:', data)
-    alert('Appointment booked successfully! (Mock)')
+const handleModalSubmit = async (payload: any) => {
+    if (!programId.value || !selectedSchedule.value) return
+
+    try {
+        const response = await fetch(`http://localhost:3000/api/programs/${programId.value}/schedules/${selectedSchedule.value.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+
+        if (!response.ok) {
+            const err = await response.json()
+            throw new Error(err.message || 'Failed to book')
+        }
+
+        showToastNotification('Registration successful! Waiting for admin approval.')
+        isModalOpen.value = false
+        fetchSchedules() // Refresh calendar
+    } catch (e: any) {
+        showToastNotification(e.message, 'error')
+    }
 }
 </script>
 
@@ -186,14 +236,17 @@ const handleModalSubmit = (data: any) => {
                     <div 
                         v-for="(event, eIndex) in events[day.fullDate] || []" 
                         :key="eIndex"
-                        @click.stop="handleEventClick(day.fullDate, event.time, event.type)"
+                        @click.stop="handleEventClick(day.fullDate, event.time, event.type, event.id)"
                         class="text-[10px] px-2 py-1 rounded-md font-medium text-white shadow-sm transition-opacity"
                         :class="{
                             'bg-[#00B027] hover:opacity-90 cursor-pointer': event.type === 'AVAILABLE',
-                            'bg-[#EB7A52] cursor-not-allowed': event.type === 'PENDING'
+                            'bg-[#EB7A52] cursor-not-allowed': event.type === 'PENDING',
+                            'bg-[#BCC1C9] hover:opacity-90 cursor-pointer': event.type === 'BOOKED'
                         }"
                     >
-                        {{ event.time }} ({{ event.type === 'AVAILABLE' ? 'Available' : 'Pending' }})
+                        {{ event.time }} 
+                        <span v-if="event.name">({{ event.name }})</span>
+                        <span v-else>({{ event.type === 'AVAILABLE' ? 'Available' : event.type === 'PENDING' ? 'Waiting' : 'Booked' }})</span>
                     </div>
                 </div>
             </div>
@@ -203,10 +256,16 @@ const handleModalSubmit = (data: any) => {
     <!-- Modal -->
     <FormAppointmentModal 
         :is-open="isModalOpen"
-        :selected-date="selectedDate"
-        :selected-time="selectedTime"
+        :schedule="selectedSchedule"
         @close="isModalOpen = false"
         @submit="handleModalSubmit"
+    />
+
+    <Toast 
+        :show="showToast" 
+        :message="toastMessage" 
+        :type="toastType"
+        @close="showToast = false"
     />
   </div>
 </template>

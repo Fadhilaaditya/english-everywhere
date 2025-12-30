@@ -1,9 +1,31 @@
 <script setup lang="ts">
-const stats = [
-  { label: 'Total Events', value: '10' },
-  { label: 'Upcoming Events', value: '4' },
-  { label: 'Past Events', value: '6' },
-]
+import { ref, onMounted } from 'vue'
+
+const stats = ref([
+  { label: 'Total Events', value: 0 },
+  { label: 'Upcoming Events', value: 0 },
+  { label: 'Past Events', value: 0 },
+])
+
+const fetchSummary = async () => {
+    try {
+        const response = await fetch('http://localhost:3000/api/events/summary');
+        if (!response.ok) throw new Error('Failed to fetch summary');
+        const data = await response.json();
+        
+        stats.value = [
+            { label: 'Total Events', value: data.total },
+            { label: 'Upcoming Events', value: data.upcoming },
+            { label: 'Past Events', value: data.past },
+        ]
+    } catch (error) {
+        console.error('Error fetching summary:', error);
+    }
+}
+
+onMounted(() => {
+    fetchSummary();
+})
 </script>
 
 <template>

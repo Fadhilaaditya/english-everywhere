@@ -1,137 +1,89 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Pencil, Trash2, Plus } from 'lucide-vue-next'
 import EventModal from './EventModal.vue'
-import EventAlert from './EventAlert.vue'
+import Toast from '../../../../components/Toast.vue'
 
-const events = ref([
-    {
-        id: 1,
-        title: 'English Playdate: Cooking with Friends',
-        price: '25K',
-        date: '2025-01-15', // YYYY-MM-DD for easier comparison
-        startDate: '15/01/2025',
-        time: '19.00 - 20.00 WIB'
-    },
-    {
-        id: 2,
-        title: 'Holiday Prep: Christmas Carol Karaoke',
-        price: '25K',
-        date: '2025-01-15',
-        startDate: '15/01/2025',
-        time: '19.00 - 20.00 WIB'
-    },
-    {
-        id: 3,
-        title: 'Speaking Club: New Year Resolution',
-        price: '25K',
-        date: '2025-01-15',
-        startDate: '15/01/2025',
-        time: '19.00 - 20.00 WIB'
-    },
-    {
-        id: 4,
-        title: 'Speeling Bee Challange 2025',
-        price: '25K',
-        date: '2025-01-15', 
-        startDate: '15/01/2025',
-        time: '19.00 - 20.00 WIB',
-        isPast: true
-    },
-    {
-        id: 5,
-        title: 'Grammar Clinic: Present Tenses Mastery',
-        price: '25K',
-        date: '2025-01-15',
-        startDate: '15/01/2025',
-        time: '19.00 - 20.00 WIB',
-        isPast: true
-    },
-    {
-        id: 6,
-        title: 'TOEFL Simulation Test',
-        price: '25K',
-        date: '2025-01-15',
-        startDate: '15/01/2025',
-        time: '19.00 - 20.00 WIB',
-        isPast: true
-    },
-    {
-        id: 7,
-        title: "English Movie Night: The King's Speech",
-        price: '25K',
-        date: '2025-01-15',
-        startDate: '15/01/2025',
-        time: '19.00 - 20.00 WIB',
-        isPast: true
-    },
-    {
-        id: 8,
-        title: 'IELTS Speaking Practice with Native Speaker',
-        price: '25K',
-        date: '2025-01-15',
-        startDate: '15/01/2025',
-        time: '19.00 - 20.00 WIB',
-        isPast: true
-    }
-])
-
+const events = ref<any[]>([])
 const isModalOpen = ref(false)
-const selectedEvent = ref(null as any)
+const selectedEvent = ref(null)
 
-// Alert State
-const isAlertOpen = ref(false)
-const alertType = ref<'create' | 'update' | 'delete'>('create')
-const pendingData = ref<any>(null)
-const pendingDeleteId = ref<number | null>(null)
+// Toast State
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
 
-const handleCreateEvent = () => {
+const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    toastMessage.value = message
+    toastType.value = type
+    showToast.value = true
+}
+
+const fetchEvents = async () => {
+  try {
+    const response = await fetch('http://localhost:3000/api/events')
+    if (!response.ok) throw new Error('Failed to fetch events')
+    events.value = await response.json()
+  } catch (error) {
+    console.error('Error fetching events:', error)
+  }
+}
+
+const handleCreate = () => {
     selectedEvent.value = null
     isModalOpen.value = true
 }
 
-
-const handleEditEvent = (event: any) => {
+const handleEdit = (event: any) => {
     selectedEvent.value = event
     isModalOpen.value = true
 }
 
-const handleDeleteClick = (id: number) => {
-    pendingDeleteId.value = id
-    alertType.value = 'delete'
-    isAlertOpen.value = true
-}
+const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this event?')) return
 
-const handleModalSubmit = (data: any) => {
-    pendingData.value = data
-    alertType.value = selectedEvent.value ? 'update' : 'create'
-    isModalOpen.value = false
-    isAlertOpen.value = true
-}
-
-const handleAlertConfirm = () => {
-    if (alertType.value === 'create') {
-        const newId = Math.max(...events.value.map(e => e.id)) + 1
-        events.value.unshift({
-            id: newId,
-            ...pendingData.value,
-            startDate: pendingData.value.date ? pendingData.value.date.split('-').reverse().join('/') : '15/01/2025', // Mock logic
+    try {
+        const response = await fetch(`http://localhost:3000/api/events/${id}`, {
+            method: 'DELETE'
         })
-    } else if (alertType.value === 'update' && selectedEvent.value) {
-        // Find and update
-        const index = events.value.findIndex(e => e.id === selectedEvent.value.id)
-        if (index !== -1) {
-            events.value[index] = { ...events.value[index], ...pendingData.value }
-        }
-    } else if (alertType.value === 'delete' && pendingDeleteId.value) {
-        events.value = events.value.filter(e => e.id !== pendingDeleteId.value)
+        if (!response.ok) throw new Error('Failed to delete')
+        
+        await fetchEvents()
+        showNotification('Event deleted successfully', 'success')
+    } catch (error) {
+        console.error('Error deleting event:', error)
+        showNotification('Failed to delete event', 'error')
     }
-
-    isAlertOpen.value = false
-    pendingData.value = null
-    pendingDeleteId.value = null
-    selectedEvent.value = null
 }
+
+const handleSuccess = (message: string) => {
+    isModalOpen.value = false
+    fetchEvents()
+    showNotification(message, 'success')
+}
+
+const formatDate = (dateString: string) => {
+    if (!dateString) return '-'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-GB')
+}
+
+const formatTime = (timeString: string) => {
+     if (!timeString) return '-'
+    // If it's a full ISO string, extract time
+    if (timeString.includes('T')) {
+        return new Date(timeString).toLocaleTimeString('en-GB', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        })
+    }
+    // If it's already HH:mm or HH:mm:ss, return as is (trimmed to HH:mm)
+    return timeString.substring(0, 5)
+}
+
+onMounted(() => {
+    fetchEvents()
+})
 </script>
 
 <template>
@@ -139,10 +91,10 @@ const handleAlertConfirm = () => {
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-lg font-bold text-gray-900">List Events</h2>
         <button 
-            @click="handleCreateEvent"
+            @click="handleCreate"
             class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
-            Create Events
+            Create Event
             <Plus class="w-4 h-4" />
         </button>
     </div>
@@ -151,10 +103,10 @@ const handleAlertConfirm = () => {
         <table class="w-full">
             <thead>
                 <tr class="border-b border-gray-100 text-left">
-                    <th class="py-4 px-4 font-medium text-gray-900 w-1/3">Title</th>
-                    <th class="py-4 px-4 font-medium text-gray-900">Price</th>
+                    <th class="py-4 px-4 font-medium text-gray-900 w-1/4">Title</th>
                     <th class="py-4 px-4 font-medium text-gray-900">Date</th>
                     <th class="py-4 px-4 font-medium text-gray-900">Time</th>
+                    <th class="py-4 px-4 font-medium text-gray-900">Location</th>
                     <th class="py-4 px-4 font-medium text-gray-900 text-center">Action</th>
                 </tr>
             </thead>
@@ -162,26 +114,23 @@ const handleAlertConfirm = () => {
                 <tr 
                     v-for="event in events" 
                     :key="event.id"
-                    class="border-b border-gray-100 last:border-b-0 transition-colors"
-                    :class="{'bg-[#D9D9D9]': event.isPast, 'hover:bg-gray-50': !event.isPast}"
+                    class="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors"
                 >
-                    <td class="py-4 px-4 text-gray-700">{{ event.title }}</td>
-                    <td class="py-4 px-4 text-gray-700">{{ event.price }}</td>
-                    <td class="py-4 px-4 text-gray-700">{{ event.startDate }}</td>
-                    <td class="py-4 px-4 text-gray-700">{{ event.time }}</td>
+                    <td class="py-4 px-4 text-gray-700 font-medium">{{ event.title }}</td>
+                    <td class="py-4 px-4 text-gray-700">{{ formatDate(event.date) }}</td>
+                    <td class="py-4 px-4 text-gray-700">{{ formatTime(event.time) }}</td>
+                    <td class="py-4 px-4 text-gray-700">{{ event.location }}</td>
                     <td class="py-4 px-4">
                         <div class="flex items-center justify-center gap-3">
                              <button 
-                                @click="handleEditEvent(event)"
-                                class="p-1.5 rounded-md transition-colors"
-                                :class="event.isPast ? 'text-gray-500 hover:bg-gray-200' : 'text-[#4FD1C5] border border-[#4FD1C5] hover:bg-[#4FD1C5]/10'"
+                                @click="handleEdit(event)"
+                                class="p-1.5 rounded-md text-[#4FD1C5] border border-[#4FD1C5] hover:bg-[#4FD1C5]/10 transition-colors"
                             >
                                 <Pencil class="w-4 h-4" />
                             </button>
                             <button 
-                                @click="handleDeleteClick(event.id)"
-                                class="p-1.5 rounded-md transition-colors"
-                                :class="event.isPast ? 'text-gray-500 hover:bg-gray-200' : 'text-red-500 border border-red-500 hover:bg-red-50'"
+                                @click="handleDelete(event.id)"
+                                class="p-1.5 rounded-md text-red-500 border border-red-500 hover:bg-red-50 transition-colors"
                             >
                                 <Trash2 class="w-4 h-4" />
                             </button>
@@ -192,18 +141,20 @@ const handleAlertConfirm = () => {
         </table>
     </div>
 
+    <!-- Modals -->
     <EventModal 
+        v-if="isModalOpen"
         :is-open="isModalOpen"
-        :event="selectedEvent"
+        :event-data="selectedEvent"
         @close="isModalOpen = false"
-        @submit="handleModalSubmit"
+        @success="handleSuccess"
     />
 
-    <EventAlert 
-        :is-open="isAlertOpen"
-        :type="alertType"
-        @close="isAlertOpen = false"
-        @confirm="handleAlertConfirm"
+    <Toast 
+        :show="showToast"
+        :message="toastMessage"
+        :type="toastType"
+        @close="showToast = false"
     />
   </div>
 </template>

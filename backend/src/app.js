@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const exampleRoutes = require('./routes/exampleRoutes');
 const authRoutes = require('./routes/authRoutes');
+const eventRoutes = require('./routes/event.routes');
 
 const app = express();
 
@@ -13,8 +13,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/example', exampleRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
+require('./routes/program.routes')(app);
+require('./routes/article.routes')(app);
+require('./routes/student.routes')(app);
+require('./routes/user.routes')(app);
 
 // Root Route
 app.get('/', (req, res) => {

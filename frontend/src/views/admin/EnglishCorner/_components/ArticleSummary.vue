@@ -1,5 +1,22 @@
 <script setup lang="ts">
-const totalArticles = 5
+import { ref, onMounted } from 'vue'
+
+const totalArticles = ref(0)
+
+const fetchArticleCount = async () => {
+    try {
+        const response = await fetch('http://localhost:3000/api/articles')
+        if (!response.ok) throw new Error('Failed to fetch articles')
+        const data = await response.json()
+        totalArticles.value = data.length
+    } catch (error) {
+        console.error('Error fetching article count:', error)
+    }
+}
+
+onMounted(() => {
+    fetchArticleCount()
+})
 </script>
 
 <template>
