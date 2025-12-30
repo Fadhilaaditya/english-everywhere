@@ -1,5 +1,31 @@
 <script setup lang="ts">
-const totalApplicants = 2
+import { ref, onMounted, onUnmounted } from 'vue'
+
+const totalApplicants = ref(0)
+
+const fetchApplicantsCount = async () => {
+    try {
+        const response = await fetch('http://localhost:3000/api/programs/booked/all')
+        if (response.ok) {
+            const data = await response.json()
+            totalApplicants.value = data.length
+        }
+    } catch (e) {
+        console.error('Failed to fetch applicant count', e)
+    }
+}
+
+let pollingInterval: any = null
+
+onMounted(() => {
+    fetchApplicantsCount()
+    // Poll every 1 seconds
+    pollingInterval = setInterval(fetchApplicantsCount, 1000)
+})
+
+onUnmounted(() => {
+    if (pollingInterval) clearInterval(pollingInterval)
+})
 </script>
 
 <template>

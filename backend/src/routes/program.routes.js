@@ -21,5 +21,8 @@ module.exports = app => {
     // Delete a Schedule
     router.delete("/:id/schedules/:scheduleId", programs.deleteSchedule);
 
+    // Revert/Unbook Schedule
+    router.put("/schedules/:scheduleId/revert", programs.revertSchedule);
+
     app.use('/api/programs', router);
 };

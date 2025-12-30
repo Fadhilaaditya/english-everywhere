@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { X, Calendar, Clock } from 'lucide-vue-next'
+import ConfirmModal from './ConfirmModal.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -14,6 +15,7 @@ const emit = defineEmits(['close', 'submit'])
 const date = ref('')
 const time = ref('')
 const isLoading = ref(false)
+const isConfirmModalOpen = ref(false)
 
 // Populate date from prop when modal opens
 import { watch } from 'vue'
@@ -25,7 +27,12 @@ watch(() => props.isOpen, (newVal) => {
     }
 })
 
-const handleSubmit = async () => {
+const handleCreateClick = () => {
+    if (!props.programId || !date.value || !time.value) return
+    isConfirmModalOpen.value = true
+}
+
+const executeCreate = async () => {
     if (!props.programId || !date.value || !time.value) return
     
     isLoading.value = true
@@ -48,6 +55,7 @@ const handleSubmit = async () => {
         
         emit('submit')
         emit('close')
+        isConfirmModalOpen.value = false
         
         // Reset form
         date.value = ''
@@ -115,7 +123,7 @@ const handleSubmit = async () => {
             
             <!-- Submit Button -->
             <button 
-                @click="handleSubmit"
+                @click="handleCreateClick"
                 :disabled="isLoading || !date || !time"
                 class="w-full py-3 rounded-lg text-white font-medium transition-colors bg-[#4FD1C5] hover:bg-[#3dbdb0] disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -124,4 +132,14 @@ const handleSubmit = async () => {
         </div>
     </div>
   </div>
+
+    <ConfirmModal 
+        :is-open="isConfirmModalOpen"
+        title="Confirm Schedule Creation"
+        message="Are you sure you want to create this schedule?"
+        confirm-text="Create Schedule"
+        :is-loading="isLoading"
+        @close="isConfirmModalOpen = false"
+        @confirm="executeCreate"
+    />
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { X, Calendar, Clock, ChevronDown } from 'lucide-vue-next'
+import ConfirmationModal from './ConfirmationModal.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -28,6 +29,24 @@ const formData = ref({
 })
 
 const isSubmitting = ref(false)
+const emailError = ref('')
+const isConfirmOpen = ref(false)
+const errors = ref<Record<string, string>>({})
+
+const validateEmail = () => {
+    if (!formData.value.email) {
+        emailError.value = ''
+        return true
+    }
+    
+    if (!formData.value.email.endsWith('@gmail.com')) {
+        emailError.value = 'Email must contain @gmail.com'
+        return false
+    }
+    
+    emailError.value = ''
+    return true
+}
 
 const formattedDate = computed(() => {
     if (!props.schedule?.date) return ''
@@ -36,7 +55,31 @@ const formattedDate = computed(() => {
 
 const isBooked = computed(() => props.schedule?.status === 'BOOKED')
 
-const handleSubmit = async () => {
+const validateForm = () => {
+    errors.value = {}
+    let isValid = true
+    const required = ['fullName', 'gender', 'address', 'fatherName', 'motherName', 'birthPlace', 'birthDate', 'phone', 'email']
+    
+    required.forEach(field => {
+        if (!formData.value[field as keyof typeof formData.value]) {
+            errors.value[field] = 'Wajib diisi'
+            if (field === 'email') emailError.value = 'Wajib diisi'
+            isValid = false
+        }
+    })
+
+    if (!validateEmail()) isValid = false
+    
+    return isValid
+}
+
+const handleSubmit = () => {
+    if (!validateForm()) return
+    isConfirmOpen.value = true
+}
+
+const processSubmission = () => {
+    isConfirmOpen.value = false
     isSubmitting.value = true
     try {
         // Prepare payload mapping to backend fields
@@ -126,8 +169,10 @@ watch(() => props.schedule, () => {
                         v-model="formData.fullName"
                         type="text"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all placeholder:text-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
+                        :class="{ 'border-red-500 focus:ring-red-200': errors.fullName }"
                         :disabled="isBooked"
                     />
+                    <p v-if="errors.fullName" class="text-red-500 text-xs mt-1">{{ errors.fullName }}</p>
                 </div>
 
                 <!-- Gender -->
@@ -137,6 +182,7 @@ watch(() => props.schedule, () => {
                         <select 
                             v-model="formData.gender"
                             class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all bg-white appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                            :class="{ 'border-red-500 focus:ring-red-200': errors.gender }"
                             :disabled="isBooked"
                         >
                             <option value="Male">Laki-laki</option>
@@ -144,6 +190,7 @@ watch(() => props.schedule, () => {
                         </select>
                         <ChevronDown class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                     </div>
+                    <p v-if="errors.gender" class="text-red-500 text-xs mt-1">{{ errors.gender }}</p>
                 </div>
             </div>
 
@@ -154,8 +201,10 @@ watch(() => props.schedule, () => {
                     v-model="formData.address"
                     rows="3"
                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all resize-none placeholder:text-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
+                    :class="{ 'border-red-500 focus:ring-red-200': errors.address }"
                     :disabled="isBooked"
                 ></textarea>
+                <p v-if="errors.address" class="text-red-500 text-xs mt-1">{{ errors.address }}</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -166,7 +215,9 @@ watch(() => props.schedule, () => {
                         v-model="formData.fatherName"
                         type="text"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        :class="{ 'border-red-500 focus:ring-red-200': errors.fatherName }"
                     />
+                    <p v-if="errors.fatherName" class="text-red-500 text-xs mt-1">{{ errors.fatherName }}</p>
                 </div>
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Nama Ibu/Wali</label>
@@ -174,7 +225,9 @@ watch(() => props.schedule, () => {
                         v-model="formData.motherName"
                         type="text"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        :class="{ 'border-red-500 focus:ring-red-200': errors.motherName }"
                     />
+                    <p v-if="errors.motherName" class="text-red-500 text-xs mt-1">{{ errors.motherName }}</p>
                 </div>
 
                 <!-- Birth Info -->
@@ -184,7 +237,9 @@ watch(() => props.schedule, () => {
                         v-model="formData.birthPlace"
                         type="text"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        :class="{ 'border-red-500 focus:ring-red-200': errors.birthPlace }"
                     />
+                    <p v-if="errors.birthPlace" class="text-red-500 text-xs mt-1">{{ errors.birthPlace }}</p>
                 </div>
                  <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Tanggal Lahir</label>
@@ -193,9 +248,11 @@ watch(() => props.schedule, () => {
                             v-model="formData.birthDate"
                             type="date"
                             class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
+                            :class="{ 'border-red-500 focus:ring-red-200': errors.birthDate }"
                             :disabled="isBooked"
                         />
                     </div>
+                    <p v-if="errors.birthDate" class="text-red-500 text-xs mt-1">{{ errors.birthDate }}</p>
                 </div>
 
                  <!-- Contact -->
@@ -203,9 +260,11 @@ watch(() => props.schedule, () => {
                     <label class="block text-sm font-medium text-gray-700">No Telp</label>
                     <input 
                         v-model="formData.phone"
-                        type="text"
+                        type="number"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        :class="{ 'border-red-500 focus:ring-red-200': errors.phone }"
                     />
+                    <p v-if="errors.phone" class="text-red-500 text-xs mt-1">{{ errors.phone }}</p>
                 </div>
                  <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Email</label>
@@ -213,7 +272,10 @@ watch(() => props.schedule, () => {
                         v-model="formData.email"
                         type="email"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all"
+                        :class="{ 'border-red-500 focus:ring-red-200': emailError }"
+                        @blur="validateEmail"
                     />
+                     <p v-if="emailError" class="text-red-500 text-xs mt-1">{{ emailError }}</p>
                 </div>
             </div>
 
@@ -227,5 +289,26 @@ watch(() => props.schedule, () => {
             </button>
         </div>
     </div>
+    
+    <ConfirmationModal 
+        :is-open="isConfirmOpen" 
+        @confirm="processSubmission" 
+        @cancel="isConfirmOpen = false" 
+    />
   </div>
 </template>
+
+<style scoped>
+/* Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+</style>

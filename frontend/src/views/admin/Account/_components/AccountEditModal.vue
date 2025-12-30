@@ -11,6 +11,7 @@ const emit = defineEmits(['close', 'submit'])
 
 const isEditMode = computed(() => !!props.account && Object.keys(props.account).length > 0)
 const title = computed(() => isEditMode.value ? 'Edit Account' : 'Create Teacher Account')
+const isLoading = ref(false)
 
 const formData = ref({
     fullName: '',
@@ -19,28 +20,29 @@ const formData = ref({
     phone: '',
     email: '',
     birthDate: '',
-    level: '',
+    level: 'Intermediate (B1)',
     username: '',
     password: ''
 })
 
 // Initialize form when account changes
 watch(() => props.account, (newVal) => {
-    if (newVal) {
-        // Edit mode - Mock filling data based on the account passed
+    if (newVal && newVal.fullData) {
+        // Edit mode - Fill data from DB
+        const data = newVal.fullData
         formData.value = {
-            fullName: newVal.name || 'Sarah Gunawan',
-            gender: 'Female', // Mock
-            address: 'Jl. Cendrawasih No. 22, Kel. Petojo Utara, Kec. Gambir, Kota Jakarta Pusat, DKI Jakarta 10160',
-            phone: '+62 811 2233 4455',
-            email: 'sarah.gunawan@gmail.com',
-            birthDate: '1995-02-10', // 10/02/1995
-            level: 'Intermediate (B1)',
-            username: newVal.username || '',
-            password: 'password' // Mock
+            fullName: data.name || '',
+            gender: data.gender || 'Female',
+            address: data.address || '',
+            phone: data.phoneNumber || '',
+            email: data.email || '',
+            birthDate: data.birthDate || '',
+            level: 'Intermediate (B1)', // Assuming level isn't in DB yet? Or mapping needed
+            username: data.user ? data.user.username : '',
+            password: '' // Don't fill password
         }
     } else {
-        // Create mode - Reset or default
+        // Create mode or Reset
         formData.value = {
             fullName: '',
             gender: 'Female',
@@ -55,8 +57,29 @@ watch(() => props.account, (newVal) => {
     }
 }, { immediate: true })
 
-const handleSubmit = () => {
-    emit('submit', formData.value)
+const handleSubmit = async () => {
+    if (!props.account) return // Handle create logic later if needed
+    
+    isLoading.value = true
+    try {
+        const response = await fetch(`http://localhost:3000/api/students/${props.account.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData.value)
+        })
+
+        if (!response.ok) throw new Error('Failed to update account')
+        
+        emit('submit', formData.value)
+        emit('close')
+    } catch (e) {
+        console.error('Error updating account:', e)
+        alert('Failed to update account')
+    } finally {
+        isLoading.value = false
+    }
 }
 </script>
 
@@ -203,9 +226,10 @@ const handleSubmit = () => {
                 </button>
                 <button 
                     @click="handleSubmit"
-                    class="w-full px-4 py-3 rounded-lg bg-[#4FD1C5] text-white text-lg font-medium hover:bg-[#3dbdb0] transition-colors shadow-lg shadow-[#4FD1C5]/30"
+                    :disabled="isLoading"
+                    class="w-full px-4 py-3 rounded-lg bg-[#4FD1C5] text-white text-lg font-medium hover:bg-[#3dbdb0] transition-colors shadow-lg shadow-[#4FD1C5]/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {{ isEditMode ? 'Save Changes' : 'Create Account' }}
+                    {{ isLoading ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Create Account') }}
                 </button>
             </div>
         </div>

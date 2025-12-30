@@ -82,3 +82,47 @@ exports.findAll = (req, res) => {
             });
         });
 };
+
+// Update a Student
+exports.update = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const student = await Student.findByPk(id, { include: ["user"] });
+        if (!student) {
+            return res.status(404).send({ message: "Student not found" });
+        }
+
+        // Update Student fields
+        await student.update({
+            name: req.body.fullName,
+            gender: req.body.gender,
+            address: req.body.address,
+            phoneNumber: req.body.phone,
+            email: req.body.email,
+            birthDate: req.body.birthDate
+            // Add other fields as necessary
+        });
+
+        // Update User fields if associated
+        if (student.user) {
+            const userUpdateData = {
+                fullName: req.body.fullName,
+                username: req.body.username
+            };
+
+            // Only update password if provided and not empty
+            if (req.body.password && req.body.password.trim() !== '') {
+                userUpdateData.password = await bcrypt.hash(req.body.password, 8);
+            }
+
+            await student.user.update(userUpdateData);
+        }
+
+        res.send({ message: "Student was updated successfully." });
+    } catch (err) {
+        res.status(500).send({
+            message: "Error updating Student with id=" + id
+        });
+    }
+};

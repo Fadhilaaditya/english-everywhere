@@ -181,3 +181,36 @@ exports.deleteSchedule = (req, res) => {
             });
         });
 };
+
+// Revert a Schedule (Unbook)
+exports.revertSchedule = async (req, res) => {
+    const id = req.params.scheduleId;
+
+    try {
+        const schedule = await db.ProgramSchedule.findByPk(id);
+
+        if (!schedule) {
+            return res.status(404).send({ message: "Schedule not found." });
+        }
+
+        // Reset fields to make it available again
+        await schedule.update({
+            status: 'AVAILABLE',
+            applicantName: null,
+            applicantGender: null,
+            applicantAddress: null,
+            applicantFather: null,
+            applicantMother: null,
+            applicantBirthPlace: null,
+            applicantBirthDate: null,
+            applicantPhone: null,
+            applicantEmail: null
+        });
+
+        res.send({ message: "Schedule status reverted to AVAILABLE successfully." });
+    } catch (err) {
+        res.status(500).send({
+            message: "Error reverting Schedule with id=" + id
+        });
+    }
+};

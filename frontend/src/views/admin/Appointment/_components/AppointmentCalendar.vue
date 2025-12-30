@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import AppointmentModal from './AppointmentModal.vue'
 import CreateScheduleModal from './CreateScheduleModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
+import DayDetailsModal from './DayDetailsModal.vue'
 import Toast from '@/components/Toast.vue'
 
 // --- State Management ---
@@ -15,6 +16,9 @@ const isConfirmOpen = ref(false)
 const isProcessing = ref(false)
 const isModalOpen = ref(false)
 const isCreateModalOpen = ref(false)
+const isDayModalOpen = ref(false)
+const selectedDayDate = ref<Date | string>(new Date())
+const selectedDayEvents = ref<any[]>([])
 
 // Confirm Modal State
 const confirmModalState = ref({
@@ -39,6 +43,13 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
     toastMessage.value = message
     toastType.value = type
     showToast.value = true
+}
+
+// --- Event Handlers ---
+const openDayModal = (date: Date, events: any[]) => {
+    selectedDayDate.value = date
+    selectedDayEvents.value = events
+    isDayModalOpen.value = true
 }
 
 // --- API Actions ---
@@ -197,6 +208,32 @@ const executeUpdate = async (data: any) => {
     }
 }
 
+const handleModalReject = (id: number) => {
+    confirmModalState.value = {
+        title: 'Reject Appointment',
+        message: 'Are you sure you want to reject this appointment? The schedule will become AVAILABLE again.',
+        confirmText: 'Reject',
+        type: 'danger',
+        action: () => executeReject(id)
+    }
+    isConfirmOpen.value = true
+}
+
+const executeReject = async (id: number) => {
+    try {
+        const response = await fetch(`http://localhost:3000/api/programs/schedules/${id}/revert`, {
+            method: 'PUT'
+        })
+        if (!response.ok) throw new Error('Failed to reject application')
+        
+        showToastNotification('Application Rejected Successfully!')
+        isModalOpen.value = false
+        fetchSchedules()
+    } catch (e: any) {
+        throw e
+    }
+}
+
 const handleConfirmAction = async () => {
     if (!confirmModalState.value.action) return
     
@@ -255,8 +292,16 @@ const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFull
 const goToToday = () => { currentDate.value = new Date() }
 
 // --- Lifecycle & Watchers ---
+let pollingInterval: any = null
+
 onMounted(() => {
     fetchPrograms()
+    // Poll every 3 seconds for real-time updates
+    pollingInterval = setInterval(fetchSchedules, 3000)
+})
+
+onUnmounted(() => {
+    if (pollingInterval) clearInterval(pollingInterval)
 })
 
 watch(selectedCourseId, () => {
@@ -319,7 +364,7 @@ watch(selectedCourseId, () => {
                 <span class="text-lg font-medium text-gray-900 block mb-2">{{ day.date.getDate() }}</span>
                 <div class="space-y-1.5">
                     <button 
-                        v-for="app in getAppointmentsForDay(day.date)" 
+                        v-for="app in getAppointmentsForDay(day.date).slice(0, 1)" 
                         :key="app.id"
                         @click.stop="handleAppointmentClick(app)"
                         class="w-full text-left px-2 py-1 rounded text-xs font-medium text-white shadow-sm hover:opacity-80 transition-opacity"
@@ -331,6 +376,14 @@ watch(selectedCourseId, () => {
                     >
                         {{ app.time }} {{ app.name ? `(${app.name})` : '' }}
                     </button>
+                    <!-- Show +N more if there are additional schedules -->
+                    <div 
+                        v-if="getAppointmentsForDay(day.date).length > 1"
+                        class="text-xs text-gray-500 font-medium px-2 hover:text-gray-700 hover:bg-gray-100 rounded cursor-pointer mt-1"
+                        @click.stop="openDayModal(day.date, getAppointmentsForDay(day.date))"
+                    >
+                        +{{ getAppointmentsForDay(day.date).length - 1 }} more
+                    </div>
                 </div>
             </div>
         </div>
@@ -350,6 +403,7 @@ watch(selectedCourseId, () => {
         @approve="handleModalApprove"
         @update="handleModalUpdate"
         @delete="handleModalDelete"
+        @reject="handleModalReject"
     />
 
     <CreateScheduleModal 
@@ -359,6 +413,14 @@ watch(selectedCourseId, () => {
         :initial-date="selectedDateForCreation"
         @close="isCreateModalOpen = false"
         @submit="handleScheduleCreated"
+    />
+
+    <DayDetailsModal
+        :is-open="isDayModalOpen"
+        :date="selectedDayDate"
+        :events="selectedDayEvents"
+        @close="isDayModalOpen = false"
+        @click-event="(e) => { isDayModalOpen = false; handleAppointmentClick(e) }"
     />
 
     <ConfirmModal 

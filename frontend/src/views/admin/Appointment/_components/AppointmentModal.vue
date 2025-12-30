@@ -8,7 +8,7 @@ const props = defineProps<{
   appointment?: any
 }>()
 
-const emit = defineEmits(['close', 'approve', 'update', 'delete'])
+const emit = defineEmits(['close', 'approve', 'update', 'delete', 'reject'])
 
 const formData = ref({
     fullName: '',
@@ -85,6 +85,10 @@ const calculateEndTime = (startTime: string) => {
 
 const handleApprove = () => {
     emit('approve', formData.value)
+}
+
+const handleReject = () => {
+    emit('reject', props.appointment.id)
 }
 
 const handleUpdate = () => {
@@ -296,15 +300,24 @@ const handleDelete = () => {
                 </div>
             </div>
 
-            <!-- Approve Button -->
-            <button 
-                @click="handleApprove"
-                :disabled="isTaken"
-                class="w-full py-4 rounded-lg text-white text-xl font-medium transition-colors mt-8 shadow-lg shadow-[#4FD1C5]/30 flex items-center justify-center gap-2"
-                 :class="isTaken ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-[#4FD1C5] hover:bg-[#3dbdb0]'"
-            >
-                {{ isTaken ? 'Approved' : 'Approve' }}
-            </button>
+            <!-- Actions -->
+            <div class="flex gap-4 pt-4 mt-8">
+                <button 
+                    v-if="!isTaken"
+                    @click="handleReject"
+                    class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30"
+                >
+                    Reject
+                </button>
+                <button 
+                    @click="handleApprove"
+                    :disabled="isTaken"
+                    class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors shadow-lg shadow-[#4FD1C5]/30 flex items-center justify-center gap-2"
+                     :class="isTaken ? 'w-full bg-gray-400 cursor-not-allowed shadow-none' : 'bg-[#4FD1C5] hover:bg-[#3dbdb0]'"
+                >
+                    {{ isTaken ? 'Approved' : 'Approve' }}
+                </button>
+            </div>
         </div>
     </div>
   </div>

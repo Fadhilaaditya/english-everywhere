@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 import FormAppointmentModal from './FormAppointmentModal.vue'
+import DayDetailsModal from './DayDetailsModal.vue'
 import Toast from '@/components/Toast.vue'
 
 const route = useRoute()
@@ -11,6 +12,9 @@ const programId = computed(() => route.query.programId)
 const currentDate = ref(new Date())
 const isModalOpen = ref(false)
 const selectedSchedule = ref<any>(null)
+const isDayModalOpen = ref(false)
+const selectedDayDate = ref<string>('')
+const selectedDayEvents = ref<any[]>([])
 
 // Toast state
 const showToast = ref(false)
@@ -56,8 +60,16 @@ const fetchSchedules = async () => {
   }
 }
 
+let pollingInterval: any = null
+
 onMounted(() => {
   fetchSchedules()
+  // Poll every 3 seconds for real-time updates
+  pollingInterval = setInterval(fetchSchedules, 3000)
+})
+
+onUnmounted(() => {
+    if (pollingInterval) clearInterval(pollingInterval)
 })
 
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -133,6 +145,12 @@ const nextMonth = () => {
 
 const goToToday = () => {
     currentDate.value = new Date()
+}
+
+const openDayModal = (date: string, events: any[]) => {
+    selectedDayDate.value = date
+    selectedDayEvents.value = events
+    isDayModalOpen.value = true
 }
 
 const handleEventClick = (date: string, time: string, type: string, id: number) => {
@@ -234,7 +252,7 @@ const handleModalSubmit = async (payload: any) => {
                 <!-- Events -->
                 <div class="space-y-1">
                     <div 
-                        v-for="(event, eIndex) in events[day.fullDate] || []" 
+                        v-for="(event, eIndex) in (events[day.fullDate] || []).slice(0, 1)" 
                         :key="eIndex"
                         @click.stop="handleEventClick(day.fullDate, event.time, event.type, event.id)"
                         class="text-[10px] px-2 py-1 rounded-md font-medium text-white shadow-sm transition-opacity"
@@ -248,6 +266,14 @@ const handleModalSubmit = async (payload: any) => {
                         <span v-if="event.name">({{ event.name }})</span>
                         <span v-else>({{ event.type === 'AVAILABLE' ? 'Available' : event.type === 'PENDING' ? 'Waiting' : 'Booked' }})</span>
                     </div>
+                     <!-- Show +N more if there are additional events -->
+                    <div 
+                        v-if="(events[day.fullDate] || []).length > 1"
+                        class="text-xs text-gray-500 font-medium px-1 hover:text-gray-700 hover:bg-gray-100 rounded cursor-pointer mt-1"
+                        @click.stop="openDayModal(day.fullDate, events[day.fullDate] || [])"
+                    >
+                        +{{ (events[day.fullDate] || []).length - 1 }} more
+                    </div>
                 </div>
             </div>
         </div>
@@ -259,6 +285,14 @@ const handleModalSubmit = async (payload: any) => {
         :schedule="selectedSchedule"
         @close="isModalOpen = false"
         @submit="handleModalSubmit"
+    />
+
+    <DayDetailsModal
+        :is-open="isDayModalOpen"
+        :date="selectedDayDate"
+        :events="selectedDayEvents"
+        @close="isDayModalOpen = false"
+        @click-event="(e) => { isDayModalOpen = false; handleEventClick(selectedDayDate, e.time, e.type, e.id) }"
     />
 
     <Toast 

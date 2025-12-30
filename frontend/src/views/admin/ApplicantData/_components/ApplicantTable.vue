@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Trash2 } from 'lucide-vue-next'
 import ApplicantAcceptModal from './ApplicantAcceptModal.vue'
+import ConfirmModal from './ConfirmModal.vue'
 import Toast from '@/components/Toast.vue'
 
 const applicants = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedApplicant = ref<any>(null)
+
+// Delete Modal State
+const isDeleteModalOpen = ref(false)
+const applicantToDelete = ref<number | null>(null)
+const isDeleting = ref(false)
 
 // Toast State
 const showToast = ref(false)
@@ -44,8 +50,16 @@ const formatDate = (dateString: string) => {
     return date.toLocaleDateString('en-GB') 
 }
 
+let pollingInterval: any = null
+
 onMounted(() => {
     fetchApplicants()
+    // Poll every 3 seconds for real-time updates
+    pollingInterval = setInterval(fetchApplicants, 3000)
+})
+
+onUnmounted(() => {
+    if (pollingInterval) clearInterval(pollingInterval)
 })
 
 const handleAccept = (applicant: any) => {
@@ -63,9 +77,32 @@ const handleModalSubmit = (data: any) => {
 }
 
 const handleDelete = (id: number) => {
-    if(confirm('Are you sure you want to delete this applicant data (schedule)?')) {
-         // Logic to delete schedule or unbook
-         console.log('Deleted applicant:', id)
+    applicantToDelete.value = id
+    isDeleteModalOpen.value = true
+}
+
+const confirmDelete = async () => {
+    if (!applicantToDelete.value) return
+    
+    isDeleting.value = true
+    try {
+        const response = await fetch(`http://localhost:3000/api/programs/schedules/${applicantToDelete.value}/revert`, {
+            method: 'PUT'
+        })
+        
+        if (response.ok) {
+            showToastNotification('Applicant deleted and schedule reverted to available', 'success')
+            fetchApplicants()
+            isDeleteModalOpen.value = false
+        } else {
+            throw new Error('Failed to revert schedule')
+        }
+    } catch (e) {
+        console.error('Failed to delete applicant', e)
+        showToastNotification('Failed to delete applicant', 'error')
+    } finally {
+        isDeleting.value = false
+        applicantToDelete.value = null
     }
 }
 </script>
@@ -125,6 +162,17 @@ const handleDelete = (id: number) => {
         :applicant="selectedApplicant"
         @close="isModalOpen = false"
         @submit="handleModalSubmit"
+    />
+    
+    <ConfirmModal 
+        :is-open="isDeleteModalOpen"
+        title="Delete Applicant"
+        message="Are you sure you want to delete this applicant data? The schedule will become AVAILABLE again."
+        confirm-text="Delete"
+        type="danger"
+        :is-loading="isDeleting"
+        @close="isDeleteModalOpen = false"
+        @confirm="confirmDelete"
     />
   </div>
 </template>

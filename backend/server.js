@@ -21,5 +21,4 @@ app.listen(PORT, async () => {
 });
 
 // Force keep-alive to debug why process exits
-setInterval(() => { }, 10000);
 

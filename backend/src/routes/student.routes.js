@@ -9,5 +9,8 @@ module.exports = app => {
     // Create Student Account
     router.post("/account", students.createAccount);
 
+    // Update Student
+    router.put("/:id", students.update);
+
     app.use('/api/students', router);
 };
