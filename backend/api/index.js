@@ -7,6 +7,7 @@ module.exports = async (req, res) => {
 
         // We clear the cache to ensure we get a fresh instance if needed, though on Vercel it's usually fresh.
         // However, require(...) is cached, so we might not need to clear it, but moving it inside is the key.
+        require('mysql2'); // Force inclusion of mysql2 for Vercel
         const app = require('../src/app');
         const db = require('../src/models');
 
