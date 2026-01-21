@@ -20,7 +20,7 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
 
 const fetchArticles = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/articles')
+        const response = await fetch('http://localhost:3001/api/articles')
         if (!response.ok) throw new Error('Failed to fetch articles')
         articles.value = await response.json()
     } catch (error) {
@@ -40,7 +40,7 @@ const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this article?')) return
 
     try {
-        const response = await fetch(`http://localhost:3000/api/articles/${id}`, {
+        const response = await fetch(`http://localhost:3001/api/articles/${id}`, {
             method: 'DELETE'
         })
         if (!response.ok) throw new Error('Failed to delete article')

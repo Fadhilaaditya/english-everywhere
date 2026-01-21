@@ -21,7 +21,7 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
 
 const fetchEvents = async () => {
   try {
-    const response = await fetch('http://localhost:3000/api/events')
+    const response = await fetch('http://localhost:3001/api/events')
     if (!response.ok) throw new Error('Failed to fetch events')
     events.value = await response.json()
   } catch (error) {
@@ -43,7 +43,7 @@ const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this event?')) return
 
     try {
-        const response = await fetch(`http://localhost:3000/api/events/${id}`, {
+        const response = await fetch(`http://localhost:3001/api/events/${id}`, {
             method: 'DELETE'
         })
         if (!response.ok) throw new Error('Failed to delete')

@@ -43,7 +43,7 @@ const executeCreate = async () => {
             status: 'AVAILABLE'
         }
         
-        const response = await fetch(`http://localhost:3000/api/programs/${props.programId}/schedules`, {
+        const response = await fetch(`http://localhost:3001/api/programs/${props.programId}/schedules`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

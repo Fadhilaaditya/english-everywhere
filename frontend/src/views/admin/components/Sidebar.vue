@@ -36,7 +36,7 @@ const menuItems = ref([
 
 const checkNewApplicants = async () => {
   try {
-    const response = await fetch('http://localhost:3000/api/programs/booked/all')
+    const response = await fetch('http://localhost:3001/api/programs/booked/all')
     if (response.ok) {
       const data = await response.json()
       // Find Applicant Data menu item and update notification status

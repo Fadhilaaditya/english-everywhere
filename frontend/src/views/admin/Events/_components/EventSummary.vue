@@ -9,7 +9,7 @@ const stats = ref([
 
 const fetchSummary = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/events/summary');
+        const response = await fetch('http://localhost:3001/api/events/summary');
         if (!response.ok) throw new Error('Failed to fetch summary');
         const data = await response.json();
         

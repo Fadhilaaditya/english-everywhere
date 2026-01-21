@@ -5,7 +5,7 @@ const totalArticles = ref(0)
 
 const fetchArticleCount = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/articles')
+        const response = await fetch('http://localhost:3001/api/articles')
         if (!response.ok) throw new Error('Failed to fetch articles')
         const data = await response.json()
         totalArticles.value = data.length

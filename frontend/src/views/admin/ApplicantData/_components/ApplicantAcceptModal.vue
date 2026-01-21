@@ -69,7 +69,7 @@ const executeCreateAccount = async () => {
     
     isSubmitting.value = true
     try {
-        const response = await fetch('http://localhost:3000/api/students/account', {
+        const response = await fetch('http://localhost:3001/api/students/account', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

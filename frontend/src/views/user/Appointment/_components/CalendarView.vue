@@ -33,7 +33,7 @@ const fetchSchedules = async () => {
   if (!programId.value) return;
 
   try {
-    const response = await fetch(`http://localhost:3000/api/programs/${programId.value}/schedules?t=${new Date().getTime()}`)
+    const response = await fetch(`http://localhost:3001/api/programs/${programId.value}/schedules?t=${new Date().getTime()}`)
     if (!response.ok) throw new Error('Failed to fetch schedules')
     const data = await response.json()
     
@@ -144,7 +144,7 @@ const handleEventClick = (date: string, time: string, type: string, id: number, 
 const handleModalSubmit = async (payload: any) => {
     if (!programId.value || !selectedSchedule.value) return
     try {
-        const response = await fetch(`http://localhost:3000/api/programs/${programId.value}/schedules/${selectedSchedule.value.id}`, {
+        const response = await fetch(`http://localhost:3001/api/programs/${programId.value}/schedules/${selectedSchedule.value.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

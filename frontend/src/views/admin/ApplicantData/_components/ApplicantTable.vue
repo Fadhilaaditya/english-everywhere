@@ -27,7 +27,7 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
 
 const fetchApplicants = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/programs/booked/all')
+        const response = await fetch('http://localhost:3001/api/programs/booked/all')
         if (response.ok) {
             const data = await response.json()
             applicants.value = data.map((item: any) => ({
@@ -86,7 +86,7 @@ const confirmDelete = async () => {
     
     isDeleting.value = true
     try {
-        const response = await fetch(`http://localhost:3000/api/programs/schedules/${applicantToDelete.value}/revert`, {
+        const response = await fetch(`http://localhost:3001/api/programs/schedules/${applicantToDelete.value}/revert`, {
             method: 'PUT'
         })
         

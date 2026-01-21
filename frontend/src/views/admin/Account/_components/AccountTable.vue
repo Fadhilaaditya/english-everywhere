@@ -11,7 +11,7 @@ const selectedAccount = ref<any>(null)
 
 const fetchAccounts = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/students')
+        const response = await fetch('http://localhost:3001/api/students')
         if (response.ok) {
             const data = await response.json()
             accounts.value = data.map((item: any) => ({
@@ -86,7 +86,7 @@ const processDelete = async () => {
     isDeleteConfirmOpen.value = false
     try {
         // Implement delete API call
-         const response = await fetch(`http://localhost:3000/api/students/${accountToDelete.value}`, {
+         const response = await fetch(`http://localhost:3001/api/students/${accountToDelete.value}`, {
             method: 'DELETE'
         })
         

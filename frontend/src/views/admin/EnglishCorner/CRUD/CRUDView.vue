@@ -42,7 +42,7 @@ const removeSection = (index: number) => sections.value.splice(index, 1)
 const fetchArticle = async () => {
     if (!isEditMode.value) return
     try {
-        const response = await fetch(`http://localhost:3000/api/articles/${articleId.value}`)
+        const response = await fetch(`http://localhost:3001/api/articles/${articleId.value}`)
         if (!response.ok) throw new Error('Failed to fetch article')
         const data = await response.json()
         
@@ -84,8 +84,8 @@ const handlePublish = async () => {
 
     try {
         const url = isEditMode.value 
-            ? `http://localhost:3000/api/articles/${articleId.value}`
-            : 'http://localhost:3000/api/articles'
+            ? `http://localhost:3001/api/articles/${articleId.value}`
+            : 'http://localhost:3001/api/articles'
         
         const method = isEditMode.value ? 'PUT' : 'POST'
 

@@ -9,7 +9,7 @@ const stats = ref([
 
 const fetchStats = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/users/stats')
+        const response = await fetch('http://localhost:3001/api/users/stats')
         if (response.ok) {
             const data = await response.json()
             stats.value = [

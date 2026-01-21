@@ -69,7 +69,7 @@ const processSubmission = async () => {
     isConfirmOpen.value = false // Close confirm modal
     isLoading.value = true
     try {
-        const response = await fetch(`http://localhost:3000/api/students/${props.account.id}`, {
+        const response = await fetch(`http://localhost:3001/api/students/${props.account.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'

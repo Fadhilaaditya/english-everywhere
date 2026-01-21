@@ -56,7 +56,7 @@ const openDayModal = (date: Date, events: any[]) => {
 const fetchSchedules = async () => {
     if (!selectedCourseId.value) return
     try {
-        const response = await fetch(`http://localhost:3000/api/programs/${selectedCourseId.value}/schedules?t=${new Date().getTime()}`)
+        const response = await fetch(`http://localhost:3001/api/programs/${selectedCourseId.value}/schedules?t=${new Date().getTime()}`)
         if (response.ok) {
             const data = await response.json()
             appointments.value = data
@@ -81,7 +81,7 @@ const fetchSchedules = async () => {
 
 const fetchPrograms = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/programs')
+        const response = await fetch('http://localhost:3001/api/programs')
         if (response.ok) {
             programs.value = await response.json()
             if (programs.value.length > 0 && !selectedCourseId.value) {
@@ -126,7 +126,7 @@ const handleModalDelete = () => {
 const executeDelete = async () => {
     if (!selectedCourseId.value || !selectedAppointment.value) return
     try {
-        const response = await fetch(`http://localhost:3000/api/programs/${selectedCourseId.value}/schedules/${selectedAppointment.value.id}`, {
+        const response = await fetch(`http://localhost:3001/api/programs/${selectedCourseId.value}/schedules/${selectedAppointment.value.id}`, {
             method: 'DELETE'
         })
         if (!response.ok) throw new Error('Failed to delete')
@@ -153,7 +153,7 @@ const handleModalApprove = (data: any) => {
 const executeApprove = async (data: any) => {
     if (!selectedCourseId.value || !selectedAppointment.value) return
     try {
-        const response = await fetch(`http://localhost:3000/api/programs/${selectedCourseId.value}/schedules/${selectedAppointment.value.id}`, {
+        const response = await fetch(`http://localhost:3001/api/programs/${selectedCourseId.value}/schedules/${selectedAppointment.value.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -193,7 +193,7 @@ const handleModalUpdate = (data: any) => {
 const executeUpdate = async (data: any) => {
     if (!selectedCourseId.value) return
     try {
-        const response = await fetch(`http://localhost:3000/api/programs/${selectedCourseId.value}/schedules/${data.id}`, {
+        const response = await fetch(`http://localhost:3001/api/programs/${selectedCourseId.value}/schedules/${data.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ time: data.time, date: data.date })
@@ -221,7 +221,7 @@ const handleModalReject = (id: number) => {
 
 const executeReject = async (id: number) => {
     try {
-        const response = await fetch(`http://localhost:3000/api/programs/schedules/${id}/revert`, {
+        const response = await fetch(`http://localhost:3001/api/programs/schedules/${id}/revert`, {
             method: 'PUT'
         })
         if (!response.ok) throw new Error('Failed to reject application')

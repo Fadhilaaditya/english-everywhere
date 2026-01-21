@@ -29,7 +29,7 @@ const openModal = (event: any) => {
 
 const fetchEvents = async () => {
     try {
-        const response = await fetch('http://localhost:3000/api/events/upcoming');
+        const response = await fetch('http://localhost:3001/api/events/upcoming');
         if (!response.ok) throw new Error('Failed to fetch events');
         events.value = await response.json();
     } catch (error) {
