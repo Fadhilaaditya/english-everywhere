@@ -17,7 +17,6 @@ import ArticleTable from './_components/ArticleTable.vue'
       <main class="p-8">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-2xl font-bold text-gray-900">English Corner</h1>
-            <a href="#" class="text-gray-500 hover:text-[#4FD1C5] underline text-sm">View Website</a>
         </div>
 
         <!-- Summary -->

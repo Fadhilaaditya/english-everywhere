@@ -93,6 +93,12 @@ const router = createRouter({
             name: 'admin-english-corner-edit',
             component: () => import('../views/admin/EnglishCorner/CRUD/CRUDView.vue'),
             meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/payments',
+            name: 'admin-payments',
+            component: () => import('../views/admin/Payments/Payment.vue'),
+            meta: { hideLayout: true }
         }
     ]
 })

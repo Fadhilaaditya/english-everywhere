@@ -1,13 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Upload, Calendar, Clock } from 'lucide-vue-next'
+import { Upload, Calendar, Clock, Image as ImageIcon } from 'lucide-vue-next'
+import Toast from '../../../../components/Toast.vue'
 
 const props = defineProps<{
   isOpen: boolean
   event?: any
 }>()
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'success'])
+
+// Toast State
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
+
+const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    toastMessage.value = message
+    toastType.value = type
+    showToast.value = true
+}
 
 const formData = ref({
     title: '',
@@ -16,24 +28,78 @@ const formData = ref({
     date: '',
     time: '',
     image: '',
-    category: ''
+    category: '',
+    location: '' // Added location as seen in EventTable
 })
 
 const isEditMode = computed(() => !!props.event)
 const title = computed(() => isEditMode.value ? 'Edit Events' : 'Create Events')
 const submitButtonText = computed(() => isEditMode.value ? 'Save' : 'Submit')
 
+const isUploading = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const previewImage = ref<string | null>(null)
+
+const triggerFileInput = () => {
+    fileInput.value?.click()
+}
+
+const handleFileUpload = async (event: Event) => {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0]
+    if (!file) return
+
+    // Show local preview
+    previewImage.value = URL.createObjectURL(file)
+    
+    // Upload to our backend
+    await uploadToCloudinary(file)
+}
+
+const uploadToCloudinary = async (file: File) => {
+    isUploading.value = true
+    const formDataBody = new FormData()
+    formDataBody.append('image', file)
+
+    try {
+        const response = await fetch(
+            `http://localhost:3001/api/upload`,
+            {
+                method: 'POST',
+                body: formDataBody,
+            }
+        )
+
+        if (!response.ok) throw new Error('Upload failed')
+
+        const data = await response.json()
+        formData.value.image = data.secure_url
+        showNotification('Poster uploaded successfully', 'success')
+    } catch (error) {
+        console.error('Error uploading image:', error)
+        showNotification('Failed to upload poster', 'error')
+        // Revert preview if upload failed and we don't have a previous image
+        if (!formData.value.image) {
+            previewImage.value = null
+        }
+    } finally {
+        isUploading.value = false
+    }
+}
+
 watch(() => props.event, (newVal) => {
+    previewImage.value = null // Reset preview on event change
     if (newVal) {
         // Edit mode
         formData.value = {
             title: newVal.title,
             price: newVal.price,
-            desc: newVal.desc, // Model uses 'desc'
+            desc: newVal.desc,
             date: newVal.date,
             time: newVal.time,
             image: newVal.image,
-            category: newVal.category
+            category: newVal.category,
+            location: newVal.location || ''
         }
     } else {
         // Create mode
@@ -43,14 +109,40 @@ watch(() => props.event, (newVal) => {
             desc: '',
             date: '',
             time: '',
-            image: '/class1.svg', // Default for now
-            category: ''
+            image: '',
+            category: '',
+            location: ''
         }
     }
 }, { immediate: true })
 
-const handleSubmit = () => {
-    emit('submit', formData.value)
+const handleSubmit = async () => {
+    if (!formData.value.title || !formData.value.image) {
+        showNotification('Title and Poster are required', 'error')
+        return
+    }
+
+    try {
+        const url = isEditMode.value 
+            ? `http://localhost:3001/api/events/${props.event.id}`
+            : 'http://localhost:3001/api/events'
+        
+        const method = isEditMode.value ? 'PUT' : 'POST'
+
+        const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData.value)
+        })
+
+        if (!response.ok) throw new Error('Failed to save event')
+        
+        const successMessage = isEditMode.value ? 'Event updated successfully' : 'Event created successfully'
+        emit('success', successMessage)
+    } catch (error) {
+        console.error('Error saving event:', error)
+        showNotification('Failed to save event', 'error')
+    }
 }
 </script>
 
@@ -68,13 +160,41 @@ const handleSubmit = () => {
             <!-- Left Column: Upload Poster -->
             <div class="md:col-span-1">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Upload Poster<span class="text-red-500">*</span></label>
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 h-[400px] flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer group">
-                    <Upload class="w-8 h-8 text-gray-400 group-hover:text-gray-600 mb-3" />
-                    <p class="text-sm font-medium text-gray-900">Choose a file or drag & drop it here</p>
-                    <p class="text-xs text-gray-500 mt-1">JPG, PNG, JPEG formats up to 5 MB.</p>
-                    <button class="mt-4 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-white transition-colors">
-                        Browse File
-                    </button>
+                
+                <input 
+                    ref="fileInput"
+                    type="file" 
+                    accept="image/*"
+                    class="hidden"
+                    @change="handleFileUpload"
+                >
+
+                <div 
+                    @click="triggerFileInput"
+                    class="relative border-2 border-dashed border-gray-300 rounded-lg h-[400px] flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer group overflow-hidden"
+                >
+                    <div v-if="formData.image || previewImage" class="w-full h-full relative group">
+                        <img :src="previewImage || formData.image" alt="Preview" class="w-full h-full object-cover" />
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white p-4">
+                            <Upload class="w-8 h-8 mb-2" />
+                            <p class="text-sm font-medium">Click to change poster</p>
+                        </div>
+                    </div>
+                    
+                    <div v-else class="p-6 flex flex-col items-center justify-center">
+                        <Upload class="w-8 h-8 text-gray-400 group-hover:text-gray-600 mb-3" />
+                        <p class="text-sm font-medium text-gray-900 leading-snug">Choose a file or drag & drop it here</p>
+                        <p class="text-xs text-gray-500 mt-2">JPG, PNG, JPEG formats up to 5 MB.</p>
+                        <button class="mt-6 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 bg-white hover:bg-gray-50 transition-colors">
+                            Browse File
+                        </button>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div v-if="isUploading" class="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-10 transition-opacity">
+                        <div class="w-10 h-10 border-4 border-[#4FD1C5] border-t-transparent rounded-full animate-spin mb-3"></div>
+                        <p class="text-sm font-semibold text-gray-700">Uploading...</p>
+                    </div>
                 </div>
             </div>
 
@@ -124,7 +244,6 @@ const handleSubmit = () => {
                                 type="date"
                                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
                             />
-                            <!-- Custom icon overlay if needed, sticking to native for simplicity unless refined -->
                         </div>
                     </div>
                      <div class="space-y-1">
@@ -138,6 +257,17 @@ const handleSubmit = () => {
                             />
                         </div>
                     </div>
+                </div>
+
+                <!-- Location -->
+                <div class="space-y-1">
+                    <label class="block text-sm font-medium text-gray-700">Location<span class="text-red-500">*</span></label>
+                    <input 
+                        v-model="formData.location"
+                        type="text"
+                        placeholder="e.g. Google Meet"
+                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
+                    />
                 </div>
             </div>
         </div>
@@ -159,5 +289,11 @@ const handleSubmit = () => {
         </div>
 
     </div>
+    <Toast 
+        :show="showToast"
+        :message="toastMessage"
+        :type="toastType"
+        @close="showToast = false"
+    />
   </div>
 </template>

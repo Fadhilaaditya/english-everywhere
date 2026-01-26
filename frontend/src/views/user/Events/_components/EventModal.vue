@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Calendar, Clock, X } from 'lucide-vue-next'
+import { Calendar, Clock, X, MapPin } from 'lucide-vue-next'
 import { onUnmounted, watch } from 'vue'
 
 const props = defineProps<{
   isOpen: boolean
   event: any
+  disableRegistration?: boolean
 }>()
 
 const emit = defineEmits(['close'])
@@ -76,14 +77,26 @@ onUnmounted(() => {
                    <Calendar class="w-5 h-5 flex-shrink-0" />
                    <span class="font-medium text-sm">{{ event?.date }}</span> 
                </div>
-               <div class="flex items-center gap-3 text-gray-700">
-                   <Clock class="w-5 h-5 flex-shrink-0" />
-                   <span class="font-medium text-sm">{{ event?.time }}</span> 
-               </div>
-           </div>
+                <div class="flex items-center gap-3 text-gray-700">
+                    <Clock class="w-5 h-5 flex-shrink-0" />
+                    <span class="font-medium text-sm">{{ event?.time }}</span> 
+                </div>
+                <div v-if="event?.location" class="flex items-center gap-3 text-gray-700">
+                    <MapPin class="w-5 h-5 flex-shrink-0" />
+                    <span class="font-medium text-sm">{{ event?.location }}</span> 
+                </div>
+            </div>
 
-          <button class="w-full bg-[#52D1C6] hover:bg-[#45b8ae] text-white font-bold text-lg py-3 rounded-xl shadow-lg transition-transform transform hover:-translate-y-0.5 cursor-pointer mt-auto">
-              Daftar
+          <button 
+            :disabled="disableRegistration"
+            class="w-full font-bold text-lg py-3 rounded-xl shadow-lg transition-all transform mt-auto"
+            :class="[
+              disableRegistration 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-[#52D1C6] hover:bg-[#45b8ae] text-white hover:-translate-y-0.5 cursor-pointer'
+            ]"
+          >
+              {{ disableRegistration ? 'Registration Closed' : 'Daftar' }}
           </button>
         </div>
       </div>

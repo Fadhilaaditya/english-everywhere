@@ -20,7 +20,8 @@ exports.create = (req, res) => {
         price: req.body.price,
         desc: req.body.desc,
         image: req.body.image,
-        category: req.body.category
+        category: req.body.category,
+        location: req.body.location
     };
 
     // Save Event in the database

@@ -27,6 +27,10 @@ module.exports = (sequelize, Sequelize) => {
         category: {
             type: Sequelize.STRING,
             allowNull: true
+        },
+        location: {
+            type: Sequelize.STRING,
+            allowNull: true
         }
     });
 
