@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const authRoutes = require('./routes/authRoutes');
 const eventRoutes = require('./routes/event.routes');
+const uploadRoutes = require('./routes/upload.routes');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/upload', uploadRoutes);
 require('./routes/program.routes')(app);
 require('./routes/article.routes')(app);
 require('./routes/student.routes')(app);

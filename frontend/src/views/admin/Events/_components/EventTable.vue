@@ -34,9 +34,16 @@ const handleCreate = () => {
     isModalOpen.value = true
 }
 
-const handleEdit = (event: any) => {
-    selectedEvent.value = event
-    isModalOpen.value = true
+const handleEdit = async (event: any) => {
+    try {
+        const response = await fetch(`http://localhost:3001/api/events/${event.id}`)
+        if (!response.ok) throw new Error('Failed to fetch event details')
+        selectedEvent.value = await response.json()
+        isModalOpen.value = true
+    } catch (error) {
+        console.error('Error fetching event details:', error)
+        showNotification('Failed to load event details', 'error')
+    }
 }
 
 const handleDelete = async (id: number) => {
@@ -145,7 +152,7 @@ onMounted(() => {
     <EventModal 
         v-if="isModalOpen"
         :is-open="isModalOpen"
-        :event-data="selectedEvent"
+        :event="selectedEvent"
         @close="isModalOpen = false"
         @success="handleSuccess"
     />

@@ -27,6 +27,9 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
 const title = ref('')
 const description = ref('')
 const image = ref('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop') // Default Mock Image
+const isUploading = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const previewImage = ref<string | null>(null)
 const intro = ref<string[]>([''])
 const sections = ref<{ title: string; text: string }[]>([
     { title: '', text: '' }
@@ -38,6 +41,49 @@ const removeIntro = (index: number) => intro.value.splice(index, 1)
 
 const addSection = () => sections.value.push({ title: '', text: '' })
 const removeSection = (index: number) => sections.value.splice(index, 1)
+
+const triggerFileInput = () => {
+    fileInput.value?.click()
+}
+
+const handleFileUpload = async (event: Event) => {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0]
+    if (!file) return
+
+    // Show local preview
+    previewImage.value = URL.createObjectURL(file)
+    
+    // Upload to Cloudinary
+    await uploadToCloudinary(file)
+}
+
+const uploadToCloudinary = async (file: File) => {
+    isUploading.value = true
+    const formData = new FormData()
+    formData.append('image', file) // Backend expects 'image' field
+
+    try {
+        const response = await fetch(
+            `http://localhost:3001/api/upload`,
+            {
+                method: 'POST',
+                body: formData,
+            }
+        )
+
+        if (!response.ok) throw new Error('Upload failed')
+
+        const data = await response.json()
+        image.value = data.secure_url
+        showNotification('Image uploaded successfully', 'success')
+    } catch (error) {
+        console.error('Error uploading image:', error)
+        showNotification('Failed to upload image', 'error')
+    } finally {
+        isUploading.value = false
+    }
+}
 
 const fetchArticle = async () => {
     if (!isEditMode.value) return
@@ -229,24 +275,45 @@ onMounted(() => {
             <!-- Right: Thumbnail Upload -->
             <div>
                 <label class="block text-gray-700 text-sm font-medium mb-2">
-                    Thumbnail Image URL<span class="text-red-500">*</span>
+                    Thumbnail Image<span class="text-red-500">*</span>
                 </label>
-                <!-- Simplified to URL input for now as per model -->
+                
                 <input 
-                    v-model="image"
-                    type="text" 
-                    class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 focus:border-[#4FD1C5] mb-4 text-xs"
-                    placeholder="https://..."
+                    ref="fileInput"
+                    type="file" 
+                    accept="image/*"
+                    class="hidden"
+                    @change="handleFileUpload"
                 >
-                
-                <div v-if="image" class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <img :src="image" alt="Preview" class="w-full h-auto object-cover" />
+
+                <div 
+                    @click="triggerFileInput"
+                    class="relative cursor-pointer group"
+                >
+                    <div v-if="image || previewImage" class="border border-gray-200 rounded-lg overflow-hidden shadow-sm aspect-video relative">
+                        <img :src="previewImage || image" alt="Preview" class="w-full h-full object-cover" />
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                            <Upload class="w-8 h-8 mb-2" />
+                            <p class="text-sm font-medium">Change Image</p>
+                        </div>
+                    </div>
+                    
+                    <div v-else class="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center text-gray-400 aspect-video hover:border-[#4FD1C5] hover:text-[#4FD1C5] transition-all">
+                        <Upload class="w-8 h-8 mb-2" />
+                        <p class="text-sm font-medium">Click to upload thumbnail</p>
+                        <p class="text-xs mt-1">PNG, JPG up to 5MB</p>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div v-if="isUploading" class="absolute inset-0 bg-white/80 rounded-lg flex flex-col items-center justify-center z-10">
+                        <div class="w-8 h-8 border-4 border-[#4FD1C5] border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <p class="text-xs font-semibold text-gray-600">Uploading...</p>
+                    </div>
                 </div>
-                
-                <div v-else class="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center text-gray-400 h-[120px]">
-                    <Upload class="w-6 h-6 mb-2" />
-                    <p class="text-xs">No image preview</p>
-                </div>
+
+                <p v-if="image && !previewImage" class="text-[10px] text-gray-400 mt-2 truncate max-w-full">
+                    Current URL: {{ image }}
+                </p>
             </div>
         </div>
 
