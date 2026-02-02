@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Eye, EyeOff, ArrowLeft } from 'lucide-vue-next'
+import { Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const username = ref('')
@@ -36,8 +36,17 @@ const handleLogin = async () => {
             throw new Error(data.message || 'Login failed')
         }
 
-        // Login successful
+        // ==========================================
+        // PERUBAHAN PENTING DI SINI
+        // ==========================================
+        
+        // 1. Simpan Token
         localStorage.setItem('token', data.accessToken)
+        
+        // 2. Simpan Role (PENTING untuk Navbar!)
+        localStorage.setItem('role', data.role) 
+
+        // 3. Simpan User Data
         localStorage.setItem('user', JSON.stringify({
             id: data.id,
             username: data.username,
@@ -45,11 +54,13 @@ const handleLogin = async () => {
             role: data.role
         }))
         
-        // Redirect based on role
+        // 4. Logika Redirect yang Sudah Diperbarui
         if (data.role === 'admin') {
             router.push('/admin')
+        } else if (data.role === 'teacher') {
+            router.push('/teacher') // <--- Redirect khusus Guru
         } else {
-            router.push('/')
+            router.push('/') // Redirect Siswa/Umum
         }
         
     } catch (error: any) {
@@ -63,20 +74,16 @@ const handleLogin = async () => {
 
 <template>
   <div class="flex h-screen w-full bg-white overflow-hidden">
-    <!-- Left Side: Image/Decoration -->
     <div class="hidden md:flex w-1/2 bg-white relative items-center justify-center overflow-hidden">
       <img src="/login.svg" alt="Login Illustration" class="w-full h-full object-cover" />
     </div>
 
-    <!-- Right Side: Login Form -->
     <div class="w-full md:w-1/2 flex flex-col items-center justify-center px-8 md:px-24 bg-white relative">
-        <!-- Back Button -->
         <router-link to="/" class="absolute top-6 left-6 p-2 text-gray-500 hover:text-primary transition-colors cursor-pointer" title="Back to Home">
             <ArrowLeft class="w-6 h-6" />
             <span class="sr-only">Back to Home</span>
         </router-link>
 
-        <!-- Logo -->
         <div class="mb-12">
             <img src="/logo.svg" alt="English Everywhere" class="h-16 w-auto" />
         </div>
@@ -85,13 +92,11 @@ const handleLogin = async () => {
         <h1 class="text-3xl font-bold text-gray-900 mb-2 text-center">Welcome Back!</h1>
         <p class="text-gray-500 mb-8 text-center text-sm">Enter your detail to continue</p>
 
-        <!-- Error Alert -->
-        <div v-if="errorMessage" class="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm text-center">
-            {{ errorMessage }}
+        <div v-if="errorMessage" class="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm text-center flex items-center justify-center gap-2">
+           ⚠️ {{ errorMessage }}
         </div>
 
         <form @submit.prevent="handleLogin" class="space-y-6">
-          <!-- Username Input -->
           <div>
             <label for="username" class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
             <div class="relative">
@@ -99,16 +104,13 @@ const handleLogin = async () => {
                     id="username"
                     v-model="username"
                     type="text"
+                    required
                     placeholder="input username"
-                    class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-700 placeholder-gray-400 transition-all font-medium"
+                    class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#F4838D]/50 focus:border-[#F4838D] text-gray-700 placeholder-gray-400 transition-all font-medium"
                 />
-                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                    <!-- Icon placeholder if needed -->
-                </div>
             </div>
           </div>
 
-          <!-- Password Input -->
           <div>
             <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
             <div class="relative">
@@ -116,8 +118,9 @@ const handleLogin = async () => {
                 id="password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
+                required
                 placeholder="input your password"
-                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary text-gray-700 placeholder-gray-400 transition-all font-medium"
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#F4838D]/50 focus:border-[#F4838D] text-gray-700 placeholder-gray-400 transition-all font-medium pr-10"
               />
               <button
                 type="button"
@@ -130,17 +133,17 @@ const handleLogin = async () => {
             </div>
           </div>
 
-          <!-- Login Button -->
           <button
             type="submit"
-            class="w-full bg-[#F4838D] hover:bg-[#F4838D]/90 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer mt-4"
+            :disabled="isLoading"
+            class="w-full bg-[#F4838D] hover:bg-[#F4838D]/90 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer mt-4 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Login
+            <Loader2 v-if="isLoading" class="w-5 h-5 animate-spin" />
+            <span v-if="!isLoading">Login</span>
+            <span v-else>Processing...</span>
           </button>
         </form>
       </div>
-      
-      <!-- Decorative Bottom Right (Optional, part of page design roughly) -->
     </div>
   </div>
 </template>

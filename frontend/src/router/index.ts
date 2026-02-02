@@ -5,6 +5,9 @@ import AboutUs from '../views/user/AboutUs/AboutUs.vue'
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
+        // ==============================
+        // PUBLIC / USER ROUTES
+        // ==============================
         {
             path: '/',
             name: 'home',
@@ -46,6 +49,36 @@ const router = createRouter({
             name: 'appointment',
             component: () => import('../views/user/Appointment/Appointment.vue')
         },
+
+        // ==============================
+        // TEACHER ROUTES (BARU)
+        // ==============================
+        {
+            path: '/teacher',
+            // Kita pakai layout khusus yang membungkus Navbar + Footer
+            component: () => import('../views/teacher/TeacherLayout.vue'),
+            meta: { requiresAuth: true, role: 'teacher', hideLayout: true }, 
+            children: [
+                {
+                    path: '', // URL: /teacher
+                    name: 'teacher-dashboard',
+                    component: () => import('../views/teacher/Dashboard.vue')
+                },
+                {
+                    path: 'materials', // URL: /teacher/materials
+                    name: 'teacher-materials',
+                    component: () => import('../views/teacher/Materials.vue')
+                },
+                {
+                    path: 'schedule', // URL: /teacher/schedule
+                    name: 'teacher-schedule',
+                    component: () => import('../views/teacher/Schedule.vue')
+                }
+            ]
+        },
+        // ==============================
+        // ADMIN ROUTES
+        // ==============================
         {
             path: '/admin',
             name: 'admin-dashboard',
