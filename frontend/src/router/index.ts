@@ -55,15 +55,11 @@ const router = createRouter({
         // ==============================
         {
             path: '/teacher',
-            // Kita pakai layout khusus yang membungkus Navbar + Footer
-            component: () => import('../views/teacher/TeacherLayout.vue'),
-            meta: { requiresAuth: true, role: 'teacher', hideLayout: true }, 
+            // Menggunakan Layout khusus Teacher sebagai parent
+            component: () => import('../views/teacher/TeacherLayout.vue'), 
+            meta: { hideLayout: true, requiresAuth: true, role: 'teacher' }, // Sembunyikan layout public (Navbar/Footer)
             children: [
-                {
-                    path: '', // URL: /teacher
-                    name: 'teacher-dashboard',
-                    component: () => import('../views/teacher/Dashboard.vue')
-                },
+
                 {
                     path: 'materials', // URL: /teacher/materials
                     name: 'teacher-materials',
@@ -76,6 +72,7 @@ const router = createRouter({
                 }
             ]
         },
+
         // ==============================
         // ADMIN ROUTES
         // ==============================
@@ -131,6 +128,12 @@ const router = createRouter({
             path: '/admin/payments',
             name: 'admin-payments',
             component: () => import('../views/admin/Payments/Payment.vue'),
+            meta: { hideLayout: true }
+        },
+          {
+            path: '/admin/schedules',
+            name: 'admin-schedules',
+            component: () => import('../views/admin/Schedules/ManageSchedules.vue'),
             meta: { hideLayout: true }
         }
     ]
