@@ -1,29 +1,29 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const events = require('../controllers/event.controller.js');
+const events = require("../controllers/event.controller.js");
 
 // Create a new Event
-router.post('/', events.create);
+router.post("/", events.create);
 
 // Retrieve all Events
-router.get('/', events.findAll);
+router.get("/", events.findAll);
 
 // Retrieve Upcoming Events
-router.get('/upcoming', events.findUpcoming);
+router.get("/upcoming", events.findUpcoming);
 
 // Retrieve Past Events
-router.get('/past', events.findPast);
+router.get("/past", events.findPast);
 
 // Retrieve Event Summary
-router.get('/summary', events.getSummary);
+router.get("/summary", events.getSummary);
 
 // Retrieve a single Event with id
-router.get('/:id', events.findOne);
+router.get("/:id", events.findOne);
 
 // Update an Event with id
-router.put('/:id', events.update);
+router.put("/:id", events.update);
 
 // Delete an Event with id
-router.delete('/:id', events.delete);
+router.delete("/:id", events.delete);
 
 module.exports = router;
