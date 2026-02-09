@@ -2,18 +2,20 @@ const db = require("../models");
 const Teacher = db.Teacher;
 const User = db.User;
 
-// Ambil profil guru berdasarkan ID User yang login
+// Ambil profil guru berdasarkan ID User yang login (dari token JWT)
 exports.getTeacherProfile = async (req, res) => {
     try {
-        // req.userId didapat dari middleware authJwt (verifyToken)
+        /** * req.userId otomatis ada karena kita sudah memasang middleware authJwt.verifyToken
+         * di file routes sebelum masuk ke controller ini.
+         */
         const userId = req.userId; 
 
         const teacher = await Teacher.findOne({
             where: { userId: userId },
             include: [{
                 model: User,
-                as: 'user',
-                attributes: ['username', 'fullName', 'email'] // Ambil data user terkait
+                as: 'user', // Pastikan alias ini sesuai dengan yang didefinisikan di models/index.js
+                attributes: ['username', 'fullName', 'role'] 
             }]
         });
 
@@ -23,40 +25,57 @@ exports.getTeacherProfile = async (req, res) => {
 
         res.status(200).send(teacher);
     } catch (error) {
-        res.status(500).send({ message: error.message });
+        console.error("Error fetching teacher profile:", error);
+        res.status(500).send({ message: "Internal Server Error" });
     }
 };
 
-// Update data guru (NIP, Bio, Spesialisasi)
+// Update data guru (NIP, Bio, Spesialisasi, dsb)
 exports.updateTeacherProfile = async (req, res) => {
     try {
         const userId = req.userId;
         const { nip, specialization, bio, fullName, phoneNumber, address } = req.body;
 
-        // 1. Update tabel Users (untuk nama lengkap)
-        if (fullName) {
-            await User.update({ fullName }, { where: { id: userId } });
-        }
+        // Gunakan transaksi agar jika salah satu update gagal, data tetap konsisten
+        const result = await db.sequelize.transaction(async (t) => {
+            
+            // 1. Update data dasar di tabel Users (seperti FullName)
+            if (fullName) {
+                await User.update(
+                    { fullName }, 
+                    { where: { id: userId }, transaction: t }
+                );
+            }
 
-        // 2. Update tabel Teachers
-        const [updated] = await Teacher.update({
-            nip,
-            specialization,
-            bio,
-            phoneNumber,
-            address
-        }, {
-            where: { userId: userId }
+            // 2. Update data spesifik di tabel Teachers
+            const [updatedRows] = await Teacher.update({
+                nip,
+                specialization,
+                bio,
+                phoneNumber,
+                address
+            }, {
+                where: { userId: userId },
+                transaction: t
+            });
+
+            // Ambil data terbaru untuk dikirim kembali ke frontend
+            const updatedTeacher = await Teacher.findOne({ 
+                where: { userId: userId },
+                include: [{ model: User, as: 'user', attributes: ['fullName'] }],
+                transaction: t
+            });
+
+            return updatedTeacher;
         });
 
-        if (updated) {
-            const updatedTeacher = await Teacher.findOne({ where: { userId: userId } });
-            res.status(200).send({ message: "Profile updated successfully.", data: updatedTeacher });
-        } else {
-            res.status(404).send({ message: "Cannot update profile. Maybe Teacher was not found!" });
-        }
+        res.status(200).send({ 
+            message: "Profile updated successfully.", 
+            data: result 
+        });
 
     } catch (error) {
-        res.status(500).send({ message: error.message });
+        console.error("Update Error:", error);
+        res.status(500).send({ message: error.message || "Failed to update profile." });
     }
 };
