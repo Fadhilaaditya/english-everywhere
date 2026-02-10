@@ -33,7 +33,7 @@ const form = ref({
   status: 'Available',
 })
 
-const API_BASE_URL = 'http://localhost:5000/api'
+const API_BASE_URL = 'http://localhost:3001/api'
 
 // --- Helpers ---
 const getHeaders = () => ({
@@ -176,7 +176,7 @@ watch(selectedCourseId, () => {
                 v-model="selectedCourseId"
                 class="border border-gray-200 rounded-2xl px-5 py-3 w-72 bg-white font-bold outline-none focus:ring-2 focus:ring-[#4CC9C0] transition-all shadow-sm"
               >
-                <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.name }}</option>
+                <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.title }}</option>
               </select>
             </div>
             <div class="text-right">

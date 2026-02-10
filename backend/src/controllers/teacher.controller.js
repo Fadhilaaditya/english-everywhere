@@ -8,14 +8,14 @@ exports.getTeacherProfile = async (req, res) => {
         /** * req.userId otomatis ada karena kita sudah memasang middleware authJwt.verifyToken
          * di file routes sebelum masuk ke controller ini.
          */
-        const userId = req.userId; 
+        const userId = req.userId;
 
         const teacher = await Teacher.findOne({
             where: { userId: userId },
             include: [{
                 model: User,
                 as: 'user', // Pastikan alias ini sesuai dengan yang didefinisikan di models/index.js
-                attributes: ['username', 'fullName', 'role'] 
+                attributes: ['username', 'fullName', 'role']
             }]
         });
 
@@ -38,11 +38,11 @@ exports.updateTeacherProfile = async (req, res) => {
 
         // Gunakan transaksi agar jika salah satu update gagal, data tetap konsisten
         const result = await db.sequelize.transaction(async (t) => {
-            
+
             // 1. Update data dasar di tabel Users (seperti FullName)
             if (fullName) {
                 await User.update(
-                    { fullName }, 
+                    { fullName },
                     { where: { id: userId }, transaction: t }
                 );
             }
@@ -60,7 +60,7 @@ exports.updateTeacherProfile = async (req, res) => {
             });
 
             // Ambil data terbaru untuk dikirim kembali ke frontend
-            const updatedTeacher = await Teacher.findOne({ 
+            const updatedTeacher = await Teacher.findOne({
                 where: { userId: userId },
                 include: [{ model: User, as: 'user', attributes: ['fullName'] }],
                 transaction: t
@@ -69,13 +69,30 @@ exports.updateTeacherProfile = async (req, res) => {
             return updatedTeacher;
         });
 
-        res.status(200).send({ 
-            message: "Profile updated successfully.", 
-            data: result 
+        res.status(200).send({
+            message: "Profile updated successfully.",
+            data: result
         });
 
     } catch (error) {
         console.error("Update Error:", error);
         res.status(500).send({ message: error.message || "Failed to update profile." });
+    }
+};
+
+// Ambil semua data guru (untuk Admin Dropdown)
+exports.findAll = async (req, res) => {
+    try {
+        const teachers = await Teacher.findAll({
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['id', 'username', 'fullName', 'email'] // Ambil info user yang relevan
+            }]
+        });
+        res.send(teachers);
+    } catch (error) {
+        console.error("Error fetching all teachers:", error);
+        res.status(500).send({ message: error.message || "Some error occurred while retrieving teachers." });
     }
 };

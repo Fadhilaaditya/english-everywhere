@@ -26,4 +26,7 @@ module.exports = function (app) {
     [authJwt.verifyToken],
     controller.updateTeacherProfile
   );
+
+  // Get All Teachers (untuk Admin Dropdown)
+  app.get("/api/teachers", controller.findAll);
 };

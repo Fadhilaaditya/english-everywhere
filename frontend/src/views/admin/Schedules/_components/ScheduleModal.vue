@@ -43,7 +43,7 @@ const emit = defineEmits(['close', 'submit'])
             class="w-full px-5 py-4 rounded-2xl border-2 border-transparent bg-gray-50 font-bold text-sm focus:border-[#4CC9C0] focus:bg-white transition-all outline-none"
           >
             <option value="" disabled>Pilih Program...</option>
-            <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.name }}</option>
+            <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.title }}</option>
           </select>
         </div>
 
