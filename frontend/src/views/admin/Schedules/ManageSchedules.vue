@@ -7,7 +7,7 @@ import ScheduleCalendar from './_components/ScheduleCalendar.vue'
 import ScheduleModal from './_components/ScheduleModal.vue'
 import axios from 'axios'
 
-// --- State Management ---
+// --- State ---
 const schedules = ref<any[]>([])
 const programs = ref<any[]>([])
 const teachers = ref<any[]>([])
@@ -18,24 +18,26 @@ const showModal = ref(false)
 const isSubmitting = ref(false)
 const selectedAppointment = ref<any>(null)
 
-// Toast State
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref<'success' | 'error'>('success')
 
-// Sesuai dengan kolom di tabel teacher_schedules
+// State Form sesuai struktur tabel baru
 const form = ref({
+  id: null,
   programId: '',
   teacherId: '',
-  day: '', // Monday, Tuesday, dst
-  startTime: '',
-  endTime: '',
-  status: 'Available',
+  teacherName: '',
+  className: '',
+  day: '',
+  startTime: '08:00',
+  endTime: '09:00',
+  date: '',
 })
 
 const API_BASE_URL = 'http://localhost:3001/api'
 
-// --- Helpers ---
+// --- Utils ---
 const getHeaders = () => ({
   'Content-Type': 'application/json',
   'x-access-token': localStorage.getItem('token') || '',
@@ -50,22 +52,20 @@ const triggerToast = (message: string, type: 'success' | 'error' = 'success') =>
   }, 3000)
 }
 
-// --- Data Fetching ---
+// --- API Actions ---
 const fetchData = async () => {
   try {
     const [resP, resT] = await Promise.all([
       axios.get(`${API_BASE_URL}/programs`, { headers: getHeaders() }),
       axios.get(`${API_BASE_URL}/teachers`, { headers: getHeaders() }),
     ])
-
-    programs.value = resP.data
-    teachers.value = resT.data
+    programs.value = Array.isArray(resP.data) ? resP.data : resP.data.data || []
+    teachers.value = Array.isArray(resT.data) ? resT.data : resT.data.data || []
 
     if (programs.value.length > 0 && !selectedCourseId.value) {
       selectedCourseId.value = programs.value[0].id
     }
   } catch (e) {
-    console.error('Error fetching initial data:', e)
     triggerToast('Gagal mengambil data guru/program', 'error')
   }
 }
@@ -73,12 +73,9 @@ const fetchData = async () => {
 const fetchSchedules = async () => {
   if (!selectedCourseId.value) return
   try {
-    // Mengambil jadwal berdasarkan program yang dipilih
     const res = await axios.get(
       `${API_BASE_URL}/teacher-schedules?programId=${selectedCourseId.value}`,
-      {
-        headers: getHeaders(),
-      },
+      { headers: getHeaders() },
     )
     schedules.value = res.data
   } catch (e) {
@@ -86,21 +83,37 @@ const fetchSchedules = async () => {
   }
 }
 
-// --- Event Handlers ---
+// --- Handlers ---
 const handleDayClick = (dayData: any) => {
   const d = dayData.date
-  // Mendapatkan nama hari dalam bahasa Inggris untuk Database ENUM
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const days = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ]
   const dayName = days[d.getDay()]
 
   selectedAppointment.value = null
+
+  // Auto-fill className berdasarkan program yang dipilih
+  const currentProgram = programs.value.find((p) => p.id === selectedCourseId.value)
+
   form.value = {
-    programId: selectedCourseId.value?.toString() || '',
-    teacherId: teachers.value[0]?.id || '',
+    id: null,
+    programId: selectedCourseId.value ? selectedCourseId.value.toString() : '',
+    teacherId: '',
+    teacherName: '', // Akan diisi di Modal saat guru dipilih
+    className: currentProgram?.title || currentProgram?.name || '',
     day: dayName,
     startTime: '08:00',
     endTime: '09:00',
-    status: 'Available',
+    date: dateStr,
   }
   showModal.value = true
 }
@@ -111,11 +124,17 @@ const handleEventClick = (event: any) => {
     ...event,
     programId: event.programId.toString(),
     teacherId: event.teacherId.toString(),
+    // Pastikan field string terbawa
+    teacherName: event.teacherName || '',
+    className: event.className || '',
   }
   showModal.value = true
 }
 
 const handleSubmit = async () => {
+  // Validasi Tambahan sebelum kirim
+  if (!form.value.teacherId) return triggerToast('Pilih guru pengajar!', 'error')
+
   isSubmitting.value = true
   try {
     const isEdit = !!selectedAppointment.value
@@ -123,35 +142,48 @@ const handleSubmit = async () => {
       ? `${API_BASE_URL}/teacher-schedules/${selectedAppointment.value.id}`
       : `${API_BASE_URL}/teacher-schedules`
 
-    const method = isEdit ? axios.put : axios.post
-
-    const res = await method(url, form.value, { headers: getHeaders() })
-
-    if (res.status === 200 || res.status === 201) {
-      triggerToast(isEdit ? 'Jadwal berhasil diperbarui' : 'Jadwal berhasil dibuat')
-      showModal.value = false
-      fetchSchedules()
+    // Pastikan ID dikirim sebagai angka jika Backend mewajibkan Integer
+    const payload = {
+      ...form.value,
+      programId: parseInt(form.value.programId),
+      teacherId: parseInt(form.value.teacherId),
     }
+
+    const method = isEdit ? axios.put : axios.post
+    await method(url, payload, { headers: getHeaders() })
+
+    triggerToast(isEdit ? 'Jadwal diperbarui' : 'Jadwal disimpan ke database')
+    showModal.value = false
+    fetchSchedules()
   } catch (e: any) {
-    triggerToast(e.response?.data?.message || 'Gagal menyimpan jadwal', 'error')
+    const errorMsg = e.response?.data?.message || 'Gagal terhubung ke server'
+    triggerToast(errorMsg, 'error')
   } finally {
     isSubmitting.value = false
   }
 }
 
+const handleDelete = async (id: number) => {
+  if (!confirm('Hapus jadwal ini?')) return
+  try {
+    await axios.delete(`${API_BASE_URL}/teacher-schedules/${id}`, { headers: getHeaders() })
+    triggerToast('Jadwal dihapus')
+    fetchSchedules()
+  } catch (e) {
+    triggerToast('Gagal menghapus', 'error')
+  }
+}
+
 // --- Lifecycle ---
 let pollingInterval: any = null
-
 onMounted(async () => {
   await fetchData()
   await fetchSchedules()
   pollingInterval = setInterval(fetchSchedules, 30000)
 })
-
 onUnmounted(() => {
   if (pollingInterval) clearInterval(pollingInterval)
 })
-
 watch(selectedCourseId, () => {
   fetchSchedules()
 })
@@ -164,6 +196,7 @@ watch(selectedCourseId, () => {
       <Header />
       <main class="p-8">
         <Toast v-if="showToast" :message="toastMessage" :type="toastType" />
+
         <div class="max-w-[1400px] mx-auto">
           <div
             class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8"
@@ -179,23 +212,24 @@ watch(selectedCourseId, () => {
                 <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.title }}</option>
               </select>
             </div>
-            <div class="text-right">
-              <h2 class="text-3xl font-black text-gray-800 capitalize">
-                {{ currentDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' }) }}
-              </h2>
-            </div>
           </div>
+
           <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
             <ScheduleCalendar
-              :current-date="currentDate"
+              v-model:current-date="currentDate"
               :schedules="schedules"
+              :is-loading="false"
+              :programs="programs"
+              :teachers="teachers"
               @day-click="handleDayClick"
               @event-click="handleEventClick"
+              @delete="handleDelete"
             />
           </div>
         </div>
       </main>
     </div>
+
     <ScheduleModal
       v-if="showModal"
       :form="form"
@@ -203,6 +237,8 @@ watch(selectedCourseId, () => {
       :programs="programs"
       :is-submitting="isSubmitting"
       :is-edit="!!selectedAppointment"
+      :selected-date-from-calendar="new Date(form.date)"
+      :selected-program-from-calendar="selectedCourseId"
       @close="showModal = false"
       @submit="handleSubmit"
     />

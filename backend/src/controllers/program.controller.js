@@ -1,216 +1,139 @@
-const db = require('../models');
+const db = require("../models");
 const Program = db.Program;
+const ProgramSchedule = db.ProgramSchedule;
 const Op = db.Sequelize.Op;
 
-// Retrieve all Programs from the database.
-exports.findAll = (req, res) => {
-    Program.findAll()
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: err.message || "Some error occurred while retrieving programs."
-            });
-        });
+// 1. Ambil semua jadwal yang sudah di-book (Lengkap dengan Judul Program)
+exports.getAllBookedSchedules = async (req, res) => {
+  try {
+    const data = await ProgramSchedule.findAll({
+      where: {
+        status: { [Op.like]: "%BOOKED%" },
+      },
+      include: [
+        {
+          model: Program,
+          as: "program",
+          attributes: ["title"], // Mengambil kolom 'title' dari tabel programs
+        },
+      ],
+      order: [["date", "DESC"]],
+    });
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Terjadi kesalahan saat mengambil jadwal.",
+    });
+  }
 };
 
-// Retrieve Schedules for a Program
-exports.getSchedules = (req, res) => {
-    const id = req.params.id;
-
-    db.ProgramSchedule.findAll({
-        where: { programId: id }
-    })
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: err.message || "Some error occurred while retrieving schedules."
-            });
-        });
+// 2. Ambil semua Program (Dropdown)
+exports.findAll = async (req, res) => {
+  try {
+    const data = await Program.findAll();
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Gagal mengambil data program.",
+    });
+  }
 };
 
-// Create a Schedule for a Program
-exports.createSchedule = (req, res) => {
-    const id = req.params.id;
+// 3. Ambil Jadwal berdasarkan ID Program
+exports.getSchedulesByProgram = async (req, res) => {
+  const programId = req.params.id;
+  try {
+    const data = await ProgramSchedule.findAll({
+      where: { programId: programId },
+      order: [
+        ["date", "ASC"],
+        ["time", "ASC"],
+      ],
+    });
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({ message: "Gagal mengambil jadwal program." });
+  }
+};
 
-    // Validate request
+exports.getSchedules = exports.getSchedulesByProgram;
+
+// 4. Create Schedule (MENGGANTIKAN ERROR 501)
+exports.createSchedule = async (req, res) => {
+  try {
+    const programId = req.params.id;
+
     if (!req.body.date || !req.body.time) {
-        res.status(400).send({
-            message: "Content can not be empty!"
-        });
-        return;
+      return res
+        .status(400)
+        .send({ message: "Tanggal dan Waktu wajib diisi!" });
     }
 
     const schedule = {
-        programId: id,
-        date: req.body.date,
-        time: req.body.time,
-        status: req.body.status || 'AVAILABLE'
+      programId: programId,
+      date: req.body.date,
+      time: req.body.time,
+      status: req.body.status || "AVAILABLE",
     };
 
-    // Check for duplicates
-    db.ProgramSchedule.findOne({
-        where: {
-            programId: id,
-            date: req.body.date,
-            time: req.body.time
-        }
-    }).then(existing => {
-        if (existing) {
-            res.status(400).send({
-                message: "Schedule already exists for this date and time."
-            });
-            return;
-        }
-
-        db.ProgramSchedule.create(schedule)
-            .then(data => {
-                res.send(data);
-            })
-            .catch(err => {
-                res.status(500).send({
-                    message: err.message || "Some error occurred while creating the schedule."
-                });
-            });
-    });
+    const data = await ProgramSchedule.create(schedule);
+    res.status(201).send(data);
+  } catch (err) {
+    res.status(500).send({ message: "Gagal membuat jadwal baru." });
+  }
 };
 
+// 5. Update status jadwal program
 exports.updateSchedule = async (req, res) => {
-    try {
-        const { id: programId, scheduleId } = req.params;
-        const updates = req.body;
+  const id = req.params.scheduleId;
+  try {
+    const [num] = await ProgramSchedule.update(req.body, {
+      where: { id: id },
+    });
 
-        const schedule = await db.ProgramSchedule.findOne({
-            where: { id: scheduleId, programId: programId }
-        });
-
-        if (!schedule) {
-            return res.status(404).send({ message: "Schedule not found." });
-        }
-
-        // If trying to book (change status to PENDING), check if it's currently AVAILABLE
-        if (updates.status === 'PENDING' && schedule.status !== 'AVAILABLE') {
-            return res.status(400).send({ message: "This schedule is no longer available." });
-        }
-
-        // If Approving (status -> BOOKED), create Student record
-        if (updates.status === 'BOOKED') {
-            const studentData = {
-                name: updates.applicantName,
-                gender: updates.applicantGender,
-                address: updates.applicantAddress,
-                fatherName: updates.applicantFather,
-                motherName: updates.applicantMother,
-                birthPlace: updates.applicantBirthPlace,
-                birthDate: updates.applicantBirthDate,
-                phoneNumber: updates.applicantPhone,
-                email: updates.applicantEmail,
-                // userId: updates.userId // TODO: If we want to link to User
-            };
-
-            // Create Student
-            // We use findOrCreate to avoid duplicates if the same person books multiple times (optional logic, but good practice if email is unique)
-            // For now just create.
-            try {
-                await db.Student.create(studentData);
-            } catch (studentError) {
-                console.error("Error creating student record:", studentError);
-                // We don't stop the schedule update, but maybe we should log it.
-            }
-        }
-
-        await schedule.update(updates);
-        res.send({ message: "Schedule updated successfully.", schedule });
-    } catch (err) {
-        res.status(500).send({
-            message: "Error updating schedule: " + err.message
-        });
+    if (num == 1) {
+      res.send({ message: "Jadwal program berhasil diperbarui." });
+    } else {
+      res.status(404).send({ message: "Jadwal tidak ditemukan." });
     }
+  } catch (err) {
+    res.status(500).send({ message: "Error updating jadwal program." });
+  }
 };
 
-// Retrieve all Booked Schedules (for Applicant Data)
-exports.getAllBookedSchedules = (req, res) => {
-    db.ProgramSchedule.findAll({
-        where: {
-            [Op.or]: [
-                { status: 'BOOKED' },
-                { status: 'booked' }
-            ]
-        },
-        include: [{
-            model: db.Program,
-            as: 'program',
-            attributes: ['title']
-        }],
-        order: [['date', 'DESC'], ['time', 'ASC']]
-    })
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: err.message || "Some error occurred while retrieving booked schedules."
-            });
-        });
+// 6. Delete Schedule (MENGGANTIKAN ERROR 501)
+exports.deleteSchedule = async (req, res) => {
+  const id = req.params.scheduleId;
+  try {
+    const num = await ProgramSchedule.destroy({
+      where: { id: id },
+    });
+
+    if (num == 1) {
+      res.send({ message: "Jadwal berhasil dihapus." });
+    } else {
+      res.status(404).send({ message: "Jadwal tidak ditemukan." });
+    }
+  } catch (err) {
+    res.status(500).send({ message: "Gagal menghapus jadwal." });
+  }
 };
 
-// Delete a Schedule
-exports.deleteSchedule = (req, res) => {
-    const id = req.params.scheduleId;
-
-    db.ProgramSchedule.destroy({
-        where: { id: id }
-    })
-        .then(num => {
-            if (num == 1) {
-                res.send({
-                    message: "Schedule was deleted successfully!"
-                });
-            } else {
-                res.send({
-                    message: `Cannot delete Schedule with id=${id}. Maybe Schedule was not found!`
-                });
-            }
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: "Could not delete Schedule with id=" + id
-            });
-        });
-};
-
-// Revert a Schedule (Unbook)
+// 7. Revert/Unbook Schedule (MENGGANTIKAN ERROR 501)
 exports.revertSchedule = async (req, res) => {
-    const id = req.params.scheduleId;
+  const id = req.params.scheduleId;
+  try {
+    const [num] = await ProgramSchedule.update(
+      { status: "AVAILABLE" },
+      { where: { id: id } },
+    );
 
-    try {
-        const schedule = await db.ProgramSchedule.findByPk(id);
-
-        if (!schedule) {
-            return res.status(404).send({ message: "Schedule not found." });
-        }
-
-        // Reset fields to make it available again
-        await schedule.update({
-            status: 'AVAILABLE',
-            applicantName: null,
-            applicantGender: null,
-            applicantAddress: null,
-            applicantFather: null,
-            applicantMother: null,
-            applicantBirthPlace: null,
-            applicantBirthDate: null,
-            applicantPhone: null,
-            applicantEmail: null
-        });
-
-        res.send({ message: "Schedule status reverted to AVAILABLE successfully." });
-    } catch (err) {
-        res.status(500).send({
-            message: "Error reverting Schedule with id=" + id
-        });
+    if (num == 1) {
+      res.send({ message: "Status jadwal dikembalikan ke AVAILABLE." });
+    } else {
+      res.status(404).send({ message: "Jadwal tidak ditemukan." });
     }
+  } catch (err) {
+    res.status(500).send({ message: "Gagal mengembalikan status jadwal." });
+  }
 };

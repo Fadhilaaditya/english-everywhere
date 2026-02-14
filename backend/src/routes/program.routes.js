@@ -1,28 +1,37 @@
-module.exports = app => {
-    const programs = require("../controllers/program.controller.js");
+module.exports = (app) => {
+  const programs = require("../controllers/program.controller.js");
 
-    var router = require("express").Router();
+  var router = require("express").Router();
 
-    // Retrieve all Programs
-    router.get("/", programs.findAll);
+  // 1. Retrieve all Programs
+  // Memanggil exports.findAll di controller
+  router.get("/", programs.findAll);
 
-    // Retrieve all Booked Schedules
-    router.get("/booked/all", programs.getAllBookedSchedules);
+  // 2. Retrieve all Booked Schedules
+  // Memanggil exports.getAllBookedSchedules di controller
+  // Rute statis ini diletakkan DI ATAS rute parameter :id agar tidak tertukar
+  router.get("/booked/all", programs.getAllBookedSchedules);
 
-    // Retrieve Schedules for a Program
-    router.get("/:id/schedules", programs.getSchedules);
+  // 3. Retrieve Schedules for a Program
+  // SINKRONISASI: Di controller kamu menamainya 'getSchedulesByProgram'
+  // Jika di controller kamu menambahkan 'exports.getSchedules = exports.getSchedulesByProgram', baris ini aman.
+  router.get("/:id/schedules", programs.getSchedulesByProgram);
 
-    // Create a Schedule for a Program
-    router.post("/:id/schedules", programs.createSchedule);
+  // 4. Create a Schedule for a Program
+  // Pastikan exports.createSchedule ada di controller (meskipun hanya dummy)
+  router.post("/:id/schedules", programs.createSchedule);
 
-    // Update a Schedule
-    router.put("/:id/schedules/:scheduleId", programs.updateSchedule);
+  // 5. Update a Schedule
+  // Memanggil exports.updateSchedule di controller
+  router.put("/:id/schedules/:scheduleId", programs.updateSchedule);
 
-    // Delete a Schedule
-    router.delete("/:id/schedules/:scheduleId", programs.deleteSchedule);
+  // 6. Delete a Schedule
+  // Pastikan exports.deleteSchedule ada di controller
+  router.delete("/:id/schedules/:scheduleId", programs.deleteSchedule);
 
-    // Revert/Unbook Schedule
-    router.put("/schedules/:scheduleId/revert", programs.revertSchedule);
+  // 7. Revert/Unbook Schedule
+  // Pastikan exports.revertSchedule ada di controller
+  router.put("/schedules/:scheduleId/revert", programs.revertSchedule);
 
-    app.use('/api/programs', router);
+  app.use("/api/programs", router);
 };
