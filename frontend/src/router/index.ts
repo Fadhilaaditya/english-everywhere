@@ -153,7 +153,19 @@ const router = createRouter({
             component: () => import('../views/admin/Schedules/ManageSchedules.vue'),
             meta: { hideLayout: true }
         }
-    ]
+    ],
+    scrollBehavior(to, from, savedPosition) {
+        if (to.hash) {
+            return {
+                el: to.hash,
+                behavior: 'smooth',
+            }
+        }
+        if (savedPosition) {
+            return savedPosition
+        }
+        return { top: 0 }
+    }
 })
 
 export default router

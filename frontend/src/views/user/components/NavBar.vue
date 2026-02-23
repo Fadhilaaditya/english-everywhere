@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 const isMenuOpen = ref(false)
 const user = ref<any>(null)
 
