@@ -25,6 +25,8 @@ db.User = require('./user.model.js')(sequelize, Sequelize);
 db.Event = require('./event.model.js')(sequelize, Sequelize);
 db.articles = require('./article.model.js')(sequelize, Sequelize);
 db.Program = require('./program.model.js')(sequelize, Sequelize);
+db.Payment = require('./payment.model.js')(sequelize, Sequelize);
+db.PaymentInstallment = require('./payment_installment.model.js')(sequelize, Sequelize);
 db.ProgramSchedule = require('./programSchedule.model.js')(sequelize, Sequelize);
 
 db.Program.hasMany(db.ProgramSchedule, { as: "schedules" });
@@ -42,6 +44,32 @@ db.User.hasOne(db.Student, {
 db.Student.belongsTo(db.User, {
     foreignKey: "userId",
     as: "user"
+});
+
+// Payment Associations
+db.Payment.belongsTo(db.Student, {
+    foreignKey: "studentId",
+    as: "student"
+});
+db.Student.hasMany(db.Payment, {
+    as: "payments"
+});
+
+db.Payment.belongsTo(db.Program, {
+    foreignKey: "programId",
+    as: "program"
+});
+db.Program.hasMany(db.Payment, {
+    as: "payments"
+});
+
+db.Payment.hasMany(db.PaymentInstallment, {
+    as: "installments",
+    foreignKey: "paymentId"
+});
+db.PaymentInstallment.belongsTo(db.Payment, {
+    as: "payment",
+    foreignKey: "paymentId"
 });
 
 module.exports = db;

@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/user/Homepage/HomeView.vue'
-import AboutUs from '../views/user/AboutUs/AboutUs.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -9,11 +8,6 @@ const router = createRouter({
             path: '/',
             name: 'home',
             component: HomeView
-        },
-        {
-            path: '/about-us',
-            name: 'about',
-            component: AboutUs
         },
         {
             path: '/login',
@@ -100,7 +94,19 @@ const router = createRouter({
             component: () => import('../views/admin/Payments/Payment.vue'),
             meta: { hideLayout: true }
         }
-    ]
+    ],
+    scrollBehavior(to, from, savedPosition) {
+        if (to.hash) {
+            return {
+                el: to.hash,
+                behavior: 'smooth',
+            }
+        }
+        if (savedPosition) {
+            return savedPosition
+        }
+        return { top: 0 }
+    }
 })
 
 export default router

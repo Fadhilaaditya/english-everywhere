@@ -21,6 +21,7 @@ require('./routes/program.routes')(app);
 require('./routes/article.routes')(app);
 require('./routes/student.routes')(app);
 require('./routes/user.routes')(app);
+require('./routes/payment.routes')(app);
 
 // Root Route
 app.get('/', (req, res) => {
