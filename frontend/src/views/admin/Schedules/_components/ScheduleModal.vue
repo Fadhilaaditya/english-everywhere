@@ -12,22 +12,11 @@ const props = defineProps<{
   selectedProgramFromCalendar?: string | number | null
 }>()
 
-const emit = defineEmits(['close', 'submit'])
-
-// Helper untuk konversi tanggal ke nama hari Inggris
-const getDayName = (date: Date): string => {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-  return days[date.getDay()]
-}
+const emit = defineEmits(['close', 'submit', 'delete'])
 
 // Fungsi sinkronisasi data otomatis
 const syncFields = () => {
   if (!props.isEdit) {
-    // 1. Sinkronisasi Hari
-    if (props.selectedDateFromCalendar) {
-      props.form.day = getDayName(new Date(props.selectedDateFromCalendar))
-    }
-
     // 2. Sinkronisasi Program & className
     if (props.selectedProgramFromCalendar) {
       props.form.programId = props.selectedProgramFromCalendar
@@ -70,105 +59,97 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
 
 <template>
   <div
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4"
     @click.self="emit('close')"
   >
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50" @click="emit('close')"></div>
+
     <div
-      class="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl p-10 overflow-y-auto max-h-[90vh]"
+      class="relative bg-white w-full max-w-lg rounded-2xl shadow-xl p-8 overflow-y-auto max-h-[90vh]"
     >
-      <div class="flex justify-between items-center mb-8">
-        <h3 class="font-black text-gray-800 text-2xl">
-          {{ isEdit ? 'Edit Jadwal' : 'Buat Jadwal Baru' }}
+      <!-- Close Button -->
+      <button 
+        @click="emit('close')"
+        class="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <X class="w-6 h-6" />
+      </button>
+
+      <div class="mb-8">
+        <h3 class="text-2xl font-bold text-gray-900">
+          {{ isEdit ? 'Edit Schedule' : 'Create New Schedule' }}
         </h3>
-        <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 p-2"><X /></button>
       </div>
 
       <form @submit.prevent="emit('submit')" class="space-y-6">
-        <div>
-          <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2"
-            >Program / Kelas</label
-          >
-          <input
-            type="text"
-            :value="form.className"
-            readonly
-            class="w-full px-5 py-4 rounded-2xl bg-gray-100 font-bold text-sm text-gray-500 cursor-not-allowed outline-none border-2 border-transparent"
-          />
+        <!-- Program -->
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Program / Kelas</label>
+          <div class="w-full px-4 py-3 rounded-lg bg-gray-100 border border-gray-200 text-gray-500 font-medium">
+            {{ form.className }}
+          </div>
           <input type="hidden" v-model="form.className" />
-          <p class="text-[9px] text-teal-500 mt-1 ml-2 font-bold uppercase">
-            * Otomatis mengikuti program studi
+          <p class="text-[10px] text-[#4FD1C5] font-medium uppercase tracking-tight">
+            * Automatically follows program selection
           </p>
         </div>
 
-        <div>
-          <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2"
-            >Guru Pengajar</label
-          >
+        <!-- Teacher -->
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Guru Pengajar</label>
           <select
             v-model="form.teacherId"
             required
-            class="w-full px-5 py-4 rounded-2xl border-2 border-transparent bg-gray-50 font-bold text-sm focus:border-[#4CC9C0] focus:bg-white transition-all outline-none"
+            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white transition-all font-medium text-sm"
           >
-            <option value="" disabled>Pilih Guru...</option>
+            <option value="" disabled>Select Teacher...</option>
             <option v-for="t in teachers" :key="t.id" :value="t.id">
-              {{ t.user ? t.user.fullName : 'Nama Tidak Tersedia' }}
+              {{ t.user ? t.user.fullName : 'Name Not Available' }}
             </option>
           </select>
-          <input type="hidden" v-model="form.teacherName" />
         </div>
-
-        <div class="space-y-6">
-          <div>
-            <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2"
-              >Hari</label
-            >
-            <div class="relative">
-              <input
-                type="text"
-                v-model="form.day"
-                readonly
-                class="w-full px-5 py-4 rounded-2xl bg-gray-100 font-bold text-sm text-gray-500 cursor-not-allowed outline-none border-2 border-transparent"
-              />
-              <CalendarIcon
-                class="absolute right-5 top-4 w-4 h-4 text-gray-300 pointer-events-none"
-              />
-            </div>
+        <!-- Time -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Jam Mulai</label>
+            <input
+              type="time"
+              v-model="form.startTime"
+              required
+              class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all font-medium text-sm"
+            />
           </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2"
-                >Jam Mulai</label
-              >
-              <input
-                type="time"
-                v-model="form.startTime"
-                required
-                class="w-full px-5 py-4 rounded-2xl border-2 border-transparent bg-gray-50 font-bold text-sm focus:border-[#4CC9C0] outline-none"
-              />
-            </div>
-            <div>
-              <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2"
-                >Jam Selesai</label
-              >
-              <input
-                type="time"
-                v-model="form.endTime"
-                required
-                class="w-full px-5 py-4 rounded-2xl border-2 border-transparent bg-gray-50 font-bold text-sm focus:border-[#4CC9C0] outline-none"
-              />
-            </div>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Jam Selesai</label>
+            <input
+              type="time"
+              v-model="form.endTime"
+              required
+              class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all font-medium text-sm"
+            />
           </div>
         </div>
 
-        <button
-          type="submit"
-          :disabled="isSubmitting"
-          class="w-full bg-[#4CC9C0] hover:bg-[#3db3aa] disabled:bg-gray-300 text-white font-black py-5 rounded-3xl flex justify-center items-center gap-3 transition-all shadow-lg"
-        >
-          <Loader2 v-if="isSubmitting" class="animate-spin" />
-          <span>{{ isSubmitting ? 'MEMPROSES...' : 'SIMPAN JADWAL' }}</span>
-        </button>
+        <!-- Actions -->
+        <div class="flex gap-4 pt-4">
+          <button
+            v-if="isEdit"
+            type="button"
+            @click="emit('delete', form.id)"
+            class="flex-1 py-3 rounded-lg text-white font-medium transition-colors bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20"
+          >
+            Delete
+          </button>
+          <button
+            type="submit"
+            :disabled="isSubmitting"
+            class="flex-1 bg-[#4FD1C5] hover:bg-[#3dbdb0] disabled:bg-gray-300 text-white font-medium py-3 rounded-lg flex justify-center items-center gap-2 transition-all shadow-lg shadow-[#4FD1C5]/20"
+          >
+            <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+            <span>{{ isSubmitting ? 'Processing...' : 'Save Schedule' }}</span>
+          </button>
+        </div>
       </form>
     </div>
   </div>

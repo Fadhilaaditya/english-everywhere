@@ -32,7 +32,7 @@ const menuItems = ref([
   { name: 'English Corner', icon: Languages, path: '/admin/english-corner' },
   { name: 'Payments', icon: CreditCard, path: '/admin/payments' },
   { name: 'Events', icon: CalendarDays, path: '/admin/events' },
-   { name: 'schedules', icon: CalendarDays, path: '/admin/schedules' },
+   { name: 'Schedules', icon: CalendarDays, path: '/admin/schedules' },
 ])
 
 const checkNewApplicants = async () => {

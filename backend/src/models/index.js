@@ -27,7 +27,7 @@ db.Student = require("./student.model.js")(sequelize, Sequelize);
 db.Program = require("./program.model.js")(sequelize, Sequelize);
 
 // Memisahkan TeacherSchedule dan ProgramSchedule karena tabelnya berbeda
-db.TeacherSchedule = require("./teacherSchedule.model.js")(
+db.TeacherSchedule = require("./TeacherSchedule.model.js")(
   sequelize,
   Sequelize,
 );

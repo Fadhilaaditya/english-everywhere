@@ -40,6 +40,40 @@ exports.findAll = async (req, res) => {
   }
 };
 
+// Ambil jadwal khusus untuk guru yang sedang login
+exports.findMySchedules = async (req, res) => {
+  try {
+    // 1. Cari profile guru berdasarkan userId (dari token)
+    const teacher = await db.Teacher.findOne({
+      where: { userId: req.userId }
+    });
+
+    if (!teacher) {
+      return res.status(404).send({ message: "Profile guru tidak ditemukan." });
+    }
+
+    // 2. Ambil jadwal untuk teacherId tersebut
+    const data = await TeacherSchedule.findAll({
+      where: { teacherId: teacher.id },
+      include: [
+        {
+          model: db.Program,
+          as: "program",
+          attributes: ["title"],
+        },
+      ],
+      order: [
+        ["date", "ASC"],
+        ["startTime", "ASC"],
+      ],
+    });
+    res.send(data);
+  } catch (err) {
+    console.error("Error findMySchedules:", err);
+    res.status(500).send({ message: "Gagal mengambil jadwal Anda." });
+  }
+};
+
 // Simpan jadwal baru
 exports.create = async (req, res) => {
   try {
@@ -51,7 +85,6 @@ exports.create = async (req, res) => {
     }
 
     const payload = {
-      day: req.body.day,
       date: req.body.date,
       startTime: req.body.startTime,
       endTime: req.body.endTime,
@@ -59,7 +92,6 @@ exports.create = async (req, res) => {
       programId: Number(req.body.programId),
       teacherName: req.body.teacherName, // Nama denormalisasi untuk pencarian cepat
       className: req.body.className, // Nama denormalisasi dari Program.title
-      status: req.body.status || "AVAILABLE",
     };
 
     const data = await TeacherSchedule.create(payload);
@@ -79,9 +111,19 @@ exports.update = async (req, res) => {
     // Pastikan ID tersedia
     if (!id) return res.status(400).send({ message: "ID Jadwal diperlukan." });
 
-    // Gunakan payload bersih (menghapus id dari body jika ada agar tidak konflik)
-    const updateData = { ...req.body };
-    delete updateData.id;
+    // Filter hanya field yang valid sesuai skema database
+    const validFields = ['date', 'startTime', 'endTime', 'teacherId', 'programId', 'teacherName', 'className'];
+    const updateData = {};
+
+    validFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    // Konversi tipe data jika perlu
+    if (updateData.teacherId) updateData.teacherId = Number(updateData.teacherId);
+    if (updateData.programId) updateData.programId = Number(updateData.programId);
 
     const [num] = await TeacherSchedule.update(updateData, {
       where: { id: id },

@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
-/**
- * Props & Emits
- * Menggunakan v-model:currentDate agar sinkron dengan Parent
- */
 const props = defineProps<{
   currentDate: Date
   schedules: any[]
   isLoading: boolean
+  programs: any[]
+  selectedCourseId: number | null
+  teachers: any[]
 }>()
 
-const emit = defineEmits(['update:currentDate', 'dayClick', 'eventClick'])
+const emit = defineEmits(['update:currentDate', 'update:selectedCourseId', 'dayClick', 'eventClick'])
+
+const goToToday = () => {
+  emit('update:currentDate', new Date())
+}
 
 // --- Navigasi Bulan ---
 const changeMonth = (offset: number) => {
@@ -21,28 +24,30 @@ const changeMonth = (offset: number) => {
     props.currentDate.getMonth() + offset,
     1,
   )
-  // Mengirim perubahan kembali ke file induk
   emit('update:currentDate', newDate)
 }
 
-// Format Tampilan Bulan (Contoh: FEBRUARI 2026)
+const prevMonth = () => changeMonth(-1)
+const nextMonth = () => changeMonth(1)
+
+// Format Tampilan Bulan (Contoh: February 2026)
 const currentMonthDisplay = computed(() => {
-  return props.currentDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' }).toUpperCase()
+  return props.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })
 })
 
 // --- Logika Grid Kalender ---
-const weekDays = ['SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB', 'MIN']
+const weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 const calendarDays = computed(() => {
   const year = props.currentDate.getFullYear()
   const month = props.currentDate.getMonth()
-  const firstDay = new Date(year, month, 1).getDay()
-  const lastDate = new Date(year, month + 1, 0).getDate()
+  const firstDayOfMonth = new Date(year, month, 1)
+  const lastDayOfMonth = new Date(year, month + 1, 0)
 
-  // Menentukan offset agar Senin adalah hari pertama (0)
-  let startDay = firstDay === 0 ? 6 : firstDay - 1
+  let startDayDetails = firstDayOfMonth.getDay()
+  let startDay = startDayDetails === 0 ? 6 : startDayDetails - 1
 
-  const days = []
+  const days: { date: Date; isCurrentMonth: boolean }[] = []
   const prevMonthLastDay = new Date(year, month, 0).getDate()
 
   // Hari dari bulan sebelumnya
@@ -53,17 +58,17 @@ const calendarDays = computed(() => {
     })
   }
   // Hari bulan saat ini
-  for (let i = 1; i <= lastDate; i++) {
+  for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
     days.push({
       date: new Date(year, month, i),
       isCurrentMonth: true,
     })
   }
   // Hari bulan berikutnya sampai kotak berjumlah 42
-  while (days.length < 42) {
-    const nextDate = days.length - (startDay + lastDate) + 1
+  const remainingDays = 42 - days.length
+  for (let i = 1; i <= remainingDays; i++) {
     days.push({
-      date: new Date(year, month + 1, nextDate),
+      date: new Date(year, month + 1, i),
       isCurrentMonth: false,
     })
   }
@@ -81,42 +86,54 @@ const getEventsForDay = (date: Date) => {
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-8">
-      <div class="flex items-center gap-4 bg-gray-50 p-2 rounded-3xl border border-gray-100">
-        <button
-          @click="changeMonth(-1)"
-          class="p-2 hover:bg-white hover:shadow-md rounded-2xl transition-all text-gray-600"
+  <div class="bg-white p-6 rounded-lg">
+    <div class="flex justify-between items-end mb-8">
+      <div class="flex items-end gap-6">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm text-gray-600 font-medium">Course</label>
+          <div class="relative">
+            <select 
+              :value="selectedCourseId"
+              @change="emit('update:selectedCourseId', parseInt(($event.target as HTMLSelectElement).value))"
+              class="appearance-none border border-gray-300 rounded-lg px-4 py-2 w-64 text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#4FD1C5] bg-white cursor-pointer"
+            >
+              <option v-for="program in programs" :key="program.id" :value="program.id">
+                {{ program.title }}
+              </option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          @click="goToToday" 
+          class="border border-gray-300 rounded-lg px-8 py-2 text-gray-700 font-medium hover:bg-gray-50 transition-colors h-[42px]"
         >
-          <ChevronLeft class="w-6 h-6" />
+          Today
         </button>
 
-        <h2
-          class="text-xl font-black text-gray-800 uppercase tracking-tighter px-4 min-w-[220px] text-center"
-        >
-          {{ currentMonthDisplay }}
-        </h2>
-
-        <button
-          @click="changeMonth(1)"
-          class="p-2 hover:bg-white hover:shadow-md rounded-2xl transition-all text-gray-600"
-        >
-          <ChevronRight class="w-6 h-6" />
-        </button>
+        <div class="flex items-center gap-4 ml-4 h-[42px]">
+          <button @click="prevMonth" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+            <ChevronLeft class="w-6 h-6 text-gray-900" />
+          </button>
+          <button @click="nextMonth" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
+            <ChevronRight class="w-6 h-6 text-gray-900" />
+          </button>
+        </div>
       </div>
-
-      <div v-if="isLoading" class="flex items-center gap-2 text-[#4CC9C0]">
-        <Loader2 class="w-4 h-4 animate-spin" />
-        <span class="text-[10px] font-black uppercase">Syncing...</span>
-      </div>
+      <h2 class="text-2xl font-bold text-gray-900">{{ currentMonthDisplay }}</h2>
     </div>
 
-    <div class="border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-sm">
-      <div class="grid grid-cols-7 bg-gray-50/50 border-b border-gray-100">
+    <div class="border border-gray-200 rounded-lg overflow-hidden">
+      <div class="grid grid-cols-7 border-b border-gray-200">
         <div
           v-for="day in weekDays"
           :key="day"
-          class="py-5 text-center text-[10px] font-black text-gray-400"
+          class="py-3 px-4 border-r border-gray-200 last:border-r-0 bg-gray-50 text-xs font-semibold text-gray-500 uppercase"
         >
           {{ day }}
         </div>
@@ -127,31 +144,25 @@ const getEventsForDay = (date: Date) => {
           v-for="(day, index) in calendarDays"
           :key="index"
           @click="emit('dayClick', day)"
-          class="min-h-[140px] border-r border-b border-gray-50 p-4 transition-all hover:bg-gray-50/50 cursor-pointer relative"
-          :class="{ 'opacity-30 bg-gray-50/20': !day.isCurrentMonth }"
+          class="min-h-[140px] border-r border-b border-gray-200 last:border-r-0 relative p-2 transition-colors hover:bg-gray-50/30 cursor-pointer"
+          :class="{ '!bg-gray-50/50 opacity-50': !day.isCurrentMonth }"
         >
-          <span
-            class="text-sm font-black"
-            :class="day.isCurrentMonth ? 'text-gray-700' : 'text-gray-300'"
-          >
-            {{ day.date.getDate() }}
-          </span>
-
-          <div class="mt-3 space-y-1.5">
-            <div
+          <span class="text-lg font-medium text-gray-900 block mb-2">{{ day.date.getDate() }}</span>
+          <div class="space-y-1.5">
+            <button
               v-for="event in getEventsForDay(day.date).slice(0, 2)"
               :key="event.id"
               @click.stop="emit('eventClick', event)"
-              class="px-3 py-2 rounded-xl text-[9px] font-black text-white bg-[#4CC9C0] truncate shadow-sm hover:brightness-95 transition-all uppercase"
+              class="w-full text-left px-2 py-1 rounded text-xs font-medium text-white shadow-sm hover:opacity-80 transition-opacity bg-[#4FD1C5]"
             >
               {{ event.startTime.slice(0, 5) }} • {{ event.teacher?.user?.fullName?.split(' ')[0] }}
-            </div>
+            </button>
 
             <div
               v-if="getEventsForDay(day.date).length > 2"
-              class="text-[9px] text-center font-black text-gray-400 pt-1 uppercase"
+              class="text-xs text-gray-500 font-medium px-2 hover:text-gray-700 hover:bg-gray-100 rounded cursor-pointer mt-1"
             >
-              +{{ getEventsForDay(day.date).length - 2 }} Lainnya
+              +{{ getEventsForDay(day.date).length - 2 }} more
             </div>
           </div>
         </div>

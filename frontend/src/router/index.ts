@@ -56,19 +56,38 @@ const router = createRouter({
         {
             path: '/teacher',
             // Menggunakan Layout khusus Teacher sebagai parent
-            component: () => import('../views/teacher/TeacherLayout.vue'), 
+            component: () => import('../views/teacher/TeacherLayout/TeacherLayout.vue'),
             meta: { hideLayout: true, requiresAuth: true, role: 'teacher' }, // Sembunyikan layout public (Navbar/Footer)
             children: [
-
+                {
+                    path: '', // URL: /teacher
+                    name: 'teacher-home',
+                    component: () => import('../views/user/Homepage/HomeView.vue')
+                },
+                {
+                    path: 'about-us', // URL: /teacher/about-us
+                    name: 'teacher-about',
+                    component: () => import('../views/user/AboutUs/AboutUs.vue')
+                },
+                {
+                    path: 'events', // URL: /teacher/events
+                    name: 'teacher-events',
+                    component: () => import('../views/user/Events/Event.vue')
+                },
+                {
+                    path: 'english-corner', // URL: /teacher/english-corner
+                    name: 'teacher-english-corner',
+                    component: () => import('../views/user/EnglishCorner/EnglishCorner.vue')
+                },
                 {
                     path: 'materials', // URL: /teacher/materials
                     name: 'teacher-materials',
-                    component: () => import('../views/teacher/Materials.vue')
+                    component: () => import('../views/teacher/LearningMaterial/LearningMaterial.vue')
                 },
                 {
                     path: 'schedule', // URL: /teacher/schedule
                     name: 'teacher-schedule',
-                    component: () => import('../views/teacher/Schedule.vue')
+                    component: () => import('../views/teacher/Schedule/Schedule.vue')
                 }
             ]
         },
@@ -130,7 +149,7 @@ const router = createRouter({
             component: () => import('../views/admin/Payments/Payment.vue'),
             meta: { hideLayout: true }
         },
-          {
+        {
             path: '/admin/schedules',
             name: 'admin-schedules',
             component: () => import('../views/admin/Schedules/ManageSchedules.vue'),

@@ -2,18 +2,6 @@ module.exports = (sequelize, Sequelize) => {
   const TeacherSchedule = sequelize.define(
     "teacher_schedules",
     {
-      day: {
-        type: Sequelize.ENUM(
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday",
-        ),
-        allowNull: false,
-      },
       date: {
         // Menyimpan tanggal spesifik (YYYY-MM-DD)
         type: Sequelize.DATEONLY,
@@ -34,12 +22,6 @@ module.exports = (sequelize, Sequelize) => {
       className: {
         type: Sequelize.STRING,
         allowNull: true,
-      },
-      status: {
-        // Walaupun sebelumnya diminta hapus, status biasanya krusial
-        // untuk membedakan jadwal yang masih kosong atau sudah di-book.
-        type: Sequelize.STRING,
-        defaultValue: "AVAILABLE",
       },
       // Definisi Foreign Key (Opsional tapi membantu integritas)
       teacherId: {

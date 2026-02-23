@@ -5,6 +5,7 @@ import Header from '../components/Header.vue'
 import Toast from '@/components/Toast.vue'
 import ScheduleCalendar from './_components/ScheduleCalendar.vue'
 import ScheduleModal from './_components/ScheduleModal.vue'
+import ConfirmModal from './_components/ConfirmModal.vue'
 import axios from 'axios'
 
 // --- State ---
@@ -13,6 +14,7 @@ const programs = ref<any[]>([])
 const teachers = ref<any[]>([])
 const selectedCourseId = ref<number | null>(null)
 const currentDate = ref(new Date())
+const isSidebarOpen = ref(false)
 
 const showModal = ref(false)
 const isSubmitting = ref(false)
@@ -22,6 +24,9 @@ const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref<'success' | 'error'>('success')
 
+const showConfirmModal = ref(false)
+const scheduleToDelete = ref<number | null>(null)
+
 // State Form sesuai struktur tabel baru
 const form = ref({
   id: null,
@@ -29,7 +34,6 @@ const form = ref({
   teacherId: '',
   teacherName: '',
   className: '',
-  day: '',
   startTime: '08:00',
   endTime: '09:00',
   date: '',
@@ -87,17 +91,6 @@ const fetchSchedules = async () => {
 const handleDayClick = (dayData: any) => {
   const d = dayData.date
   const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const days = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ]
-  const dayName = days[d.getDay()]
 
   selectedAppointment.value = null
 
@@ -110,7 +103,6 @@ const handleDayClick = (dayData: any) => {
     teacherId: '',
     teacherName: '', // Akan diisi di Modal saat guru dipilih
     className: currentProgram?.title || currentProgram?.name || '',
-    day: dayName,
     startTime: '08:00',
     endTime: '09:00',
     date: dateStr,
@@ -163,11 +155,19 @@ const handleSubmit = async () => {
   }
 }
 
-const handleDelete = async (id: number) => {
-  if (!confirm('Hapus jadwal ini?')) return
+const handleDelete = (id: number) => {
+  scheduleToDelete.value = id
+  showConfirmModal.value = true
+}
+
+const confirmDelete = async () => {
+  if (!scheduleToDelete.value) return
   try {
-    await axios.delete(`${API_BASE_URL}/teacher-schedules/${id}`, { headers: getHeaders() })
+    await axios.delete(`${API_BASE_URL}/teacher-schedules/${scheduleToDelete.value}`, { headers: getHeaders() })
     triggerToast('Jadwal dihapus')
+    showModal.value = false
+    showConfirmModal.value = false
+    scheduleToDelete.value = null
     fetchSchedules()
   } catch (e) {
     triggerToast('Gagal menghapus', 'error')
@@ -190,43 +190,33 @@ watch(selectedCourseId, () => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#F8F9FA]">
-    <Sidebar />
-    <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
-      <Header />
-      <main class="p-8">
-        <Toast v-if="showToast" :message="toastMessage" :type="toastType" />
+  <div class="min-h-screen bg-white font-poppins">
+    <Sidebar :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
 
-        <div class="max-w-[1400px] mx-auto">
-          <div
-            class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8"
-          >
-            <div class="flex flex-col gap-2">
-              <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
-                >Pilih Program</label
-              >
-              <select
-                v-model="selectedCourseId"
-                class="border border-gray-200 rounded-2xl px-5 py-3 w-72 bg-white font-bold outline-none focus:ring-2 focus:ring-[#4CC9C0] transition-all shadow-sm"
-              >
-                <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.title }}</option>
-              </select>
-            </div>
-          </div>
+    <div class="transition-all duration-300 lg:pl-64">
+      <Header @toggle-sidebar="isSidebarOpen = !isSidebarOpen" />
+      
+      <main class="p-4 lg:p-8">
+        <Toast 
+          :show="showToast" 
+          :message="toastMessage" 
+          :type="toastType" 
+          @close="showToast = false"
+        />
 
-          <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-            <ScheduleCalendar
-              v-model:current-date="currentDate"
-              :schedules="schedules"
-              :is-loading="false"
-              :programs="programs"
-              :teachers="teachers"
-              @day-click="handleDayClick"
-              @event-click="handleEventClick"
-              @delete="handleDelete"
-            />
-          </div>
-        </div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-8">Schedules</h1>
+
+        <ScheduleCalendar
+          v-model:current-date="currentDate"
+          v-model:selected-course-id="selectedCourseId"
+          :schedules="schedules"
+          :is-loading="false"
+          :programs="programs"
+          :teachers="teachers"
+          @day-click="handleDayClick"
+          @event-click="handleEventClick"
+          @delete="handleDelete"
+        />
       </main>
     </div>
 
@@ -241,6 +231,17 @@ watch(selectedCourseId, () => {
       :selected-program-from-calendar="selectedCourseId"
       @close="showModal = false"
       @submit="handleSubmit"
+      @delete="handleDelete"
+    />
+
+    <ConfirmModal
+      :show="showConfirmModal"
+      title="Hapus Jadwal?"
+      message="Apakah Anda yakin ingin menghapus jadwal ini? Tindakan ini tidak dapat dibatalkan."
+      confirm-text="Ya, Hapus"
+      cancel-text="Batal"
+      @confirm="confirmDelete"
+      @cancel="showConfirmModal = false"
     />
   </div>
 </template>
