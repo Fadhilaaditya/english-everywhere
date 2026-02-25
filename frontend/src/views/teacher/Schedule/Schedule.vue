@@ -10,9 +10,14 @@ const classes = ref<any[]>([])
 const isLoading = ref(true)
 const errorMessage = ref('')
 const currentDate = ref(new Date())
+const selectedDate = ref<string>(new Date().toISOString().split('T')[0] || '')
 
 const currentMonthYear = computed(() => {
   return currentDate.value.toLocaleString('default', { month: 'long', year: 'numeric' })
+})
+
+const filteredClasses = computed(() => {
+    return classes.value.filter(c => c.date === selectedDate.value)
 })
 
 const prevMonth = () => {
@@ -21,6 +26,15 @@ const prevMonth = () => {
 
 const nextMonth = () => {
     currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
+}
+
+const goToToday = () => {
+    currentDate.value = new Date()
+    selectedDate.value = new Date().toISOString().split('T')[0] || ''
+}
+
+const handleDateSelect = (date: string) => {
+    selectedDate.value = date
 }
 
 const fetchSchedules = async () => {
@@ -93,13 +107,16 @@ onMounted(() => {
         <ScheduleCalendar 
           :classes="classes"
           :current-date="currentDate"
+          :selected-date="selectedDate"
           @prev="prevMonth"
           @next="nextMonth"
+          @today="goToToday"
+          @select="handleDateSelect"
         />
       </div>
 
       <div class="lg:col-span-4">
-        <ScheduleList :classes="classes" />
+        <ScheduleList :classes="filteredClasses" :selected-date="selectedDate" />
       </div>
     </div>
   </div>

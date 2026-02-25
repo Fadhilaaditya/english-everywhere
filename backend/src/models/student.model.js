@@ -38,6 +38,14 @@ module.exports = (sequelize, Sequelize) => {
             validate: {
                 isEmail: true
             }
+        },
+        userId: {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+                model: "users",
+                key: "id",
+            },
         }
     });
 

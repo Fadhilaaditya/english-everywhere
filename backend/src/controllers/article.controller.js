@@ -1,5 +1,5 @@
 const db = require("../models");
-const Article = db.articles;
+const Article = db.Article;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new Article

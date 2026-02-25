@@ -48,8 +48,8 @@ onMounted(() => {
     <div class="hidden md:flex items-center gap-8 lg:gap-16 font-poppins text-base font-semibold text-gray-800 whitespace-nowrap">
       
       <router-link :to="getLinkPath('/')" class="hover:text-primary transition-colors" exact-active-class="font-bold text-lg text-gray-900">Homepage</router-link> 
-      <router-link :to="getLinkPath('/about-us')" class="hover:text-primary transition-colors" active-class="font-bold text-lg text-gray-900">About Us</router-link>
-      <router-link to="#" class="hover:text-primary transition-colors">Daftar Kelas</router-link>
+      <router-link v-if="user?.role !== 'teacher'" :to="getLinkPath('/#about-us')" class="hover:text-primary transition-colors">About Us</router-link>
+      <router-link v-if="user?.role !== 'teacher'" :to="getLinkPath('/#programs')" class="hover:text-primary transition-colors">Daftar Kelas</router-link>
       <router-link :to="getLinkPath('/events')" class="hover:text-primary transition-colors" active-class="font-bold text-lg text-gray-900">Events</router-link>
       <router-link :to="getLinkPath('/english-corner')" class="hover:text-primary transition-colors" active-class="font-bold text-lg text-gray-900">English Corner</router-link>
       
@@ -63,7 +63,7 @@ onMounted(() => {
       </router-link>
 
       <template v-if="user?.role === 'teacher'">
-        <div class="h-6 w-px bg-gray-300 mx-[-20px]"></div> <router-link 
+        <router-link 
             to="/teacher/materials" 
             class="hover:text-primary transition-colors"
             active-class="font-bold text-lg text-gray-900"
@@ -98,8 +98,8 @@ onMounted(() => {
       class="border-t border-gray-100 absolute top-full left-0 w-full bg-white shadow-xl flex flex-col items-center gap-6 py-8 md:hidden font-poppins font-medium z-50 transition-all"
     >
       <router-link :to="getLinkPath('/')" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">Homepage</router-link>
-      <router-link :to="getLinkPath('/about-us')" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">About Us</router-link>
-      <router-link to="#" class="hover:text-primary transition-colors text-lg" @click="toggleMenu">Daftar Kelas</router-link>
+      <router-link v-if="user?.role !== 'teacher'" :to="getLinkPath('/#about-us')" class="hover:text-primary transition-colors text-lg" @click="toggleMenu">About Us</router-link>
+      <router-link v-if="user?.role !== 'teacher'" :to="getLinkPath('/#programs')" class="hover:text-primary transition-colors text-lg" @click="toggleMenu">Daftar Kelas</router-link>
       <router-link :to="getLinkPath('/events')" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">Events</router-link>
       <router-link :to="getLinkPath('/english-corner')" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">English Corner</router-link>
       
@@ -114,11 +114,8 @@ onMounted(() => {
       </router-link>
 
       <template v-if="user?.role === 'teacher'">
-        <div class="w-20 border-t border-dashed border-gray-300"></div>
-        <p class="text-xs text-gray-400 uppercase font-bold">Menu Guru</p>
         <router-link to="/teacher/materials" class="text-[#00B4D8] font-bold text-lg" @click="toggleMenu">Materi Ajar</router-link>
         <router-link to="/teacher/schedule" class="text-[#00B4D8] font-bold text-lg" @click="toggleMenu">Jadwal</router-link>
-        <div class="w-20 border-t border-dashed border-gray-300"></div>
       </template>
 
       <button v-if="user" @click="() => { handleLogout(); toggleMenu() }" class="bg-[#F4838D] hover:bg-[#F4838D]/80 text-white px-8 py-3 rounded-full font-bold transition-colors cursor-pointer inline-block text-center mt-2 shadow-md">
