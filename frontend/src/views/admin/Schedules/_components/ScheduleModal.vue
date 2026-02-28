@@ -5,6 +5,7 @@ import { watch, onMounted } from 'vue'
 const props = defineProps<{
   programs: any[]
   teachers: any[]
+  classrooms: any[]
   form: any
   isSubmitting: boolean
   isEdit: boolean
@@ -109,6 +110,32 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
             </option>
           </select>
         </div>
+
+        <!-- Ruang Kelas & Link Absensi -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Classroom</label>
+            <select
+              v-model="form.classroom"
+              class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white transition-all font-medium text-sm"
+            >
+              <option value="" disabled>Select Classroom...</option>
+              <option v-for="c in classrooms" :key="c.id" :value="c.name">
+                {{ c.name }}
+              </option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Link Absensi</label>
+            <input
+              type="url"
+              v-model="form.attendanceLink"
+              placeholder="https://..."
+              class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all font-medium text-sm"
+            />
+          </div>
+        </div>
+
         <!-- Time -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-2">

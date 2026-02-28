@@ -12,6 +12,7 @@ import axios from 'axios'
 const schedules = ref<any[]>([])
 const programs = ref<any[]>([])
 const teachers = ref<any[]>([])
+const classrooms = ref<any[]>([])
 const selectedCourseId = ref<number | null>(null)
 const currentDate = ref(new Date())
 const isSidebarOpen = ref(false)
@@ -34,6 +35,8 @@ const form = ref({
   teacherId: '',
   teacherName: '',
   className: '',
+  classroom: '',
+  attendanceLink: '',
   startTime: '08:00',
   endTime: '09:00',
   date: '',
@@ -59,18 +62,20 @@ const triggerToast = (message: string, type: 'success' | 'error' = 'success') =>
 // --- API Actions ---
 const fetchData = async () => {
   try {
-    const [resP, resT] = await Promise.all([
+    const [resP, resT, resC] = await Promise.all([
       axios.get(`${API_BASE_URL}/programs`, { headers: getHeaders() }),
       axios.get(`${API_BASE_URL}/teachers`, { headers: getHeaders() }),
+      axios.get(`${API_BASE_URL}/classrooms`, { headers: getHeaders() }),
     ])
     programs.value = Array.isArray(resP.data) ? resP.data : resP.data.data || []
     teachers.value = Array.isArray(resT.data) ? resT.data : resT.data.data || []
+    classrooms.value = Array.isArray(resC.data) ? resC.data : resC.data.data || []
 
     if (programs.value.length > 0 && !selectedCourseId.value) {
       selectedCourseId.value = programs.value[0].id
     }
   } catch (e) {
-    triggerToast('Gagal mengambil data guru/program', 'error')
+    triggerToast('Gagal mengambil data guru/program/kelas', 'error')
   }
 }
 
@@ -103,6 +108,8 @@ const handleDayClick = (dayData: any) => {
     teacherId: '',
     teacherName: '', // Akan diisi di Modal saat guru dipilih
     className: currentProgram?.title || currentProgram?.name || '',
+    classroom: '',
+    attendanceLink: '',
     startTime: '08:00',
     endTime: '09:00',
     date: dateStr,
@@ -119,6 +126,8 @@ const handleEventClick = (event: any) => {
     // Pastikan field string terbawa
     teacherName: event.teacherName || '',
     className: event.className || '',
+    classroom: event.classroom || '',
+    attendanceLink: event.attendanceLink || '',
   }
   showModal.value = true
 }
@@ -225,6 +234,7 @@ watch(selectedCourseId, () => {
       :form="form"
       :teachers="teachers"
       :programs="programs"
+      :classrooms="classrooms"
       :is-submitting="isSubmitting"
       :is-edit="!!selectedAppointment"
       :selected-date-from-calendar="new Date(form.date)"

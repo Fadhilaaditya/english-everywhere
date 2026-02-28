@@ -9,6 +9,7 @@ const props = defineProps<{
     time: string
     subject: string
     room: string
+    attendanceLink?: string
     status: string
   }
 }>()
@@ -54,12 +55,15 @@ const props = defineProps<{
         >
             Selesai
         </button>
-        <button 
+        <a 
             v-else
-            class="w-full py-3 px-6 rounded-2xl bg-[#4CC9C0] text-white text-sm font-bold shadow-lg shadow-[#4CC9C0]/20 hover:bg-[#3db8af] transition-colors"
+            :href="item.attendanceLink || '#'"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="w-full py-3 px-6 rounded-2xl bg-[#4CC9C0] text-white text-sm font-bold shadow-lg shadow-[#4CC9C0]/20 hover:bg-[#3db8af] transition-colors text-center inline-block"
         >
-            Masuk Kelas
-        </button>
+           Absensi
+        </a>
     </div>
   </div>
 </template>

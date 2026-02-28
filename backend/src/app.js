@@ -37,6 +37,7 @@ require("./routes/article.routes")(app);
 require("./routes/student.routes")(app);
 require("./routes/user.routes")(app);
 require("./routes/teacher.routes")(app);
+require("./routes/classroom.routes")(app);
 
 // Root Route
 app.get("/", (req, res) => {

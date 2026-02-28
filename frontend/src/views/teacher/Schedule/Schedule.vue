@@ -57,7 +57,8 @@ const fetchSchedules = async () => {
                 month: monthName,
                 time: `${(schedule.startTime || '00:00:00').slice(0,5)} - ${(schedule.endTime || '00:00:00').slice(0,5)}`,
                 subject: schedule.program ? schedule.program.title || schedule.program.name : schedule.className || 'No Program',
-                room: 'Online Class',
+                room: schedule.classroom || 'Online Class',
+                attendanceLink: schedule.attendanceLink || '',
                 status: 'Available' // Default because status field was removed
             }
         })

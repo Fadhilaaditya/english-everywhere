@@ -23,6 +23,14 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      classroom: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      attendanceLink: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
       // Definisi Foreign Key (Opsional tapi membantu integritas)
       teacherId: {
         type: Sequelize.INTEGER,
