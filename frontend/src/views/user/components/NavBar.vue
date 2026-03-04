@@ -42,7 +42,7 @@ onMounted(() => {
 <template>
   <nav class="bg-white py-3 px-6 md:px-12 flex items-center justify-between sticky top-0 z-50 shadow-sm">
     <div class="flex items-center cursor-pointer" @click="router.push(getLinkPath('/'))">
-      <img src="/logo.svg" alt="English Everywhere Logo" class="h-12 w-auto" /> 
+      <img src="/logo.svg" alt="English Everywhere Logo" class="h-16 w-auto" /> 
     </div>
 
     <div class="hidden md:flex items-center gap-8 lg:gap-16 font-poppins text-base font-semibold text-gray-800 whitespace-nowrap">

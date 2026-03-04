@@ -49,7 +49,16 @@ const fetchSchedules = async () => {
         id: schedule.id,
         type: schedule.status, 
         time: schedule.time,
-        name: schedule.applicantName
+        name: schedule.applicantName,
+        applicantName: schedule.applicantName,
+        applicantGender: schedule.applicantGender,
+        applicantAddress: schedule.applicantAddress,
+        applicantFather: schedule.applicantFather,
+        applicantMother: schedule.applicantMother,
+        applicantBirthPlace: schedule.applicantBirthPlace,
+        applicantBirthDate: schedule.applicantBirthDate,
+        applicantPhone: schedule.applicantPhone,
+        applicantEmail: schedule.applicantEmail
       })
     })
     events.value = newEvents
@@ -134,9 +143,16 @@ const openDayModal = (date: string, events: any[]) => {
     isDayModalOpen.value = true
 }
 
-const handleEventClick = (date: string, time: string, type: string, id: number, name?: string) => {
+const handleEventClick = (date: string, time: string, type: string, id: number, eventData?: any) => {
     if (type === 'AVAILABLE' || type === 'BOOKED' || type === 'PENDING') {
-        selectedSchedule.value = { id, date, time, programName: 'Program', status: type, applicantName: name }
+        selectedSchedule.value = { 
+            id, 
+            date, 
+            time, 
+            programName: 'Program', 
+            status: type, 
+            ...eventData 
+        }
         isModalOpen.value = true
     }
 }
@@ -232,7 +248,7 @@ const handleModalSubmit = async (payload: any) => {
                                     'bg-[#EB7A52]': (events[day.fullDate] || [])[0]?.type === 'PENDING',
                                     'bg-[#BCC1C9]': (events[day.fullDate] || [])[0]?.type === 'BOOKED'
                                 }"
-                                @click.stop="handleEventClick(day.fullDate, (events[day.fullDate] || [])[0]?.time || '', (events[day.fullDate] || [])[0]?.type || '', (events[day.fullDate] || [])[0]?.id || 0, (events[day.fullDate] || [])[0]?.name)"
+                                @click.stop="handleEventClick(day.fullDate, (events[day.fullDate] || [])[0]?.time || '', (events[day.fullDate] || [])[0]?.type || '', (events[day.fullDate] || [])[0]?.id || 0, (events[day.fullDate] || [])[0])"
                              >
                                 {{ (events[day.fullDate] || [])[0]?.time }}
                              </div>
@@ -248,7 +264,7 @@ const handleModalSubmit = async (payload: any) => {
                         <div 
                             v-for="(event, eIndex) in (events[day.fullDate] || []).slice(0, 2)" 
                             :key="eIndex"
-                            @click.stop="handleEventClick(day.fullDate, event.time, event.type, event.id, event.name)"
+                            @click.stop="handleEventClick(day.fullDate, event.time, event.type, event.id, event)"
                             class="text-[10px] px-2 py-1 rounded-md font-medium text-white shadow-sm transition-opacity truncate"
                             :class="{
                                 'bg-[#00B027] hover:opacity-90 cursor-pointer': event.type === 'AVAILABLE',

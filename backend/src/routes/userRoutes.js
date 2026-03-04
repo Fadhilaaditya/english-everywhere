@@ -9,5 +9,14 @@ module.exports = app => {
     // Retrieve all Users (Student & Teacher)
     router.get("/", users.findAll);
 
+    // Delete User
+    router.delete("/:id", users.delete);
+
+    // Create User
+    router.post("/", users.create);
+
+    // Update User
+    router.put("/:id", users.update);
+
     app.use('/api/users', router);
 };

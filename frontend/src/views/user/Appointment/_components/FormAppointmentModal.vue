@@ -12,6 +12,14 @@ const props = defineProps<{
     programName?: string
     status?: string
     applicantName?: string
+    applicantGender?: string
+    applicantAddress?: string
+    applicantFather?: string
+    applicantMother?: string
+    applicantBirthPlace?: string
+    applicantBirthDate?: string
+    applicantPhone?: string
+    applicantEmail?: string
   }
 }>()
 
@@ -107,17 +115,17 @@ const processSubmission = () => {
 
 // Reset form when modal opens with new schedule
 watch(() => props.schedule, (newVal) => {
-    if (newVal?.applicantName) {
+    if (newVal) {
         formData.value = {
-            fullName: newVal.applicantName,
-            gender: 'Male',
-            address: '',
-            fatherName: '',
-            motherName: '',
-            birthPlace: '',
-            birthDate: '',
-            phone: '',
-            email: ''
+            fullName: newVal.applicantName || '',
+            gender: newVal.applicantGender || 'Male',
+            address: newVal.applicantAddress || '',
+            fatherName: newVal.applicantFather || '',
+            motherName: newVal.applicantMother || '',
+            birthPlace: newVal.applicantBirthPlace || '',
+            birthDate: newVal.applicantBirthDate || '',
+            phone: newVal.applicantPhone || '',
+            email: newVal.applicantEmail || ''
         }
     } else {
         formData.value = {
@@ -132,7 +140,7 @@ watch(() => props.schedule, (newVal) => {
             email: ''
         }
     }
-})
+}, { immediate: true })
 </script>
 
 <template>

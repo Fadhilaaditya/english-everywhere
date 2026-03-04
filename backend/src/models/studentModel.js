@@ -39,6 +39,10 @@ module.exports = (sequelize, Sequelize) => {
                 isEmail: true
             }
         },
+        course: {
+            type: Sequelize.STRING,
+            allowNull: true
+        },
         userId: {
             type: Sequelize.INTEGER,
             allowNull: true,

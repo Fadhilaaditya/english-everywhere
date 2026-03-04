@@ -17,6 +17,10 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
             allowNull: false,
             field: 'nama_lengkap' // Map to database column 'nama_lengkap'
+        },
+        photo: {
+            type: Sequelize.STRING,
+            allowNull: true
         }
     });
 

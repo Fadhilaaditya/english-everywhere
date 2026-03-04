@@ -18,6 +18,35 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.TEXT,
         allowNull: true,
       },
+      // Profil Data (Sync with Student)
+      name: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      gender: {
+        type: Sequelize.ENUM("Male", "Female"),
+        allowNull: true,
+      },
+      address: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      birthPlace: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      birthDate: {
+        type: Sequelize.DATEONLY,
+        allowNull: true,
+      },
+      phoneNumber: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      email: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
       // Foreign Key yang menghubungkan ke tabel users
       userId: {
         type: Sequelize.INTEGER,

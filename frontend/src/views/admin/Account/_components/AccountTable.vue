@@ -22,7 +22,7 @@ const fetchAccounts = async () => {
                     id: item.id,
                     name: item.fullName || (profile ? profile.name : '-'),
                     username: item.username,
-                    dob: isStudent && profile ? formatDate(profile.birthDate) : '-',
+                    dob: profile && profile.birthDate ? formatDate(profile.birthDate) : '-',
                     role: capitalize(item.role),
                     fullData: item 
                 }
@@ -91,7 +91,7 @@ const processDelete = async () => {
     isDeleteConfirmOpen.value = false
     try {
         // Implement delete API call
-         const response = await fetch(`http://localhost:3001/api/students/${accountToDelete.value}`, {
+         const response = await fetch(`http://localhost:3001/api/users/${accountToDelete.value}`, {
             method: 'DELETE'
         })
         

@@ -281,23 +281,6 @@ const handleDelete = () => {
                         />
                     </div>
                 </div>
-
-                 <!-- Level -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Level</label>
-                    <div class="relative">
-                        <select 
-                            v-model="formData.level"
-                             class="w-full px-4 py-2.5 rounded-lg bg-gray-200 border border-gray-300 focus:outline-none text-gray-700 appearance-none"
-                             disabled
-                        >
-                            <option :value="formData.level">{{ formData.level }}</option>
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
-                            <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Actions -->
