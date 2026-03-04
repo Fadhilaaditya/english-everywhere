@@ -1,25 +1,24 @@
-const Sequelize = require('sequelize');
-const dbConfig = require('../config/database');
+const Sequelize = require("sequelize");
+const dbConfig = require("../config/database");
 
 const sequelize = new Sequelize(
-    dbConfig.database,
-    dbConfig.username,
-    dbConfig.password,
-    {
-        host: dbConfig.host,
-        port: dbConfig.port,
-        dialect: dbConfig.dialect,
-        dialectOptions: dbConfig.dialectOptions,
-        logging: dbConfig.logging,
-        pool: dbConfig.pool,
-    }
+  dbConfig.database,
+  dbConfig.username,
+  dbConfig.password,
+  {
+    host: dbConfig.host,
+    port: dbConfig.port,
+    dialect: dbConfig.dialect,
+    logging: dbConfig.logging,
+    pool: dbConfig.pool,
+  },
 );
 
 const db = {};
-
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
+<<<<<<< HEAD
 // Models
 db.User = require('./user.model.js')(sequelize, Sequelize);
 db.Event = require('./event.model.js')(sequelize, Sequelize);
@@ -28,22 +27,72 @@ db.Program = require('./program.model.js')(sequelize, Sequelize);
 db.Payment = require('./payment.model.js')(sequelize, Sequelize);
 db.PaymentInstallment = require('./payment_installment.model.js')(sequelize, Sequelize);
 db.ProgramSchedule = require('./programSchedule.model.js')(sequelize, Sequelize);
+=======
+// ==============================
+// 1. IMPORT MODELS
+// ==============================
+db.User = require("./userModel.js")(sequelize, Sequelize);
+db.Teacher = require("./teacherModel.js")(sequelize, Sequelize);
+db.Student = require("./studentModel.js")(sequelize, Sequelize);
+db.Program = require("./programModel.js")(sequelize, Sequelize);
+db.Event = require("./eventModel.js")(sequelize, Sequelize);
+db.Article = require("./articleModel.js")(sequelize, Sequelize);
+db.Classroom = require("./classroomModel.js")(sequelize, Sequelize);
+>>>>>>> development
 
-db.Program.hasMany(db.ProgramSchedule, { as: "schedules" });
+// Memisahkan TeacherSchedule dan ProgramSchedule karena tabelnya berbeda
+db.TeacherSchedule = require("./teacherScheduleModel.js")(
+  sequelize,
+  Sequelize,
+);
+db.ProgramSchedule = require("./programScheduleModel.js")(
+  sequelize,
+  Sequelize,
+);
+
+// ==============================
+// 2. DEFINE ASSOCIATIONS
+// ==============================
+
+// --- Relasi User <-> Teacher ---
+db.User.hasOne(db.Teacher, { foreignKey: "userId", as: "teacherProfile" });
+db.Teacher.belongsTo(db.User, { foreignKey: "userId", as: "user" });
+
+// --- Relasi User <-> Student ---
+db.User.hasOne(db.Student, { foreignKey: "userId", as: "studentProfile" });
+db.Student.belongsTo(db.User, { foreignKey: "userId", as: "user" });
+
+// --- Relasi Teacher <-> TeacherSchedule ---
+// Guru memiliki banyak jadwal mengajar di tabel teacher_schedules
+db.Teacher.hasMany(db.TeacherSchedule, {
+  foreignKey: "teacherId",
+  as: "teachingSchedules",
+});
+db.TeacherSchedule.belongsTo(db.Teacher, {
+  foreignKey: "teacherId",
+  as: "teacher",
+});
+
+// --- Relasi Program <-> TeacherSchedule ---
+// Satu Program (misal: Abracadabra) muncul di banyak jadwal guru
+db.Program.hasMany(db.TeacherSchedule, {
+  foreignKey: "programId",
+  as: "teacherSchedules",
+});
+db.TeacherSchedule.belongsTo(db.Program, {
+  foreignKey: "programId",
+  as: "program",
+});
+
+// --- Relasi Program <-> ProgramSchedule ---
+// Satu Program memiliki banyak jadwal pendaftaran/kursus di tabel program_schedules
+db.Program.hasMany(db.ProgramSchedule, {
+  foreignKey: "programId",
+  as: "programSchedules",
+});
 db.ProgramSchedule.belongsTo(db.Program, {
-    foreignKey: "programId",
-    as: "program",
-});
-
-db.Student = require('./student.model.js')(sequelize, Sequelize);
-
-db.User.hasOne(db.Student, {
-    foreignKey: "userId",
-    as: "student"
-});
-db.Student.belongsTo(db.User, {
-    foreignKey: "userId",
-    as: "user"
+  foreignKey: "programId",
+  as: "program",
 });
 
 // Payment Associations

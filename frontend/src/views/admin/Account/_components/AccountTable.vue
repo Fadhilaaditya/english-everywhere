@@ -11,17 +11,22 @@ const selectedAccount = ref<any>(null)
 
 const fetchAccounts = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/students')
+        const response = await fetch('http://localhost:3001/api/users')
         if (response.ok) {
             const data = await response.json()
-            accounts.value = data.map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                username: item.user ? item.user.username : '-',
-                dob: formatDate(item.birthDate),
-                role: item.user ? capitalize(item.user.role) : 'Student',
-                fullData: item 
-            }))
+            accounts.value = data.map((item: any) => {
+                const isStudent = item.role === 'student'
+                const profile = isStudent ? item.studentProfile : item.teacherProfile
+                
+                return {
+                    id: item.id,
+                    name: item.fullName || (profile ? profile.name : '-'),
+                    username: item.username,
+                    dob: isStudent && profile ? formatDate(profile.birthDate) : '-',
+                    role: capitalize(item.role),
+                    fullData: item 
+                }
+            })
         }
     } catch (e) {
         console.error('Failed to fetch accounts', e)

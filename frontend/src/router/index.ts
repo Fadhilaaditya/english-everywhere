@@ -3,7 +3,19 @@ import HomeView from '../views/user/Homepage/HomeView.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
+    scrollBehavior(to, from, savedPosition) {
+        if (to.hash) {
+            return {
+                el: to.hash,
+                behavior: 'smooth',
+            }
+        }
+        return savedPosition || { top: 0 }
+    },
     routes: [
+        // ==============================
+        // PUBLIC / USER ROUTES
+        // ==============================
         {
             path: '/',
             name: 'home',
@@ -40,6 +52,47 @@ const router = createRouter({
             name: 'appointment',
             component: () => import('../views/user/Appointment/Appointment.vue')
         },
+
+        // ==============================
+        // TEACHER ROUTES (BARU)
+        // ==============================
+        {
+            path: '/teacher',
+            // Menggunakan Layout khusus Teacher sebagai parent
+            component: () => import('../views/teacher/TeacherLayout/TeacherLayout.vue'),
+            meta: { hideLayout: true, requiresAuth: true, role: 'teacher' }, // Sembunyikan layout public (Navbar/Footer)
+            children: [
+                {
+                    path: '', // URL: /teacher
+                    name: 'teacher-home',
+                    component: () => import('../views/user/Homepage/HomeView.vue')
+                },
+                {
+                    path: 'events', // URL: /teacher/events
+                    name: 'teacher-events',
+                    component: () => import('../views/user/Events/Event.vue')
+                },
+                {
+                    path: 'english-corner', // URL: /teacher/english-corner
+                    name: 'teacher-english-corner',
+                    component: () => import('../views/user/EnglishCorner/EnglishCorner.vue')
+                },
+                {
+                    path: 'materials', // URL: /teacher/materials
+                    name: 'teacher-materials',
+                    component: () => import('../views/teacher/LearningMaterial/LearningMaterial.vue')
+                },
+                {
+                    path: 'schedule', // URL: /teacher/schedule
+                    name: 'teacher-schedule',
+                    component: () => import('../views/teacher/Schedule/Schedule.vue')
+                }
+            ]
+        },
+
+        // ==============================
+        // ADMIN ROUTES
+        // ==============================
         {
             path: '/admin',
             name: 'admin-dashboard',
@@ -92,6 +145,12 @@ const router = createRouter({
             path: '/admin/payments',
             name: 'admin-payments',
             component: () => import('../views/admin/Payments/Payment.vue'),
+            meta: { hideLayout: true }
+        },
+        {
+            path: '/admin/schedules',
+            name: 'admin-schedules',
+            component: () => import('../views/admin/Schedules/ManageSchedules.vue'),
             meta: { hideLayout: true }
         }
     ],
