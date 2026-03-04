@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const teacherSchedule = require("../controllers/teacherSchedule.controller.js");
+const teacherSchedule = require("../controllers/teacherScheduleController");
 
-const authJwt = require("../middleware/authJwt");
+const authJwt = require("../middleware/authJwt.js");    
 
 // Rute khusus untuk guru melihat jadwalnya sendiri
 router.get("/my-schedules", [authJwt.verifyToken], teacherSchedule.findMySchedules);

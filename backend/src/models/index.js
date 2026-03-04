@@ -21,20 +21,20 @@ db.sequelize = sequelize;
 // ==============================
 // 1. IMPORT MODELS
 // ==============================
-db.User = require("./user.model.js")(sequelize, Sequelize);
-db.Teacher = require("./teacher.model.js")(sequelize, Sequelize);
-db.Student = require("./student.model.js")(sequelize, Sequelize);
-db.Program = require("./program.model.js")(sequelize, Sequelize);
-db.Event = require("./event.model.js")(sequelize, Sequelize);
-db.Article = require("./article.model.js")(sequelize, Sequelize);
-db.Classroom = require("./classroom.model.js")(sequelize, Sequelize);
+db.User = require("./userModel.js")(sequelize, Sequelize);
+db.Teacher = require("./teacherModel.js")(sequelize, Sequelize);
+db.Student = require("./studentModel.js")(sequelize, Sequelize);
+db.Program = require("./programModel.js")(sequelize, Sequelize);
+db.Event = require("./eventModel.js")(sequelize, Sequelize);
+db.Article = require("./articleModel.js")(sequelize, Sequelize);
+db.Classroom = require("./classroomModel.js")(sequelize, Sequelize);
 
 // Memisahkan TeacherSchedule dan ProgramSchedule karena tabelnya berbeda
-db.TeacherSchedule = require("./TeacherSchedule.model.js")(
+db.TeacherSchedule = require("./teacherScheduleModel.js")(
   sequelize,
   Sequelize,
 );
-db.ProgramSchedule = require("./programSchedule.model.js")(
+db.ProgramSchedule = require("./programScheduleModel.js")(
   sequelize,
   Sequelize,
 );

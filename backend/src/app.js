@@ -4,9 +4,9 @@ const morgan = require("morgan");
 
 // Import Routes
 const authRoutes = require("./routes/authRoutes");
-const eventRoutes = require("./routes/event.routes");
-const uploadRoutes = require("./routes/upload.routes");
-const teacherScheduleRoutes = require("./routes/teacherSchedule.routes");
+const eventRoutes = require("./routes/eventRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
+const teacherScheduleRoutes = require("./routes/teacherScheduleRoutes");
 
 const app = express();
 
@@ -32,12 +32,12 @@ app.use("/api/events", eventRoutes);
 app.use("/api/upload", uploadRoutes);
 
 // Menggunakan pola Factory Function (app)
-require("./routes/program.routes")(app);
-require("./routes/article.routes")(app);
-require("./routes/student.routes")(app);
-require("./routes/user.routes")(app);
-require("./routes/teacher.routes")(app);
-require("./routes/classroom.routes")(app);
+require("./routes/programRoutes")(app);
+require("./routes/articleRoutes")(app);
+require("./routes/studentRoutes")(app);
+require("./routes/userRoutes")(app);
+require("./routes/teacherRoutes")(app);
+require("./routes/classroomRoutes")(app);
 
 // Root Route
 app.get("/", (req, res) => {
