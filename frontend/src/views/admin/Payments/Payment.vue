@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Sidebar from '../components/Sidebar.vue'
 import Header from '../components/Header.vue'
+import PaymentSummary from './_components/PaymentSummary.vue'
+import PaymentTable from './_components/PaymentTable.vue'
 </script>
 
 <template>
@@ -16,6 +18,12 @@ import Header from '../components/Header.vue'
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-gray-900">Payments</h1>
         </div>
+
+        <!-- Summary -->
+        <PaymentSummary />
+
+        <!-- Table -->
+        <PaymentTable />
       </main>
     </div>
   </div>

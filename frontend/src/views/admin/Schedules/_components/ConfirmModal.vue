@@ -57,7 +57,7 @@ const emit = defineEmits(['confirm', 'cancel'])
         </button>
         <button
           @click="emit('confirm')"
-          class="px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition-all shadow-lg shadow-red-600/20 text-sm"
+          class="px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition-all shadow-sm shadow-red-600/20 text-sm"
         >
           {{ confirmText || 'Delete' }}
         </button>
