@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Pencil, Trash2, Plus } from 'lucide-vue-next'
+import CreatePaymentModal from './CreatePaymentModal.vue'
+
+const isModalOpen = ref(false)
+
+const handleSuccess = (message: string) => {
+    isModalOpen.value = false
+    // In a real app, we would re-fetch the payment list here
+    alert(message)
+}
 
 const payments = ref([
   {
@@ -38,7 +47,8 @@ const getStatusClass = (status: string) => {
     <div class="flex justify-between items-center mb-8">
         <h2 class="text-xl font-bold text-gray-900">List Payments</h2>
         <button 
-            class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-6 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-[#4FD1C5]/20 font-medium"
+            @click="isModalOpen = true"
+            class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-6 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-[#4FD1C5]/20 font-medium active:scale-95"
         >
             Create Bill
             <Plus class="w-5 h-5" />
@@ -95,5 +105,12 @@ const getStatusClass = (status: string) => {
             </tbody>
         </table>
     </div>
+
+    <!-- Modals -->
+    <CreatePaymentModal 
+        :is-open="isModalOpen"
+        @close="isModalOpen = false"
+        @success="handleSuccess"
+    />
   </div>
 </template>
