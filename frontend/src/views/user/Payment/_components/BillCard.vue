@@ -5,7 +5,7 @@ defineProps<{
     bill: {
         id: number
         title: string
-        status: string // 'Late' | 'Due'
+        status: string // 'Late' | 'Due' | 'Pending'
         statusLabel: string // 'Telat 1 Bulan'
         dueDate: string
         denda: string
@@ -14,7 +14,7 @@ defineProps<{
     }
 }>()
 
-defineEmits(['pay'])
+defineEmits(['pay', 'approve'])
 </script>
 
 <template>
@@ -25,7 +25,11 @@ defineEmits(['pay'])
             <h3 class="text-lg font-bold text-gray-900 mb-2">{{ bill.title }}</h3>
             <span 
                 class="px-3 py-1 rounded-full text-xs font-bold text-white inline-flex items-center gap-1"
-                :class="bill.status === 'Late' ? 'bg-[#f54d42]' : 'bg-yellow-400'"
+                :class="[
+                    bill.status === 'Late' ? 'bg-[#f54d42]' : '',
+                    bill.status === 'Due' ? 'bg-yellow-400' : '',
+                    bill.status === 'Pending' ? 'bg-orange-400' : ''
+                ]"
             >
                 {{ bill.statusLabel }}
             </span>
@@ -46,12 +50,21 @@ defineEmits(['pay'])
     </div>
 
     <!-- Divider -->
-    <div class="border-t border-gray-50 pt-4 flex justify-end">
+    <div class="border-t border-gray-50 pt-4 flex justify-end gap-2">
         <button 
-            @click="$emit('pay', bill)"
-            class="bg-black text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+            v-if="bill.status === 'Pending'"
+            @click="$emit('approve', bill)"
+            class="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors text-xs"
         >
-            Bayar Sekarang
+            Simulasi Admin: Approve
+        </button>
+
+        <button 
+            :disabled="bill.status === 'Pending'"
+            @click="$emit('pay', bill)"
+            class="bg-black text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            {{ bill.status === 'Pending' ? 'Menunggu Verifikasi' : 'Bayar Sekarang' }}
         </button>
     </div>
   </div>

@@ -1,90 +1,33 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { X, CreditCard, Banknote, Copy, CheckCircle } from 'lucide-vue-next'
+import { X, Copy, CheckCircle } from 'lucide-vue-next'
 
 const props = defineProps<{
     isOpen: boolean
     bill: any
 }>()
 
-const emit = defineEmits(['close'])
-
-const selectedMethod = ref<'va' | 'cash' | null>(null)
+const emit = defineEmits(['close', 'confirm'])
 
 const handleClose = () => {
-    selectedMethod.value = null
     emit('close')
 }
 
-// Mock VA Number
-const vaNumber = '880123456789'
+// Bank Account
+const accountNumber = '1234567890'
 const copied = ref(false)
 
-const copyVA = () => {
-    navigator.clipboard.writeText(vaNumber)
+const copyAccount = () => {
+    navigator.clipboard.writeText(accountNumber)
     copied.value = true
     setTimeout(() => copied.value = false, 2000)
 }
 
-const ADMIN_FEE = 4000
-
-const payWithMidtrans = async () => {
-    try {
-        const totalAmount = props.bill.amountRaw + ADMIN_FEE
-        
-        const response = await fetch('http://localhost:3001/api/payments/charge', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                orderId: 'ORDER-' + new Date().getTime(),
-                amount: totalAmount,
-                items: [
-                    {
-                        id: props.bill.id,
-                        price: props.bill.amountRaw,
-                        quantity: 1,
-                        name: props.bill.title
-                    },
-                    {
-                        id: 'ADMIN-FEE',
-                        price: ADMIN_FEE,
-                        quantity: 1,
-                        name: 'Biaya Layanan'
-                    }
-                ],
-                customerDetails: {
-                    first_name: "Siti",
-                    last_name: "Aminah",
-                    email: "siti@example.com",
-                    phone: "081234567890"
-                }
-            })
-        })
-        
-        const data = await response.json()
-        if (data.token) {
-            // @ts-ignore
-            window.snap.pay(data.token, {
-                onSuccess: function(result: any){
-                    alert("Payment success!");
-                    emit('close');
-                },
-                onPending: function(result: any){
-                    alert("Wating your payment!");
-                    emit('close'); 
-                },
-                onError: function(result: any){
-                    alert("Payment failed!");
-                },
-                onClose: function(){
-                    alert('You closed the popup without finishing the payment');
-                }
-            })
-        }
-    } catch (error) {
-        console.error("Payment Error:", error)
-        alert("Failed to initiate payment")
-    }
+const handleConfirm = () => {
+    // Notify parent to change status to Pending
+    emit('confirm', props.bill)
+    // The link will open in a new tab because of target="_blank"
+    handleClose()
 }
 </script>
 
@@ -98,73 +41,30 @@ const payWithMidtrans = async () => {
 
         <!-- Header -->
         <div class="p-8 pb-0 text-center">
-            <h2 class="text-xl font-bold text-gray-900 mb-2">Pilih Metode Pembayaran</h2>
+            <h2 class="text-xl font-bold text-gray-900 mb-2">Instruksi Pembayaran</h2>
         </div>
 
         <div class="p-6 space-y-6">
-            <!-- Initial Selection -->
-            <div v-if="!selectedMethod" class="space-y-4">
-                <div class="bg-gray-50 p-4 rounded-xl space-y-2 mb-6">
-                     <p class="text-sm text-gray-500">Rincian Pembayaran:</p>
-                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">Tagihan</span>
-                        <span class="font-bold text-gray-900">{{ bill?.amount }}</span>
-                     </div>
-                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">Biaya Layanan</span>
-                        <span class="font-bold text-gray-900">Rp 4.000</span>
-                     </div>
-                     <div class="border-t border-gray-200 pt-2 flex justify-between text-base">
-                        <span class="font-bold text-gray-900">Total</span>
-                        <span class="font-bold text-[#f54d42]">{{ 'Rp ' + (bill?.amountRaw + 4000).toLocaleString('id-ID') }}</span>
-                     </div>
-                </div>
-
-                <p class="text-sm text-gray-500 mb-2">Silahkan pilih metode pembayaran:</p>
-                
-                <button 
-                    @click="payWithMidtrans"
-                    class="w-full p-4 rounded-xl border border-gray-200 hover:border-[#4FD1C5] hover:bg-[#4FD1C5]/5 flex items-center gap-4 group transition-all"
-                >
-                    <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <CreditCard class="w-6 h-6" />
-                    </div>
-                    <div class="text-left">
-                        <h3 class="font-bold text-gray-900">Virtual Account / Online</h3>
-                        <p class="text-xs text-gray-500">BCA, Mandiri, BNI, BRI (Midtrans)</p>
-                    </div>
-                </button> <!-- ... Cash button ... -->
-
-            <button 
-                @click="selectedMethod = 'cash'"
-                class="w-full p-4 rounded-xl border border-gray-200 hover:border-[#4FD1C5] hover:bg-[#4FD1C5]/5 flex items-center gap-4 group transition-all"
-            >
-                <div class="w-12 h-12 rounded-full bg-green-50 text-green-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Banknote class="w-6 h-6" />
-                </div>
-                <div class="text-left">
-                    <h3 class="font-bold text-gray-900">Cash / Tunai</h3>
-                    <p class="text-xs text-gray-500">Bayar langsung di kantor</p>
-                </div>
-            </button>
-        </div>
-
-        <!-- Virtual Account Display (Mock) -->
-        <div v-else-if="selectedMethod === 'va'" class="text-center space-y-6">
-            <div class="space-y-2">
+            <div class="text-center space-y-2">
                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Total Pembayaran</span>
                 <div class="text-3xl font-bold text-[#f54d42]">{{ bill?.amount }}</div>
             </div>
 
             <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p class="text-sm text-gray-600 mb-4 border-b border-gray-200 pb-3">
+                    Silakan lakukan transfer ke rekening bank di bawah ini:
+                </p>
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-medium text-gray-500">BCA Virtual Account</span>
+                    <span class="text-sm font-medium text-gray-500">Bank BCA</span>
                     <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" alt="BCA" class="h-4 opacity-70">
                 </div>
                 <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200">
-                    <span class="font-mono text-lg font-bold text-gray-900 tracking-wider">{{ vaNumber }}</span>
+                    <div>
+                        <span class="font-mono text-lg font-bold text-gray-900 tracking-wider">{{ accountNumber }}</span>
+                        <div class="text-xs text-gray-500 mt-1">a.n. English Everywhere</div>
+                    </div>
                     <button 
-                        @click="copyVA"
+                        @click="copyAccount"
                         class="text-gray-400 hover:text-[#4FD1C5] transition-colors"
                         :title="copied ? 'Copied' : 'Copy'"
                     >
@@ -172,48 +72,27 @@ const payWithMidtrans = async () => {
                         <Copy v-else class="w-5 h-5" />
                     </button>
                 </div>
-                <p class="text-xs text-gray-400 mt-2 text-left">Pembayaran akan diverifikasi otomatis.</p>
             </div>
 
-            <button @click="selectedMethod = null" class="text-sm text-gray-500 hover:text-gray-900 underline">
-                Ganti Metode Pembayaran
-            </button>
-        </div>
-
-        <!-- Cash Display -->
-        <div v-else-if="selectedMethod === 'cash'" class="text-center space-y-6">
-            <div class="space-y-2">
-                <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Total Pembayaran</span>
-                <div class="text-3xl font-bold text-[#f54d42]">{{ bill?.amount }}</div>
-            </div>
-
-            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Banknote class="w-8 h-8" />
-            </div>
-            
-            <div class="space-y-2">
-                <h3 class="font-bold text-gray-900">Instruksi Pembayaran Cash</h3>
-                <p class="text-sm text-gray-500 leading-relaxed px-4">
-                    Untuk pembayaran cash bisa langsung menghubungi admin pada nomor berikut atau mengunjungi alamat dibawah ini.
+            <div class="space-y-3">
+                <h3 class="font-bold text-gray-900 text-sm">Konfirmasi Pembayaran</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">
+                    Setelah melakukan transfer, harap lakukan konfirmasi melalui admin di nomor <span class="font-bold text-gray-700">+62 895-3378-81781</span> atau klik tombol di bawah ini.
                 </p>
             </div>
 
-            <div class="bg-gray-50 rounded-xl p-4 text-left space-y-3 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-gray-500">WhatsApp Admin:</span>
-                    <span class="font-bold text-gray-900">+62 812-3456-7890</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-500">Alamat Kantor:</span>
-                    <span class="font-bold text-gray-900 text-right w-1/2">Jl. Contoh No. 123, Jakarta Selatan</span>
-                </div>
-            </div>
-
-             <button @click="selectedMethod = null" class="text-sm text-gray-500 hover:text-gray-900 underline">
-                Ganti Metode Pembayaran
-            </button>
+            <a 
+                href="https://wa.link/x7ijo8" 
+                target="_blank"
+                @click="handleConfirm"
+                class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white py-4 px-4 rounded-xl font-bold transition-colors"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+                Konfirmasi Pembayaran via WhatsApp
+            </a>
         </div>
       </div>
     </div>
-  </div>
 </template>

@@ -73,6 +73,27 @@ const handlePay = (bill: any) => {
     selectedBill.value = bill
     isModalOpen.value = true
 }
+
+const handleConfirmPayment = (bill: any) => {
+    const target = unpaidBills.value.find(b => b.id === bill.id)
+    if (target) {
+        target.status = 'Pending'
+        target.statusLabel = 'Menunggu Konfirmasi Admin'
+    }
+}
+
+const handleSimulateAdminApprove = (bill: any) => {
+    // 1. Remove from unpaidBills
+    unpaidBills.value = unpaidBills.value.filter(b => b.id !== bill.id)
+    
+    // 2. Add to history
+    paymentHistory.value.unshift({
+        id: new Date().getTime(),
+        title: bill.title,
+        date: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }),
+        amount: bill.amount
+    })
+}
 </script>
 
 <template>
@@ -100,6 +121,7 @@ const handlePay = (bill: any) => {
                         :key="bill.id" 
                         :bill="bill" 
                         @pay="handlePay"
+                        @approve="handleSimulateAdminApprove"
                     />
                 </div>
             </div>
@@ -132,6 +154,7 @@ const handlePay = (bill: any) => {
         :is-open="isModalOpen"
         :bill="selectedBill"
         @close="isModalOpen = false"
+        @confirm="handleConfirmPayment"
     />
   </div>
 </template>
