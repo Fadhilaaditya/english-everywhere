@@ -48,35 +48,12 @@ onMounted(() => {
 
     <div class="hidden md:flex items-center gap-8 lg:gap-16 font-poppins text-base font-semibold text-gray-800 whitespace-nowrap">
       
-<<<<<<< HEAD
-      <router-link 
-        to="/" 
-        class="hover:text-primary transition-colors" 
-        :class="{ 'font-bold text-lg text-gray-900': route.path === '/' && !route.hash }"
-      >
-        Homepage
-      </router-link> 
-      
-      <router-link 
-        :to="{ path: '/', hash: '#about-us' }" 
-        class="hover:text-primary transition-colors" 
-        :class="{ 'font-bold text-lg text-gray-900': route.hash === '#about-us' }"
-      >
-        About Us
-      </router-link>
-      <router-link to="#" class="hover:text-primary transition-colors">Daftar Kelas</router-link>
-      <router-link to="/events" class="hover:text-primary transition-colors" active-class="font-bold text-lg text-gray-900">Events</router-link>
-      <router-link to="/english-corner" class="hover:text-primary transition-colors" active-class="font-bold text-lg text-gray-900">English Corner</router-link>
-      
-      <!-- Conditionally render Payment for student -->
-=======
       <router-link :to="getLinkPath('/')" class="hover:text-primary transition-colors" exact-active-class="font-bold text-lg text-gray-900">Homepage</router-link> 
       <router-link v-if="user?.role !== 'teacher'" :to="getLinkPath('/#about-us')" class="hover:text-primary transition-colors">About Us</router-link>
       <router-link v-if="user?.role !== 'teacher'" :to="getLinkPath('/#programs')" class="hover:text-primary transition-colors">Daftar Kelas</router-link>
       <router-link :to="getLinkPath('/events')" class="hover:text-primary transition-colors" active-class="font-bold text-lg text-gray-900">Events</router-link>
       <router-link :to="getLinkPath('/english-corner')" class="hover:text-primary transition-colors" active-class="font-bold text-lg text-gray-900">English Corner</router-link>
       
->>>>>>> development
       <router-link 
         v-if="user?.role === 'student'" 
         to="/payment" 
@@ -121,28 +98,6 @@ onMounted(() => {
       v-if="isMenuOpen" 
       class="border-t border-gray-100 absolute top-full left-0 w-full bg-white shadow-xl flex flex-col items-center gap-6 py-8 md:hidden font-poppins font-medium z-50 transition-all"
     >
-<<<<<<< HEAD
-      <router-link 
-        to="/" 
-        class="hover:text-primary transition-colors text-lg" 
-        :class="{ 'font-bold text-gray-900': route.path === '/' && !route.hash }" 
-        @click="toggleMenu"
-      >
-        Homepage
-      </router-link>
-      <router-link 
-        :to="{ path: '/', hash: '#about-us' }" 
-        class="hover:text-primary transition-colors text-lg" 
-        :class="{ 'font-bold text-gray-900': route.hash === '#about-us' }" 
-        @click="toggleMenu"
-      >
-        About Us
-      </router-link>
-      <router-link to="#" class="hover:text-primary transition-colors text-lg" @click="toggleMenu">Daftar Kelas</router-link>
-      <router-link to="/events" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">Events</router-link>
-      <router-link to="/english-corner" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">English Corner</router-link>
-       <router-link 
-=======
       <router-link :to="getLinkPath('/')" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">Homepage</router-link>
       <router-link v-if="user?.role !== 'teacher'" :to="getLinkPath('/#about-us')" class="hover:text-primary transition-colors text-lg" @click="toggleMenu">About Us</router-link>
       <router-link v-if="user?.role !== 'teacher'" :to="getLinkPath('/#programs')" class="hover:text-primary transition-colors text-lg" @click="toggleMenu">Daftar Kelas</router-link>
@@ -150,7 +105,6 @@ onMounted(() => {
       <router-link :to="getLinkPath('/english-corner')" class="hover:text-primary transition-colors text-lg" active-class="font-bold text-gray-900" @click="toggleMenu">English Corner</router-link>
       
       <router-link 
->>>>>>> development
         v-if="user?.role === 'student'" 
         to="/payment" 
         class="hover:text-primary transition-colors text-lg" 
