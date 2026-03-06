@@ -1,30 +1,53 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { Pencil, Trash2, Plus, ChevronDown, ChevronUp, FileText, CheckCircle } from 'lucide-vue-next'
+import { ref, reactive, computed, watch } from 'vue'
+import { Pencil, Trash2, Plus, ChevronDown, ChevronUp, FileText, CheckCircle, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import CreateBillModal from './CreateBillModal.vue'
 
 const isCreateModalOpen = ref(false)
 
 const payments = ref([
-  {
-    id: '001/XIV',
-    name: 'Siti Aminah',
-    material: 'Business English Intermediate',
-    deadline: '29/09/2025',
-    amount: '9.999.999',
-    status: 'Pending'
-  },
-  {
-    id: '001/XIV',
-    name: 'Tono Susanto',
-    material: 'Business English Intermediate',
-    deadline: '29/09/2025',
-    amount: '800.000',
-    status: 'Success'
-  }
+  { id: '001/XIV', name: 'Siti Aminah', material: 'Business English Intermediate', deadline: '29/09/2025', amount: '9.999.999', status: 'Pending' },
+  { id: '002/XIV', name: 'Tono Susanto', material: 'Business English Intermediate', deadline: '29/09/2025', amount: '800.000', status: 'Success' },
+  { id: '003/XIV', name: 'Budi Santoso', material: 'TOEFL Preparation', deadline: '15/10/2025', amount: '1.200.000', status: 'Pending' },
+  { id: '004/XIV', name: 'Rina Wati', material: 'General English', deadline: '20/10/2025', amount: '1.500.000', status: 'Success' },
+  { id: '005/XIV', name: 'Joko Susilio', material: 'Business English', deadline: '25/10/2025', amount: '900.000', status: 'Pending' },
+  { id: '006/XIV', name: 'Ani Lestari', material: 'IELTS Preparation', deadline: '01/11/2025', amount: '2.000.000', status: 'Success' },
+  { id: '007/XIV', name: 'Agus Setiawan', material: 'Conversation Class', deadline: '10/11/2025', amount: '750.000', status: 'Pending' },
+  { id: '008/XIV', name: 'Dewi Saputri', material: 'Grammar Focus', deadline: '15/11/2025', amount: '500.000', status: 'Success' },
+  { id: '009/XIV', name: 'Eko Prasetyo', material: 'Writing Lab', deadline: '20/11/2025', amount: '1.100.000', status: 'Pending' },
+  { id: '010/XIV', name: 'Lia Herlina', material: 'Public Speaking', deadline: '25/11/2025', amount: '1.800.000', status: 'Success' },
+  { id: '011/XIV', name: 'Hadi Wijaya', material: 'Academic English', deadline: '01/12/2025', amount: '2.500.000', status: 'Pending' },
+  { id: '012/XIV', name: 'Sari Indah', material: 'Vocabulary Builder', deadline: '05/12/2025', amount: '600.000', status: 'Success' },
 ])
 
 const expandedRows = ref<Set<string>>(new Set())
+
+const searchQuery = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+const filteredPayments = computed(() => {
+    let result = payments.value
+    if (searchQuery.value) {
+        result = result.filter(p => 
+            p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+            p.id.toLowerCase().includes(searchQuery.value.toLowerCase())
+        )
+    }
+    return result
+})
+
+const totalPages = computed(() => Math.ceil(filteredPayments.value.length / itemsPerPage))
+
+const paginatedPayments = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return filteredPayments.value.slice(start, end)
+})
+
+watch(searchQuery, () => {
+    currentPage.value = 1
+})
 
 const toggleRow = (id: string) => {
     if (expandedRows.value.has(id)) {
@@ -69,7 +92,19 @@ const handleCreateBill = (data: any) => {
 <template>
   <div class="bg-white rounded-3xl p-6 border border-gray-50 shadow-sm">
     <div class="flex justify-between items-center mb-8">
-        <h2 class="text-xl font-bold text-gray-900">List Payments</h2>
+        <div class="flex items-center gap-4">
+            <h2 class="text-xl font-bold text-gray-900">List Payments</h2>
+            <!-- Search Input -->
+            <div class="relative ml-4">
+                <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input 
+                    v-model="searchQuery"
+                    type="text" 
+                    placeholder="Search name or ID..."
+                    class="pl-11 pr-4 py-2.5 bg-gray-50 border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 rounded-xl outline-none text-sm transition-all w-64 font-medium"
+                >
+            </div>
+        </div>
         <button 
             @click="isCreateModalOpen = true"
             class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-6 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-[#4FD1C5]/20 font-medium"
@@ -100,7 +135,7 @@ const handleCreateBill = (data: any) => {
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
-                <template v-for="payment in payments" :key="payment.id + payment.name">
+                <template v-for="payment in paginatedPayments" :key="payment.id + payment.name">
                     <tr 
                         class="hover:bg-gray-50/30 transition-colors"
                         :class="{'bg-gray-50': expandedRows.has(payment.id + payment.name)}"
@@ -180,6 +215,42 @@ const handleCreateBill = (data: any) => {
                 </template>
             </tbody>
         </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between mt-8 border-t border-gray-50 pt-6">
+        <div class="text-sm text-gray-500">
+            Showing <span class="font-bold text-gray-900">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to 
+            <span class="font-bold text-gray-900">{{ Math.min(currentPage * itemsPerPage, filteredPayments.length) }}</span> of 
+            <span class="font-bold text-gray-900">{{ filteredPayments.length }}</span> results
+        </div>
+        <div class="flex items-center gap-2">
+            <button 
+                @click="currentPage--"
+                :disabled="currentPage === 1"
+                class="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+                <ChevronLeft class="w-5 h-5" />
+            </button>
+            <div class="flex items-center gap-1">
+                <button 
+                    v-for="page in totalPages" 
+                    :key="page"
+                    @click="currentPage = page"
+                    class="w-10 h-10 rounded-xl text-sm font-bold transition-all"
+                    :class="currentPage === page ? 'bg-[#4FD1C5] text-white shadow-lg shadow-[#4FD1C5]/20' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'"
+                >
+                    {{ page }}
+                </button>
+            </div>
+            <button 
+                @click="currentPage++"
+                :disabled="currentPage === totalPages"
+                class="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+                <ChevronRight class="w-5 h-5" />
+            </button>
+        </div>
     </div>
   </div>
 </template>
