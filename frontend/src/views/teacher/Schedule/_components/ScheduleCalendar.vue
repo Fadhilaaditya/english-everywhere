@@ -25,7 +25,7 @@ const daysInMonth = computed(() => {
 const firstDayOfMonth = computed(() => {
     const year = props.currentDate.getFullYear()
     const month = props.currentDate.getMonth()
-    let day = new Date(year, month, 1).getDay()
+    const day = new Date(year, month, 1).getDay()
     return day === 0 ? 6 : day - 1
 })
 

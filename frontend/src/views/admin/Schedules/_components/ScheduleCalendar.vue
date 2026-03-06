@@ -44,8 +44,8 @@ const calendarDays = computed(() => {
   const firstDayOfMonth = new Date(year, month, 1)
   const lastDayOfMonth = new Date(year, month + 1, 0)
 
-  let startDayDetails = firstDayOfMonth.getDay()
-  let startDay = startDayDetails === 0 ? 6 : startDayDetails - 1
+  const startDayDetails = firstDayOfMonth.getDay()
+  const startDay = startDayDetails === 0 ? 6 : startDayDetails - 1
 
   const days: { date: Date; isCurrentMonth: boolean }[] = []
   const prevMonthLastDay = new Date(year, month, 0).getDate()

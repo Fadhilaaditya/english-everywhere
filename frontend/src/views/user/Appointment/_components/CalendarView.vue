@@ -93,7 +93,7 @@ const daysInMonth = computed(() => {
 const firstDayOfMonth = computed(() => {
     const year = currentDate.value.getFullYear()
     const month = currentDate.value.getMonth()
-    let day = new Date(year, month, 1).getDay()
+    const day = new Date(year, month, 1).getDay()
     return day === 0 ? 6 : day - 1
 })
 
