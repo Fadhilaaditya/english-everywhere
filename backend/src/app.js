@@ -18,6 +18,17 @@ app.use(morgan("dev")); // Log request ke terminal
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+<<<<<<< HEAD
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/upload', uploadRoutes);
+require('./routes/program.routes')(app);
+require('./routes/article.routes')(app);
+require('./routes/student.routes')(app);
+require('./routes/user.routes')(app);
+require('./routes/payment.routes')(app);
+=======
 // Folder statis untuk gambar
 app.use("/uploads", express.static("uploads"));
 
@@ -38,6 +49,7 @@ require("./routes/studentRoutes")(app);
 require("./routes/userRoutes")(app);
 require("./routes/teacherRoutes")(app);
 require("./routes/classroomRoutes")(app);
+>>>>>>> development
 
 // Root Route
 app.get("/", (req, res) => {

@@ -18,6 +18,16 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
+<<<<<<< HEAD
+// Models
+db.User = require('./user.model.js')(sequelize, Sequelize);
+db.Event = require('./event.model.js')(sequelize, Sequelize);
+db.articles = require('./article.model.js')(sequelize, Sequelize);
+db.Program = require('./program.model.js')(sequelize, Sequelize);
+db.Payment = require('./payment.model.js')(sequelize, Sequelize);
+db.PaymentInstallment = require('./payment_installment.model.js')(sequelize, Sequelize);
+db.ProgramSchedule = require('./programSchedule.model.js')(sequelize, Sequelize);
+=======
 // ==============================
 // 1. IMPORT MODELS
 // ==============================
@@ -28,6 +38,7 @@ db.Program = require("./programModel.js")(sequelize, Sequelize);
 db.Event = require("./eventModel.js")(sequelize, Sequelize);
 db.Article = require("./articleModel.js")(sequelize, Sequelize);
 db.Classroom = require("./classroomModel.js")(sequelize, Sequelize);
+>>>>>>> development
 
 // Memisahkan TeacherSchedule dan ProgramSchedule karena tabelnya berbeda
 db.TeacherSchedule = require("./teacherScheduleModel.js")(
@@ -82,6 +93,32 @@ db.Program.hasMany(db.ProgramSchedule, {
 db.ProgramSchedule.belongsTo(db.Program, {
   foreignKey: "programId",
   as: "program",
+});
+
+// Payment Associations
+db.Payment.belongsTo(db.Student, {
+    foreignKey: "studentId",
+    as: "student"
+});
+db.Student.hasMany(db.Payment, {
+    as: "payments"
+});
+
+db.Payment.belongsTo(db.Program, {
+    foreignKey: "programId",
+    as: "program"
+});
+db.Program.hasMany(db.Payment, {
+    as: "payments"
+});
+
+db.Payment.hasMany(db.PaymentInstallment, {
+    as: "installments",
+    foreignKey: "paymentId"
+});
+db.PaymentInstallment.belongsTo(db.Payment, {
+    as: "payment",
+    foreignKey: "paymentId"
 });
 
 module.exports = db;
