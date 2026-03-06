@@ -93,27 +93,27 @@ const handleSubmit = () => {
   <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="$emit('close')">
     <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
       <!-- Header -->
-      <div class="p-8 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-        <h2 class="text-2xl font-bold text-gray-900">Create Bill</h2>
+      <div class="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-900">Create Bill</h2>
         <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
             <X class="w-6 h-6" />
         </button>
       </div>
 
-      <div class="p-8 space-y-8">
+      <div class="p-6 md:p-8 space-y-6 md:space-y-8">
         <!-- Top Info -->
-        <div class="flex justify-between gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Transaction ID</label>
-                <div class="text-lg font-bold text-gray-900">{{ formData.transactionId }}</div>
+                <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1">Transaction ID</label>
+                <div class="text-sm md:text-lg font-bold text-gray-900">{{ formData.transactionId }}</div>
             </div>
             <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Bill Date</label>
-                <div class="text-lg font-bold text-gray-900">{{ formData.billDate }}</div>
+                <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1">Bill Date</label>
+                <div class="text-sm md:text-lg font-bold text-gray-900">{{ formData.billDate }}</div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1">No Invoice</label>
-                <div class="text-lg font-bold text-gray-900">{{ formData.invoiceNo }}</div>
+            <div class="col-span-2 md:col-span-1">
+                <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1">No Invoice</label>
+                <div class="text-sm md:text-lg font-bold text-gray-900">{{ formData.invoiceNo }}</div>
             </div>
         </div>
 
@@ -221,7 +221,7 @@ const handleSubmit = () => {
                     <div 
                         v-for="(installment, index) in formData.installments" 
                         :key="index"
-                        class="bg-gray-50 rounded-xl p-4 flex gap-4 items-end group"
+                        class="bg-gray-50 rounded-xl p-4 flex flex-col sm:flex-row gap-4 sm:items-end group relative"
                     >
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Cicilan {{ index + 1 }}</label>
@@ -241,7 +241,7 @@ const handleSubmit = () => {
                         </div>
                         <button 
                             @click="removeInstallment(index)"
-                            class="p-2.5 text-red-400 bg-white border border-red-100 rounded-lg hover:bg-red-50 transition-colors"
+                            class="p-2.5 text-red-400 bg-white border border-red-100 rounded-lg hover:bg-red-50 transition-colors self-end sm:self-auto"
                         >
                             <Trash2 class="w-5 h-5" />
                         </button>
@@ -260,10 +260,10 @@ const handleSubmit = () => {
       </div>
 
       <!-- Footer -->
-      <div class="p-8 border-t border-gray-100 sticky bottom-0 bg-white z-10">
+      <div class="p-4 md:p-8 border-t border-gray-100 sticky bottom-0 bg-white z-10">
         <button 
             @click="handleSubmit"
-            class="w-full py-4 bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white rounded-xl font-bold text-lg shadow-lg shadow-[#4FD1C5]/20 transition-all active:scale-[0.99]"
+            class="w-full py-3 md:py-4 bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white rounded-xl font-bold text-base md:text-lg shadow-lg shadow-[#4FD1C5]/20 transition-all active:scale-[0.99]"
         >
             Create Bill
         </button>

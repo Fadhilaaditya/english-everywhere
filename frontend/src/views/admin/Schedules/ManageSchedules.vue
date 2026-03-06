@@ -205,7 +205,7 @@ watch(selectedCourseId, () => {
     <div class="transition-all duration-300 lg:pl-64">
       <Header @toggle-sidebar="isSidebarOpen = !isSidebarOpen" />
       
-      <main class="p-4 lg:p-8">
+      <main class="p-4 md:p-8">
         <Toast 
           :show="showToast" 
           :message="toastMessage" 
@@ -213,7 +213,7 @@ watch(selectedCourseId, () => {
           @close="showToast = false"
         />
 
-        <h1 class="text-2xl font-bold text-gray-900 mb-8">Schedules</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">Schedules</h1>
 
         <ScheduleCalendar
           v-model:current-date="currentDate"

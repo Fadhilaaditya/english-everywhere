@@ -90,24 +90,24 @@ const handleCreateBill = (data: any) => {
 </script>
 
 <template>
-  <div class="bg-white rounded-3xl p-6 border border-gray-50 shadow-sm">
-    <div class="flex justify-between items-center mb-8">
-        <div class="flex items-center gap-4">
-            <h2 class="text-xl font-bold text-gray-900">List Payments</h2>
+  <div class="bg-white rounded-2xl md:rounded-3xl p-4 md:p-6 border border-gray-50 shadow-sm">
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <h2 class="text-lg md:text-xl font-bold text-gray-900">List Payments</h2>
             <!-- Search Input -->
-            <div class="relative ml-4">
+            <div class="relative w-full sm:w-64">
                 <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input 
                     v-model="searchQuery"
                     type="text" 
                     placeholder="Search name or ID..."
-                    class="pl-11 pr-4 py-2.5 bg-gray-50 border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 rounded-xl outline-none text-sm transition-all w-64 font-medium"
+                    class="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 rounded-xl outline-none text-sm transition-all font-medium"
                 >
             </div>
         </div>
         <button 
             @click="isCreateModalOpen = true"
-            class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-6 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-[#4FD1C5]/20 font-medium"
+            class="w-full md:w-auto bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-6 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#4FD1C5]/20 font-medium"
         >
             Create Bill
             <Plus class="w-5 h-5" />
@@ -121,17 +121,17 @@ const handleCreateBill = (data: any) => {
         @submit="handleCreateBill"
     />
 
-    <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse border-spacing-0">
+    <div class="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+        <table class="w-full text-left border-collapse border-spacing-0 min-w-[800px] md:min-w-0">
             <thead>
                 <tr class="bg-gray-50/50 text-gray-700">
-                    <th class="py-5 px-6 font-semibold text-sm">Transaction ID</th>
-                    <th class="py-5 px-6 font-semibold text-sm">Name User</th>
-                    <th class="py-5 px-6 font-semibold text-sm">Material</th>
-                    <th class="py-5 px-6 font-semibold text-sm text-center">Deadline</th>
-                    <th class="py-5 px-6 font-semibold text-sm text-center">Amount</th>
-                    <th class="py-5 px-6 font-semibold text-sm text-center">Status</th>
-                    <th class="py-5 px-6 font-semibold text-sm text-center">Action</th>
+                    <th class="py-4 md:py-5 px-4 md:px-6 font-semibold text-xs md:text-sm">Transaction ID</th>
+                    <th class="py-4 md:py-5 px-4 md:px-6 font-semibold text-xs md:text-sm">User Name</th>
+                    <th class="py-4 md:py-5 px-4 md:px-6 font-semibold text-xs md:text-sm">Material</th>
+                    <th class="py-4 md:py-5 px-4 md:px-6 font-semibold text-xs md:text-sm text-center">Deadline</th>
+                    <th class="py-4 md:py-5 px-4 md:px-6 font-semibold text-xs md:text-sm text-center">Amount</th>
+                    <th class="py-4 md:py-5 px-4 md:px-6 font-semibold text-xs md:text-sm text-center">Status</th>
+                    <th class="py-4 md:py-5 px-4 md:px-6 font-semibold text-xs md:text-sm text-center">Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
@@ -140,14 +140,14 @@ const handleCreateBill = (data: any) => {
                         class="hover:bg-gray-50/30 transition-colors"
                         :class="{'bg-gray-50': expandedRows.has(payment.id + payment.name)}"
                     >
-                        <td class="py-6 px-6 text-gray-900 font-medium text-sm border-b-0">{{ payment.id }}</td>
-                        <td class="py-6 px-6 text-gray-900 font-medium text-sm border-b-0">{{ payment.name }}</td>
-                        <td class="py-6 px-6 text-gray-900 font-medium text-sm border-b-0">{{ payment.material }}</td>
-                        <td class="py-6 px-6 text-gray-900 font-medium text-sm text-center border-b-0">{{ payment.deadline }}</td>
-                        <td class="py-6 px-6 text-gray-900 font-bold text-sm text-center border-b-0">{{ payment.amount }}</td>
-                        <td class="py-6 px-6 text-center border-b-0">
+                        <td class="py-4 md:py-6 px-4 md:px-6 text-gray-900 font-medium text-xs md:text-sm border-b-0">{{ payment.id }}</td>
+                        <td class="py-4 md:py-6 px-4 md:px-6 text-gray-900 font-medium text-xs md:text-sm border-b-0">{{ payment.name }}</td>
+                        <td class="py-4 md:py-6 px-4 md:px-6 text-gray-900 font-medium text-xs md:text-sm border-b-0">{{ payment.material }}</td>
+                        <td class="py-4 md:py-6 px-4 md:px-6 text-gray-900 font-medium text-xs md:text-sm text-center border-b-0">{{ payment.deadline }}</td>
+                        <td class="py-4 md:py-6 px-4 md:px-6 text-gray-900 font-bold text-xs md:text-sm text-center border-b-0">{{ payment.amount }}</td>
+                        <td class="py-4 md:py-6 px-4 md:px-6 text-center border-b-0">
                             <span 
-                                class="px-5 py-1.5 rounded-full text-sm font-semibold inline-block min-w-[100px]"
+                                class="px-3 md:px-5 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-semibold inline-block min-w-[80px] md:min-w-[100px]"
                                 :class="getStatusClass(payment.status)"
                             >
                                 {{ payment.status }}
@@ -218,26 +218,26 @@ const handleCreateBill = (data: any) => {
     </div>
 
     <!-- Pagination -->
-    <div class="flex items-center justify-between mt-8 border-t border-gray-50 pt-6">
-        <div class="text-sm text-gray-500">
+    <div class="flex flex-col sm:flex-row items-center justify-between mt-6 md:mt-8 border-t border-gray-50 pt-6 gap-4">
+        <div class="text-xs md:text-sm text-gray-500 order-2 sm:order-1">
             Showing <span class="font-bold text-gray-900">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to 
             <span class="font-bold text-gray-900">{{ Math.min(currentPage * itemsPerPage, filteredPayments.length) }}</span> of 
             <span class="font-bold text-gray-900">{{ filteredPayments.length }}</span> results
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 order-1 sm:order-2">
             <button 
                 @click="currentPage--"
                 :disabled="currentPage === 1"
                 class="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-                <ChevronLeft class="w-5 h-5" />
+                <ChevronLeft class="w-4 h-4 md:w-5 md:h-5" />
             </button>
             <div class="flex items-center gap-1">
                 <button 
                     v-for="page in totalPages" 
                     :key="page"
                     @click="currentPage = page"
-                    class="w-10 h-10 rounded-xl text-sm font-bold transition-all"
+                    class="w-8 h-8 md:w-10 md:h-10 rounded-xl text-xs md:text-sm font-bold transition-all"
                     :class="currentPage === page ? 'bg-[#4FD1C5] text-white shadow-lg shadow-[#4FD1C5]/20' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'"
                 >
                     {{ page }}
@@ -248,7 +248,7 @@ const handleCreateBill = (data: any) => {
                 :disabled="currentPage === totalPages"
                 class="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-                <ChevronRight class="w-5 h-5" />
+                <ChevronRight class="w-4 h-4 md:w-5 md:h-5" />
             </button>
         </div>
     </div>

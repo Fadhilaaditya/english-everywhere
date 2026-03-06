@@ -110,18 +110,25 @@ const handleDelete = () => {
     <div class="absolute inset-0 bg-black/50" @click="$emit('close')"></div>
 
     <!-- Modal Content -->
-    <div class="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl p-8">
-        <!-- Close Button -->
-        <button 
-            @click="$emit('close')"
-            class="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-            <X class="w-6 h-6" />
-        </button>
+    <div class="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+        <!-- Sticky Header -->
+        <div class="sticky top-0 bg-white z-20 px-8 py-6 pb-2 flex justify-between items-center rounded-t-2xl border-b border-gray-100/50">
+            <h2 class="text-2xl font-bold text-gray-900">
+                {{ isAvailable ? 'Manage Schedule' : 'Appointment Form' }}
+            </h2>
+            <button 
+                @click="$emit('close')"
+                class="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+                <X class="w-6 h-6" />
+            </button>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="overflow-y-auto p-8 pt-4">
 
         <!-- Edit/Delete Mode for Available Slots -->
-        <div v-if="isAvailable" class="space-y-6 mt-2">
-             <h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Schedule</h2>
+        <div v-if="isAvailable" class="space-y-6">
              
              <!-- Course -->
             <div class="space-y-2">
@@ -161,7 +168,7 @@ const handleDelete = () => {
         </div>
 
         <!-- Default Applicant View (Existing) -->
-        <div v-else class="space-y-6 mt-2">
+        <div v-else class="space-y-6">
             <!-- Course (Read Only) -->
             <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">Course</label>
@@ -301,6 +308,7 @@ const handleDelete = () => {
                     {{ isTaken ? 'Approved' : 'Approve' }}
                 </button>
             </div>
+        </div>
         </div>
     </div>
   </div>

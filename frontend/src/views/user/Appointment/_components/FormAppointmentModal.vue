@@ -149,16 +149,20 @@ watch(() => props.schedule, (newVal) => {
     <div class="absolute inset-0 bg-black/50" @click="$emit('close')"></div>
 
     <!-- Modal Content -->
-    <div class="relative bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-xl p-8">
-        <!-- Close Button -->
-        <button 
-            @click="$emit('close')"
-            class="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-            <X class="w-6 h-6" />
-        </button>
+    <div class="relative bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+        <!-- Sticky Header -->
+        <div class="sticky top-0 bg-white z-20 px-8 py-6 flex justify-between items-center border-b border-gray-100/50">
+            <h2 class="text-2xl font-bold text-gray-900 mx-auto pl-8">Appointment Form</h2>
+            <button 
+                @click="$emit('close')"
+                class="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+                <X class="w-6 h-6" />
+            </button>
+        </div>
 
-        <h2 class="text-2xl font-bold text-gray-900 text-center mb-8">Appointment Form</h2>
+        <!-- Scrollable Content -->
+        <div class="overflow-y-auto p-8 pt-4">
 
         <!-- Read-Only Schedule Info -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -318,6 +322,7 @@ watch(() => props.schedule, (newVal) => {
                 {{ isSubmitting ? 'Processing...' : isBooked ? 'Booked' : isPending ? 'Pending Approval' : 'Daftar Sekarang' }}
             </button>
         </div>
+    </div>
     </div>
     
     <ConfirmationModal 
