@@ -7,10 +7,9 @@ module.exports = (app) => {
   // Memanggil exports.findAll di controller
   router.get("/", programs.findAll);
 
-  // 2. Retrieve all Booked Schedules
-  // Memanggil exports.getAllBookedSchedules di controller
-  // Rute statis ini diletakkan DI ATAS rute parameter :id agar tidak tertukar
-  router.get("/booked/all", programs.getAllBookedSchedules);
+  // 2.1 Retrieve all Schedules (Global)
+  router.get("/schedules/global", programs.findAllGlobal);
+  router.post("/schedules/global", programs.createSchedule);
 
   // 3. Retrieve Schedules for a Program
   // SINKRONISASI: Di controller kamu menamainya 'getSchedulesByProgram'
@@ -32,6 +31,30 @@ module.exports = (app) => {
   // 7. Revert/Unbook Schedule
   // Pastikan exports.revertSchedule ada di controller
   router.put("/schedules/:scheduleId/revert", programs.revertSchedule);
+
+  // 8. Update schedule status directly
+  router.put("/schedules/:scheduleId", programs.updateScheduleDirectly);
+
+  // 9. Book an appointment
+  router.post("/schedules/:scheduleId/book", programs.bookAppointment);
+
+  // 10. Get bookings for a schedule (Admin)
+  router.get("/schedules/:scheduleId/bookings", programs.getBookingsBySchedule);
+
+  // 11. Get all bookings globally (Admin)
+  router.get("/bookings/all", programs.getAllBookings);
+
+  // 12. Delete individual booking
+  router.delete("/bookings/:id", programs.deleteBooking);
+
+  // 13. Reject individual booking
+  router.put("/bookings/:id/reject", programs.rejectBooking);
+
+  // 14. Approve individual booking
+  router.put("/bookings/:id/approve", programs.approveBooking);
+
+  // 15. Mark bookings as read
+  router.put("/bookings/mark-read", programs.markAsRead);
 
   app.use("/api/programs", router);
 };

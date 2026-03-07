@@ -5,7 +5,7 @@ const totalApplicants = ref(0)
 
 const fetchApplicantsCount = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/programs/booked/all')
+        const response = await fetch('http://localhost:3001/api/programs/bookings/all?status=BOOKED')
         if (response.ok) {
             const data = await response.json()
             totalApplicants.value = data.length

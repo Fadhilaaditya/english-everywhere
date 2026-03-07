@@ -38,6 +38,10 @@ db.ProgramSchedule = require("./programScheduleModel.js")(
   sequelize,
   Sequelize,
 );
+db.AppointmentBooking = require("./appointmentBookingModel.js")(
+  sequelize,
+  Sequelize,
+);
 
 // ==============================
 // 2. DEFINE ASSOCIATIONS
@@ -82,6 +86,16 @@ db.Program.hasMany(db.ProgramSchedule, {
 db.ProgramSchedule.belongsTo(db.Program, {
   foreignKey: "programId",
   as: "program",
+});
+
+// --- Relasi ProgramSchedule <-> AppointmentBooking ---
+db.ProgramSchedule.hasMany(db.AppointmentBooking, {
+  foreignKey: "scheduleId",
+  as: "bookings",
+});
+db.AppointmentBooking.belongsTo(db.ProgramSchedule, {
+  foreignKey: "scheduleId",
+  as: "schedule",
 });
 
 module.exports = db;

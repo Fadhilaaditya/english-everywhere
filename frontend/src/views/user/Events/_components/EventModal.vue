@@ -35,11 +35,14 @@ onUnmounted(() => {
 
       <div class="relative w-full max-w-[961px] bg-white rounded-[40px] shadow-2xl px-8 py-8 flex flex-col md:flex-row gap-8 max-h-[95vh] overflow-y-auto my-auto">
         
-        <button @click="handleClose" class="absolute top-8 right-8 z-20 hover:bg-gray-100 p-1 rounded-full transition-colors cursor-pointer text-gray-500">
+        <button @click="handleClose" class="absolute top-3 right-3 z-20 hover:bg-gray-100 p-2 rounded-full transition-colors cursor-pointer text-gray-500 bg-white/80 backdrop-blur-sm shadow-sm md:bg-transparent md:bg-none md:shadow-none">
           <X class="w-6 h-6" />
         </button>
-        <span class="text-lg font-bold text-gray-900 whitespace-nowrap absolute top-8 right-16 md:right-20">
-            {{ event?.price }} </span>
+
+        <!-- Price Badge -->
+        <span class="absolute top-12 left-12 md:top-8 md:left-auto md:right-16 bg-[#52D1C6] text-white px-4 py-1.5 rounded-full text-sm md:text-base font-bold shadow-xl z-20 whitespace-nowrap transform transition-all hover:scale-105">
+            {{ event?.price }} 
+        </span>
 
 
         <div class="w-full md:w-[360px] flex-shrink-0">

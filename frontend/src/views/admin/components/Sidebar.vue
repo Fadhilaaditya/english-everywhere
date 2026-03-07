@@ -36,19 +36,28 @@ const menuItems = ref([
 ])
 
 const checkNewApplicants = async () => {
-  try {
-    const response = await fetch('http://localhost:3001/api/programs/booked/all')
-    if (response.ok) {
-      const data = await response.json()
-      // Find Applicant Data menu item and update notification status
-      const applicantMenu = menuItems.value.find(item => item.name === 'Applicant Data')
-      if (applicantMenu) {
-        applicantMenu.hasNotification = data.length > 0
-      }
+    try {
+        const response = await fetch('http://localhost:3001/api/programs/bookings/all')
+        if (response.ok) {
+            const data = await response.json()
+            
+            // 1. Check for new PENDING bookings (Appointment dot)
+            const hasPending = data.some((b: any) => b.status === 'PENDING')
+            const appointmentMenu = menuItems.value.find(item => item.name === 'Appointment')
+            if (appointmentMenu) {
+                appointmentMenu.hasNotification = hasPending
+            }
+
+            // 2. Check for new BOOKED bookings (Applicant Data dot)
+            const hasNewBooked = data.some((b: any) => b.status === 'BOOKED' && b.isRead === false)
+            const applicantMenu = menuItems.value.find(item => item.name === 'Applicant Data')
+            if (applicantMenu) {
+                applicantMenu.hasNotification = hasNewBooked
+            }
+        }
+    } catch (e) {
+        console.error('Failed to check notification status', e)
     }
-  } catch (e) {
-    console.error('Failed to check applicants', e)
-  }
 }
 
 let pollingInterval: any = null
@@ -122,14 +131,6 @@ const emit = defineEmits(['close'])
 
     <!-- Bottom Actions -->
     <div class="p-4 mt-auto space-y-2 border-t border-gray-50">
-      <router-link 
-        to="/admin/settings"
-        class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all"
-        @click="$emit('close')"
-      >
-        <Settings class="w-5 h-5" />
-        <span class="font-medium text-sm">Settings</span>
-      </router-link>
       
       <button 
         @click="handleLogout"

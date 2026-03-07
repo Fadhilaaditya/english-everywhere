@@ -51,9 +51,9 @@ exports.createAccount = async (req, res) => {
             userId: user.id
         });
 
-        // Update Schedule Status if scheduleId is provided
+        // Update Booking Status if bookingId (passed as scheduleId) is provided
         if (req.body.scheduleId) {
-            await ProgramSchedule.update(
+            await db.AppointmentBooking.update(
                 { status: 'ACCEPTED' },
                 { where: { id: req.body.scheduleId } }
             );

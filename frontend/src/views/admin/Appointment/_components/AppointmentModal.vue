@@ -27,40 +27,75 @@ const formData = ref({
     birthPlace: ''
 })
 
-watch(() => props.appointment, (newVal) => {
+const bookings = ref<any[]>([])
+const selectedBookingIndex = ref(0)
+const isLoading = ref(false)
+
+const selectedBooking = computed(() => {
+    if (bookings.value.length === 0) return null
+    return bookings.value[selectedBookingIndex.value] || bookings.value[0]
+})
+
+watch(() => props.isOpen, async (newVal) => {
+    if (newVal && props.appointment) {
+        isLoading.value = true
+        try {
+            const response = await fetch(`http://localhost:3001/api/programs/schedules/${props.appointment.id}/bookings`)
+            if (response.ok) {
+                bookings.value = await response.json()
+                selectedBookingIndex.value = 0
+            }
+        } catch (e) {
+            console.error('Failed to fetch bookings', e)
+        } finally {
+            isLoading.value = false
+        }
+    }
+})
+
+watch([() => props.appointment, selectedBookingIndex, bookings], () => {
+    const newVal = props.appointment
+    const booking = bookings.value[selectedBookingIndex.value]
+    
     if (newVal) {
-        formData.value.course = props.programName || '' 
+        formData.value.course = props.programName || newVal.program?.title || 'No Program'
         formData.value.date = formatDate(newVal.date)
         formData.value.startTime = newVal.time
         formData.value.endTime = calculateEndTime(newVal.time)
 
-        if (newVal.status === 'available') {
-            // Edit Mode keys
-            formData.value.fullName = ''
-            formData.value.gender = 'Male'
-            formData.value.address = ''
-            formData.value.phone = ''
-            formData.value.email = ''
-            formData.value.birthDate = ''
-            formData.value.level = props.programName || ''
+        if (booking) {
+            formData.value.fullName = booking.applicantName || ''
+            formData.value.gender = booking.applicantGender || 'Male'
+            formData.value.address = booking.applicantAddress || ''
+            formData.value.phone = booking.applicantPhone || ''
+            formData.value.email = booking.applicantEmail || ''
+            formData.value.birthDate = booking.applicantBirthDate || ''
+            formData.value.fatherName = booking.applicantFather || ''
+            formData.value.motherName = booking.applicantMother || ''
+            formData.value.birthPlace = booking.applicantBirthPlace || ''
         } else {
-            // Waiting or Taken - fill real data
-            formData.value.fullName = newVal.applicantName || newVal.name || ''
-            formData.value.gender = newVal.applicantGender || 'Male'
-            formData.value.address = newVal.applicantAddress || ''
-            formData.value.phone = newVal.applicantPhone || ''
-            formData.value.email = newVal.applicantEmail || ''
-            formData.value.birthDate = newVal.applicantBirthDate || ''
-            formData.value.level = props.programName || ''
-            formData.value.fatherName = newVal.applicantFather || ''
-            formData.value.motherName = newVal.applicantMother || ''
-            formData.value.birthPlace = newVal.applicantBirthPlace || ''
+             formData.value.fullName = ''
+             formData.value.gender = 'Male'
+             formData.value.address = ''
+             formData.value.phone = ''
+             formData.value.email = ''
+             formData.value.birthDate = ''
+             formData.value.fatherName = ''
+             formData.value.motherName = ''
+             formData.value.birthPlace = ''
         }
     }
 }, { immediate: true })
 
-const isTaken = computed(() => props.appointment?.status === 'taken' || props.appointment?.status === 'booked')
-const isAvailable = computed(() => props.appointment?.status === 'available')
+const isTaken = computed(() => {
+    const booking = bookings.value[selectedBookingIndex.value]
+    return booking?.status === 'BOOKED'
+})
+const isRejected = computed(() => {
+    const booking = bookings.value[selectedBookingIndex.value]
+    return booking?.status === 'REJECTED'
+})
+const isAvailable = computed(() => bookings.value.length === 0)
 
 const formatDate = (dateString: string) => {
     if (!dateString) return ''
@@ -84,11 +119,15 @@ const calculateEndTime = (startTime: string) => {
 }
 
 const handleApprove = () => {
-    emit('approve', formData.value)
+    if (selectedBooking.value) {
+        emit('approve', { id: selectedBooking.value.id, ...formData.value })
+    }
 }
 
 const handleReject = () => {
-    emit('reject', props.appointment.id)
+    if (selectedBooking.value) {
+        emit('reject', selectedBooking.value.id)
+    }
 }
 
 const handleUpdate = () => {
@@ -112,7 +151,7 @@ const handleDelete = () => {
     <!-- Modal Content -->
     <div class="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
         <!-- Sticky Header -->
-        <div class="sticky top-0 bg-white z-20 px-8 py-6 pb-2 flex justify-between items-center rounded-t-2xl border-b border-gray-100/50">
+        <div class="sticky top-0 bg-white z-20 px-4 md:px-8 py-4 md:py-6 pb-2 flex justify-between items-center rounded-t-2xl border-b border-gray-100/50">
             <h2 class="text-2xl font-bold text-gray-900">
                 {{ isAvailable ? 'Manage Schedule' : 'Appointment Form' }}
             </h2>
@@ -125,50 +164,99 @@ const handleDelete = () => {
         </div>
 
         <!-- Scrollable Content -->
-        <div class="overflow-y-auto p-8 pt-4">
+        <div class="overflow-y-auto p-4 md:p-8 pt-4">
 
-        <!-- Edit/Delete Mode for Available Slots -->
-        <div v-if="isAvailable" class="space-y-6">
-             
-             <!-- Course -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Course</label>
-                <div class="w-full px-4 py-3 rounded-lg bg-gray-200 border border-gray-300 text-gray-700">
-                    {{ formData.course }}
+        <!-- Manage Schedule (Time & Slots) -->
+        <div class="space-y-6">
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Course -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Course</label>
+                    <div class="w-full px-4 py-3 rounded-lg bg-gray-100 border border-gray-200 text-gray-700">
+                        {{ formData.course }}
+                    </div>
                 </div>
-            </div>
 
-             <!-- Time Editing -->
-             <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Time</label>
-                 <div class="relative">
-                     <input 
-                        v-model="formData.startTime"
-                        type="time"
-                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
-                    />
+                <!-- Slots -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Quota Slots</label>
+                    <div class="flex gap-2">
+                        <input 
+                            v-model="props.appointment.maxSlots"
+                            type="number"
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
+                        />
+                    </div>
                 </div>
-            </div>
+             </div>
+
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Date -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Date</label>
+                    <div class="w-full px-4 py-3 rounded-lg bg-gray-100 border border-gray-200 text-gray-700">
+                        {{ formData.date }}
+                    </div>
+                </div>
+
+                <!-- Time Booking -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Time</label>
+                    <div class="relative">
+                        <input 
+                            v-model="formData.startTime"
+                            type="time"
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
+                        />
+                    </div>
+                </div>
+             </div>
 
             <!-- Actions -->
-            <div class="flex gap-4 pt-4">
+            <div class="flex flex-col sm:flex-row gap-4 pt-4 border-b border-gray-100 pb-6">
                  <button 
                     @click="handleDelete"
                     class="flex-1 py-3 rounded-lg text-white font-medium transition-colors bg-red-500 hover:bg-red-600"
                 >
-                    Delete
+                    Delete Schedule
                 </button>
                  <button 
                     @click="handleUpdate"
                     class="flex-1 py-3 rounded-lg text-white font-medium transition-colors bg-[#4FD1C5] hover:bg-[#3dbdb0]"
                 >
-                    Save Changes
+                    Update Schedule
                 </button>
             </div>
         </div>
 
-        <!-- Default Applicant View (Existing) -->
-        <div v-else class="space-y-6">
+        <!-- Bookings List -->
+        <div v-if="bookings.length > 0" class="mt-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Applicants ({{ bookings.length }}/{{ props.appointment?.maxSlots }})</h3>
+            <div class="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+                <button 
+                    v-for="(booking, index) in bookings" 
+                    :key="booking.id"
+                    @click="selectedBookingIndex = index"
+                    class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border flex items-center gap-2"
+                    :class="[
+                        selectedBookingIndex === index 
+                            ? 'shadow-md scale-105' 
+                            : 'opacity-70 grayscale-[0.5] hover:opacity-100 hover:grayscale-0',
+                        booking.status === 'BOOKED' 
+                            ? (selectedBookingIndex === index ? 'bg-green-500 text-white border-green-500' : 'bg-green-50 text-green-600 border-green-200')
+                            : booking.status === 'REJECTED'
+                            ? (selectedBookingIndex === index ? 'bg-red-500 text-white border-red-500' : 'bg-red-50 text-red-600 border-red-200')
+                            : (selectedBookingIndex === index ? 'bg-[#4FD1C5] text-white border-[#4FD1C5]' : 'bg-teal-50 text-teal-600 border-teal-200')
+                    ]"
+                >
+                    <span class="w-2 h-2 rounded-full bg-current"></span>
+                    {{ booking.applicantName }} ({{ booking.status }})
+                </button>
+            </div>
+        </div>
+
+        <!-- Applicant View -->
+        <div v-if="bookings.length > 0" class="space-y-6 pt-4">
             <!-- Course (Read Only) -->
             <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">Course</label>
@@ -178,7 +266,7 @@ const handleDelete = () => {
             </div>
 
             <!-- Date & Time (Read Only) -->
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Tanggal Test</label>
                     <div class="relative">
@@ -291,9 +379,9 @@ const handleDelete = () => {
             </div>
 
             <!-- Actions -->
-            <div class="flex gap-4 pt-4 mt-8">
+            <div class="flex flex-col sm:flex-row gap-4 pt-4 mt-8">
                 <button 
-                    v-if="!isTaken"
+                    v-if="!isRejected"
                     @click="handleReject"
                     class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30"
                 >
@@ -305,9 +393,13 @@ const handleDelete = () => {
                     class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors shadow-lg shadow-[#4FD1C5]/30 flex items-center justify-center gap-2"
                      :class="isTaken ? 'w-full bg-gray-400 cursor-not-allowed shadow-none' : 'bg-[#4FD1C5] hover:bg-[#3dbdb0]'"
                 >
-                    {{ isTaken ? 'Approved' : 'Approve' }}
+                    {{ isTaken ? 'Approved' : isRejected ? 'Restore & Approve' : 'Approve' }}
                 </button>
             </div>
+        </div>
+        
+        <div v-else class="py-12 text-center text-gray-500">
+            No applicants yet for this time slot.
         </div>
         </div>
     </div>

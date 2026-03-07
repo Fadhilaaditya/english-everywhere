@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 interface Program {
   id: number
@@ -22,6 +22,10 @@ const fetchPrograms = async () => {
     console.error('Error fetching programs:', error)
   }
 }
+
+const filteredPrograms = computed(() => {
+  return programs.value.filter(program => program.category === activeFilter.value)
+})
 
 onMounted(() => {
   fetchPrograms()
@@ -61,32 +65,22 @@ onMounted(() => {
           >
             INTENSIVE
           </button>
-          <button 
-            @click="activeFilter = 'OTHERS'"
-            :class="[
-              'px-6 py-2 rounded-full font-bold text-sm transition-colors cursor-pointer',
-              activeFilter === 'OTHERS' ? 'bg-white text-primary' : 'bg-transparent border border-white text-white hover:bg-white/10'
-            ]"
-          >
-            OTHERS
-          </button>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
         <div 
-            v-for="program in programs" 
+            v-for="program in filteredPrograms" 
             :key="program.id" 
-            @click="$router.push({ path: '/appointment', query: { programId: program.id } })"
-            class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full cursor-pointer transform hover:-translate-y-1 duration-300"
+            @click="$router.push({ path: '/appointment' })"
+            class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full cursor-pointer transform hover:-translate-y-1 duration-300 h-full flex flex-col"
         >
-          <!-- Image -->
-          <img :src="program.image" :alt="program.title" class="h-[198px] w-full object-cover" />
+          <img :src="program.image" :alt="program.title" class="h-[198px] w-full object-cover flex-shrink-0" />
           
-          <div class="p-6">
-            <h3 class="font-bold text-lg text-text-dark mb-1">{{ program.title }}</h3>
+          <div class="p-6 flex flex-col flex-grow">
+            <h3 class="font-bold text-lg text-text-dark mb-1 h-[50px] flex items-center leading-tight">{{ program.title }}</h3>
             <p class="text-xs text-gray-500 mb-3">{{ program.price }}</p>
-            <p class="text-sm text-text-dark font-poppins">{{ program.desc }}</p>
+            <p class="text-sm text-text-dark font-poppins flex-grow">{{ program.desc }}</p>
           </div>
         </div>
       </div>

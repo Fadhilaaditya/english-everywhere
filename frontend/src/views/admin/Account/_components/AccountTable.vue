@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { SquarePen, Trash2, ArrowUpDown, Plus } from 'lucide-vue-next'
+import { SquarePen, Trash2, ArrowUpDown, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ref, onMounted, computed, watch } from 'vue'
 import AccountEditModal from './AccountEditModal.vue'
 import Toast from '@/components/Toast.vue'
 import ConfirmationModal from './ConfirmationModal.vue'
@@ -8,6 +8,33 @@ import ConfirmationModal from './ConfirmationModal.vue'
 const accounts = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedAccount = ref<any>(null)
+
+// Search and Pagination State
+const searchQuery = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+const filteredAccounts = computed(() => {
+    if (!searchQuery.value) return accounts.value
+    const query = searchQuery.value.toLowerCase()
+    return accounts.value.filter(acc => 
+        acc.name.toLowerCase().includes(query) || 
+        acc.username.toLowerCase().includes(query)
+    )
+})
+
+const totalPages = computed(() => Math.ceil(filteredAccounts.value.length / itemsPerPage))
+
+const paginatedAccounts = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return filteredAccounts.value.slice(start, end)
+})
+
+// Reset to first page when searching
+watch(searchQuery, () => {
+    currentPage.value = 1
+})
 
 const fetchAccounts = async () => {
     try {
@@ -110,16 +137,29 @@ const processDelete = async () => {
 
 <template>
   <div class="mt-8">
-    <!-- Header with Create Button -->
-    <div class="flex justify-between items-center mb-6">
+    <!-- Header: Title, Search, and Create Button -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h3 class="text-xl font-bold text-gray-900">List Account's</h3>
-        <button 
-            @click="handleCreate"
-            class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-lg shadow-[#4FD1C5]/20"
-        >
-            Create Account
-            <Plus class="w-4 h-4" />
-        </button>
+        
+        <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            <div class="relative w-full sm:w-80">
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input 
+                    v-model="searchQuery"
+                    type="text" 
+                    placeholder="Search by name or username..."
+                    class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm"
+                />
+            </div>
+            
+            <button 
+                @click="handleCreate"
+                class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-lg shadow-[#4FD1C5]/20 w-full sm:w-auto justify-center whitespace-nowrap"
+            >
+                Create Account
+                <Plus class="w-4 h-4" />
+            </button>
+        </div>
     </div>
 
     <!-- Table -->
@@ -156,7 +196,7 @@ const processDelete = async () => {
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-            <tr v-for="account in accounts" :key="account.id" class="hover:bg-gray-50/50">
+            <tr v-for="account in paginatedAccounts" :key="account.id" class="hover:bg-gray-50/50">
                 <td class="py-4 px-6 text-sm font-bold text-gray-700">{{ account.name }}</td>
                 <td class="py-4 px-6 text-sm text-gray-600">{{ account.username }}</td>
                 <td class="py-4 px-6 text-sm text-gray-600">{{ account.dob }}</td>
@@ -189,6 +229,45 @@ const processDelete = async () => {
             </tr>
             </tbody>
         </table>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+            <p class="text-sm text-gray-500">
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredAccounts.length) }} of {{ filteredAccounts.length }} results
+            </p>
+            <div class="flex items-center gap-2">
+                <button 
+                    @click="currentPage > 1 && currentPage--"
+                    :disabled="currentPage === 1"
+                    class="p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <ChevronLeft class="w-4 h-4" />
+                </button>
+                <div class="flex items-center gap-1">
+                    <button 
+                        v-for="page in totalPages" 
+                        :key="page"
+                        @click="currentPage = page"
+                        class="px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                        :class="currentPage === page ? 'bg-[#4FD1C5] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'"
+                    >
+                        {{ page }}
+                    </button>
+                </div>
+                <button 
+                    @click="currentPage < totalPages && currentPage++"
+                    :disabled="currentPage === totalPages"
+                    class="p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <ChevronRight class="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+
+        <!-- No Results -->
+        <div v-if="filteredAccounts.length === 0" class="py-12 text-center text-gray-500 italic">
+            No accounts found matching "{{ searchQuery }}"
         </div>
     </div>
 

@@ -6,7 +6,7 @@ import ConfirmModal from './ConfirmModal.vue'
 const props = defineProps<{
   isOpen: boolean
   programId: number | null
-  programName: string
+  programName?: string
   initialDate?: string
 }>()
 
@@ -14,36 +14,50 @@ const emit = defineEmits(['close', 'submit'])
 
 const date = ref('')
 const time = ref('')
+const maxSlots = ref(1)
+const programs = ref<any[]>([])
+const selectedProgramId = ref<number | null>(null)
 const isLoading = ref(false)
 const isConfirmModalOpen = ref(false)
 
 // Populate date from prop when modal opens
 import { watch } from 'vue'
-watch(() => props.isOpen, (newVal) => {
-    if (newVal && props.initialDate) {
-        date.value = props.initialDate
-    } else if (!newVal) {
-        // Optional: clear on close if needed, but maybe not strictly required
+watch(() => props.isOpen, async (newVal) => {
+    if (newVal) {
+        if (props.initialDate) date.value = props.initialDate
+        selectedProgramId.value = props.programId
+        
+        // Fetch programs if not already passed or if list is empty
+        try {
+            const response = await fetch('http://localhost:3001/api/programs')
+            if (response.ok) {
+                programs.value = await response.json()
+            }
+        } catch (e) {
+            console.error('Failed to fetch programs in modal', e)
+        }
     }
 })
 
 const handleCreateClick = () => {
-    if (!props.programId || !date.value || !time.value) return
+    if (!date.value || !time.value || maxSlots.value < 1) return
     isConfirmModalOpen.value = true
 }
 
 const executeCreate = async () => {
-    if (!props.programId || !date.value || !time.value) return
+    if (!date.value || !time.value) return
     
     isLoading.value = true
     try {
         const payload = {
+            programId: null,
             date: date.value,
             time: time.value,
+            maxSlots: maxSlots.value,
             status: 'AVAILABLE'
         }
         
-        const response = await fetch(`http://localhost:3001/api/programs/${props.programId}/schedules`, {
+        const response = await fetch(`http://localhost:3001/api/programs/schedules/global`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -60,6 +74,7 @@ const executeCreate = async () => {
         // Reset form
         date.value = ''
         time.value = ''
+        maxSlots.value = 1
         // alert removed, parent handles it
     } catch (error) {
         console.error('Error creating schedule:', error)
@@ -89,14 +104,6 @@ const executeCreate = async () => {
         
         <!-- Form -->
         <div class="space-y-6">
-            <!-- Program Name (Read Only) -->
-            <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Program</label>
-                <div class="w-full px-4 py-3 rounded-lg bg-gray-200 border border-gray-300 text-gray-700">
-                    {{ programName || 'Select a program first' }}
-                </div>
-            </div>
-
             <!-- Date -->
             <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">Date</label>
@@ -120,11 +127,24 @@ const executeCreate = async () => {
                     />
                 </div>
             </div>
+
+            <!-- Max Slots -->
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">Total Slots (Quota)</label>
+                 <div class="relative">
+                     <input 
+                        v-model="maxSlots"
+                        type="number"
+                        min="1"
+                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
+                    />
+                </div>
+            </div>
             
             <!-- Submit Button -->
             <button 
                 @click="handleCreateClick"
-                :disabled="isLoading || !date || !time"
+                :disabled="isLoading || !date || !time || maxSlots < 1"
                 class="w-full py-3 rounded-lg text-white font-medium transition-colors bg-[#4FD1C5] hover:bg-[#3dbdb0] disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {{ isLoading ? 'Creating...' : 'Create Schedule' }}

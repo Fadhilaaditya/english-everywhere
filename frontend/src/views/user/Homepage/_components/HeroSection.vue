@@ -16,7 +16,7 @@
         </h1>
       </div>
       <p class="text-text-dark text-lg md:text-xl max-w-2xl mb-8 font-poppins">
-        Our fun and interactive courses are designed for kids to learn English confidently, anytime and anywhere.
+        Our fun and interactive courses are designed from kids to professionals to learn English confidently, anytime and anywhere.
       </p>
       
       <button class="bg-secondary hover:bg-teal-500 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg transition-transform hover:scale-105 cursor-pointer">

@@ -2,7 +2,8 @@
 import { ref } from 'vue'
 import { Plus, Minus } from 'lucide-vue-next'
 
-const faqs = [
+// Bungkus array dengan ref() agar menjadi reaktif
+const faqs = ref([
   {
     question: 'Apa saja program khusus yang ditawarkan di English Everywhere?',
     answer: 'Kami menawarkan berbagai program mulai dari Phonics untuk pemula, English for Kids, hingga persiapan tes internasional.',
@@ -63,18 +64,18 @@ const faqs = [
     answer: 'Anda bisa menghubungi tim customer service kami melalui WhatsApp atau email yang tertera di website.',
     isOpen: false
   }
-]
+])
 
 const toggleFaq = (index: number) => {
-  if (faqs[index]) {
-    faqs[index].isOpen = !faqs[index].isOpen
+  // Tambahkan .value karena faqs sekarang adalah sebuah ref
+  if (faqs.value[index]) {
+    faqs.value[index].isOpen = !faqs.value[index].isOpen
   }
 }
 </script>
 
 <template>
   <section class="py-16 px-6 md:px-12 bg-white relative overflow-hidden">
-    <!-- Decorative Elements -->
     <img src="/hex-ijo.svg" alt="Decoration" class="absolute top-10 left-0 w-50 h-50 opacity-50 pointer-events-none" />
     <img src="/daun.svg" alt="Decoration" class="absolute bottom-10 -right-12 w-56 h-56 opacity-80 pointer-events-none" />
 
@@ -85,7 +86,7 @@ const toggleFaq = (index: number) => {
     </div>
 
     <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-      <div v-for="(faq, index) in faqs" :key="index" class="border border-gray-200 rounded-lg overflow-hidden">
+      <div v-for="(faq, index) in faqs" :key="index" class="border border-gray-200 rounded-lg overflow-hidden h-fit">
         <button 
           @click="toggleFaq(index)"
           class="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors text-left"

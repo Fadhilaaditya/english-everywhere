@@ -1,12 +1,39 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Pencil, Trash2, Plus } from 'lucide-vue-next'
+import { ref, onMounted, computed, watch } from 'vue'
+import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import EventModal from './EventModal.vue'
 import Toast from '../../../../components/Toast.vue'
 
 const events = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedEvent = ref(null)
+
+// Search and Pagination State
+const searchQuery = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+const filteredEvents = computed(() => {
+  if (!searchQuery.value) return events.value
+  const query = searchQuery.value.toLowerCase()
+  return events.value.filter(event => 
+    event.title.toLowerCase().includes(query) || 
+    event.location.toLowerCase().includes(query)
+  )
+})
+
+const totalPages = computed(() => Math.ceil(filteredEvents.value.length / itemsPerPage))
+
+const paginatedEvents = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return filteredEvents.value.slice(start, end)
+})
+
+// Reset to first page when searching
+watch(searchQuery, () => {
+    currentPage.value = 1
+})
 
 // Toast State
 const showToast = ref(false)
@@ -95,15 +122,28 @@ onMounted(() => {
 
 <template>
   <div class="bg-white rounded-lg p-6">
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h2 class="text-lg font-bold text-gray-900">List Events</h2>
-        <button 
-            @click="handleCreate"
-            class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-            Create Event
-            <Plus class="w-4 h-4" />
-        </button>
+        
+        <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            <div class="relative w-full sm:w-80">
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input 
+                    v-model="searchQuery"
+                    type="text" 
+                    placeholder="Search by title or location..."
+                    class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm"
+                />
+            </div>
+
+            <button 
+                @click="handleCreate"
+                class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors w-full sm:w-auto justify-center"
+            >
+                Create Event
+                <Plus class="w-4 h-4" />
+            </button>
+        </div>
     </div>
 
     <div class="overflow-x-auto">
@@ -119,7 +159,7 @@ onMounted(() => {
             </thead>
             <tbody>
                 <tr 
-                    v-for="event in events" 
+                    v-for="event in paginatedEvents" 
                     :key="event.id"
                     class="border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors"
                 >
@@ -146,6 +186,45 @@ onMounted(() => {
                 </tr>
             </tbody>
         </table>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="totalPages > 1" class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-50 pt-6">
+        <p class="text-sm text-gray-500">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredEvents.length) }} of {{ filteredEvents.length }} events
+        </p>
+        <div class="flex items-center gap-2">
+            <button 
+                @click="currentPage > 1 && currentPage--"
+                :disabled="currentPage === 1"
+                class="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+                <ChevronLeft class="w-4 h-4" />
+            </button>
+            <div class="flex items-center gap-1">
+                <button 
+                    v-for="page in totalPages" 
+                    :key="page"
+                    @click="currentPage = page"
+                    class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all"
+                    :class="currentPage === page ? 'bg-[#4FD1C5] text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'"
+                >
+                    {{ page }}
+                </button>
+            </div>
+            <button 
+                @click="currentPage < totalPages && currentPage++"
+                :disabled="currentPage === totalPages"
+                class="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+                <ChevronRight class="w-4 h-4" />
+            </button>
+        </div>
+    </div>
+
+    <!-- No Results -->
+    <div v-if="filteredEvents.length === 0" class="py-12 text-center text-gray-500 italic">
+        No events found matching "{{ searchQuery }}"
     </div>
 
     <!-- Modals -->

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { User, Edit, X } from 'lucide-vue-next'
 // Import ConfirmModal from relative path as it's in a sibling view's components
 // Alternatively could move to shared components, but for now relative path
@@ -28,6 +28,19 @@ const formData = ref({
     scheduleId: null as number | null
 })
 
+const programs = ref<any[]>([])
+
+const fetchPrograms = async () => {
+    try {
+        const response = await fetch('http://localhost:3001/api/programs')
+        if (response.ok) {
+            programs.value = await response.json()
+        }
+    } catch (e) {
+        console.error('Failed to fetch programs', e)
+    }
+}
+
 // Initialize form when applicant changes
 watch(() => props.applicant, (newVal) => {
     if (newVal) {
@@ -51,6 +64,10 @@ watch(() => props.applicant, (newVal) => {
 
 const isSubmitting = ref(false)
 const isConfirmOpen = ref(false)
+
+onMounted(() => {
+    fetchPrograms()
+})
 
 const handleSubmit = () => {
     // Basic validation
@@ -182,16 +199,17 @@ const executeCreateAccount = async () => {
                     />
                 </div>
 
-                 <!-- Level -->
+                 <!-- Level (Rename to Programs) -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Level</label>
+                    <label class="block text-sm font-medium text-gray-700">Programs</label>
                     <select 
                         v-model="formData.level"
                         class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
                     >
-                         <option value="Hi Kids!">Hi Kids!</option>
-                        <option value="Get Smart">Get Smart</option>
-                        <option value="Business English">Business English</option>
+                        <option value="" disabled>Select Program</option>
+                        <option v-for="program in programs" :key="program.id" :value="program.title">
+                            {{ program.title }}
+                        </option>
                     </select>
                 </div>
 
