@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { X, Plus, Calendar, Trash2, ChevronDown } from 'lucide-vue-next'
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const props = defineProps<{
     isOpen: boolean
@@ -10,38 +13,58 @@ const emit = defineEmits(['close', 'submit'])
 
 // Form Data
 const formData = ref({
-    transactionId: '001/XIV', // Mock ID
     billDate: new Date().toLocaleDateString('en-GB'),
-    invoiceNo: 'EE/123/123', // Mock Invoice
+    invoiceNo: `INV/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`, 
+    studentId: null as number | null,
     studentName: '',
+    programId: null as number | null,
     courseName: '',
     courseFee: 0,
     paymentType: 'Lunas' as 'Lunas' | 'Cicilan',
-    installments: [] as { date: string, amount: number }[]
+    installments: [] as { dueDate: string, amount: number }[]
 })
 
-// Mock Data for Search
-const students = ['Siti Aminah', 'Budi Santoso', 'Rina Wati', 'Joko Susilio']
-const courses = ['Business English Intermediate', 'TOEFL Preparation', 'General English for Kids']
+// Real Data state
+const students = ref<any[]>([])
+const courses = ref<any[]>([])
+
+const fetchInitialData = async () => {
+  try {
+    const [studentsRes, programsRes] = await Promise.all([
+      axios.get(`${API_URL}/students`),
+      axios.get(`${API_URL}/programs`)
+    ]);
+    students.value = studentsRes.data || [];
+    courses.value = programsRes.data || [];
+  } catch(e) {
+    console.error("Failed to load students/programs", e);
+  }
+}
+
+onMounted(() => {
+  fetchInitialData();
+});
 
 const showStudentSearch = ref(false)
 const showCourseSearch = ref(false)
 
 const filteredStudents = computed(() => {
-    return students.filter(s => s.toLowerCase().includes(formData.value.studentName.toLowerCase()))
+    return students.value.filter(s => s.name.toLowerCase().includes(formData.value.studentName.toLowerCase()))
 })
 
 const filteredCourses = computed(() => {
-    return courses.filter(c => c.toLowerCase().includes(formData.value.courseName.toLowerCase()))
+    return courses.value.filter(c => c.title.toLowerCase().includes(formData.value.courseName.toLowerCase()))
 })
 
-const selectStudent = (name: string) => {
-    formData.value.studentName = name
+const selectStudent = (student: any) => {
+    formData.value.studentId = student.id
+    formData.value.studentName = student.name
     showStudentSearch.value = false
 }
 
-const selectCourse = (name: string) => {
-    formData.value.courseName = name
+const selectCourse = (course: any) => {
+    formData.value.programId = course.id
+    formData.value.courseName = course.title
     showCourseSearch.value = false
 }
 
@@ -57,7 +80,7 @@ watch(() => formData.value.paymentType, (newType) => {
 // Installment Logic
 const addInstallment = () => {
     formData.value.installments.push({
-        date: new Date().toISOString().slice(0, 10),
+        dueDate: new Date().toISOString().slice(0, 10),
         amount: 0
     })
     recalculateInstallments()
@@ -72,7 +95,6 @@ const recalculateInstallments = () => {
     const count = formData.value.installments.length
     if (count > 0 && formData.value.courseFee > 0) {
         const amountPerInstallment = Math.floor(formData.value.courseFee / count)
-        // Distribute remainder to the first or last, keeping it simple for now
         formData.value.installments.forEach(inst => inst.amount = amountPerInstallment)
     }
 }
@@ -84,7 +106,24 @@ watch(() => formData.value.courseFee, () => {
 })
 
 const handleSubmit = () => {
-    emit('submit', formData.value)
+    const payload = {
+      studentId: formData.value.studentId,
+      programId: formData.value.programId,
+      amount: formData.value.courseFee,
+      deadline: new Date().toISOString().slice(0, 10), // For Lunas, mostly. Alternatively use real Date Picker for deadline
+      paymentType: formData.value.paymentType,
+      installments: formData.value.installments,
+      invoiceNo: formData.value.invoiceNo
+    };
+    emit('submit', payload)
+    
+    // Reset form briefly
+    formData.value.studentId = null;
+    formData.value.studentName = '';
+    formData.value.programId = null;
+    formData.value.courseName = '';
+    formData.value.courseFee = 0;
+    formData.value.installments = [];
     emit('close')
 }
 </script>
@@ -105,7 +144,7 @@ const handleSubmit = () => {
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             <div>
                 <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1">Transaction ID</label>
-                <div class="text-sm md:text-lg font-bold text-gray-900">{{ formData.transactionId }}</div>
+                <div class="text-sm md:text-lg font-bold text-gray-900">Auto Generated</div>
             </div>
             <div>
                 <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1">Bill Date</label>
@@ -141,11 +180,11 @@ const handleSubmit = () => {
                 <div v-if="showStudentSearch && filteredStudents.length > 0" class="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20">
                     <div 
                         v-for="student in filteredStudents" 
-                        :key="student"
+                        :key="student.id"
                         @click="selectStudent(student)"
                         class="px-4 py-3 hover:bg-gray-50 cursor-pointer text-sm font-medium text-gray-700 transition-colors"
                     >
-                        {{ student }}
+                        {{ student.name }}
                     </div>
                 </div>
             </div>
@@ -172,11 +211,11 @@ const handleSubmit = () => {
                 <div v-if="showCourseSearch && filteredCourses.length > 0" class="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20">
                     <div 
                         v-for="course in filteredCourses" 
-                        :key="course"
+                        :key="course.id"
                         @click="selectCourse(course)"
                         class="px-4 py-3 hover:bg-gray-50 cursor-pointer text-sm font-medium text-gray-700 transition-colors"
                     >
-                        {{ course }}
+                        {{ course.title }}
                     </div>
                 </div>
             </div>
@@ -226,7 +265,7 @@ const handleSubmit = () => {
                         <div class="flex-1">
                             <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Cicilan {{ index + 1 }}</label>
                             <input 
-                                v-model="installment.date"
+                                v-model="installment.dueDate"
                                 type="date"
                                 class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 focus:border-[#4FD1C5] outline-none text-sm font-medium"
                             >

@@ -51,7 +51,8 @@ const handleLogin = async () => {
             id: data.id,
             username: data.username,
             fullName: data.fullName,
-            role: data.role
+            role: data.role,
+            studentId: data.studentId // Menambahkan ini agar PaymentView bisa membacanya
         }))
         
         // 4. Logika Redirect yang Sudah Diperbarui
