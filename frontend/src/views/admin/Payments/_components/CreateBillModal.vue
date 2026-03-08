@@ -60,6 +60,15 @@ const selectStudent = (student: any) => {
     formData.value.studentId = student.id
     formData.value.studentName = student.name
     showStudentSearch.value = false
+
+    // Auto-fill course if the student has a course field saved
+    if (student.course) {
+        const enrolledCourse = courses.value.find(c => c.title === student.course);
+        if (enrolledCourse) {
+            formData.value.programId = enrolledCourse.id;
+            formData.value.courseName = enrolledCourse.title;
+        }
+    }
 }
 
 const selectCourse = (course: any) => {

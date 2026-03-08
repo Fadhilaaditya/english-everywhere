@@ -88,27 +88,49 @@ const getStatusClass = (status: string) => {
   }
 }
 
-// Approval Integration
-const approvePayment = async (rawId: number, isInstallment: boolean = false) => {
+const isApproveModalOpen = ref(false)
+const pendingApproveId = ref<number | null>(null)
+const pendingApproveIsInstallment = ref(false)
+
+const openApproveConfirm = (rawId: number, isInstallment: boolean = false) => {
+    pendingApproveId.value = rawId;
+    pendingApproveIsInstallment.value = isInstallment;
+    isApproveModalOpen.value = true;
+}
+
+const executeApprove = async () => {
+    if (pendingApproveId.value === null) return;
     try {
-        await PaymentService.approvePayment(rawId, isInstallment);
-        // Refresh data after approval
+        await PaymentService.approvePayment(pendingApproveId.value, pendingApproveIsInstallment.value);
         await fetchPayments();
     } catch (err) {
         console.error("Approval failed", err)
         alert('Gagal menyetujui pembayaran');
+    } finally {
+        isApproveModalOpen.value = false;
+        pendingApproveId.value = null;
     }
 }
 
-const handleDeletePayment = async (rawId: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus tagihan ini?')) {
-        try {
-            await PaymentService.deletePayment(rawId);
-            await fetchPayments();
-        } catch (error) {
-            console.error("Failed to delete payment", error);
-            alert("Gagal menghapus tagihan");
-        }
+const isDeleteModalOpen = ref(false)
+const pendingDeleteId = ref<number | null>(null)
+
+const openDeleteConfirm = (rawId: number) => {
+    pendingDeleteId.value = rawId;
+    isDeleteModalOpen.value = true;
+}
+
+const executeDelete = async () => {
+    if (pendingDeleteId.value === null) return;
+    try {
+        await PaymentService.deletePayment(pendingDeleteId.value);
+        await fetchPayments();
+    } catch (error) {
+        console.error("Failed to delete payment", error);
+        alert("Gagal menghapus tagihan");
+    } finally {
+        isDeleteModalOpen.value = false;
+        pendingDeleteId.value = null;
     }
 }
 
@@ -149,12 +171,59 @@ const handleCreateBill = async (data: any) => {
         </button>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal Create Bill -->
     <CreateBillModal 
         :is-open="isCreateModalOpen"
         @close="isCreateModalOpen = false"
         @submit="handleCreateBill"
     />
+
+    <!-- Modal Approval Confirmation -->
+    <div v-if="isApproveModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="isApproveModalOpen = false">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl text-center transform transition-all scale-100 opacity-100">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Konfirmasi Approval</h3>
+            <p class="text-gray-600 mb-8 text-sm">Apakah Anda yakin untuk menyetujui tagihan ini?</p>
+            <div class="flex justify-center gap-4">
+                <button 
+                    @click="isApproveModalOpen = false"
+                    class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
+                >
+                    Batal
+                </button>
+                <button 
+                    @click="executeApprove"
+                    class="w-full px-4 py-2.5 rounded-xl bg-[#4FD1C5] text-white font-bold hover:bg-[#3dbdb0] transition-colors shadow-lg shadow-[#4FD1C5]/20"
+                >
+                    Yakin
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Delete Confirmation -->
+    <div v-if="isDeleteModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="isDeleteModalOpen = false">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl text-center transform transition-all scale-100 opacity-100">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <Trash2 class="h-6 w-6 text-red-600" />
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Hapus Tagihan?</h3>
+            <p class="text-gray-600 mb-8 text-sm">Tagihan yang dihapus tidak dapat dikembalikan. Apakah Anda yakin?</p>
+            <div class="flex justify-center gap-4">
+                <button 
+                    @click="isDeleteModalOpen = false"
+                    class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors"
+                >
+                    Batal
+                </button>
+                <button 
+                    @click="executeDelete"
+                    class="w-full px-4 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                >
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div class="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
         <table class="w-full text-left border-collapse border-spacing-0 min-w-[800px] md:min-w-0">
@@ -191,14 +260,14 @@ const handleCreateBill = async (data: any) => {
                         <td class="py-6 px-6 border-b-0">
                             <div class="flex items-center justify-center gap-3">
                                 <button 
-                                    @click="handleDeletePayment(payment._rawId)"
+                                    @click="openDeleteConfirm(payment._rawId)"
                                     class="p-2 rounded-xl text-red-400 border border-red-100 hover:bg-red-50 transition-all active:scale-95"
                                 >
                                     <Trash2 class="w-5 h-5" />
                                 </button>
                                 <button 
                                     v-if="payment.paymentType === 'Lunas' && payment.status === 'Pending'"
-                                    @click="approvePayment(payment._rawId, false)"
+                                    @click="openApproveConfirm(payment._rawId, false)"
                                     class="p-2 rounded-xl text-green-500 border border-green-200 hover:bg-green-50 z-10 block"
                                     title="Approve Lunas"
                                 >
@@ -241,7 +310,7 @@ const handleCreateBill = async (data: any) => {
                                             <div class="w-1/5 flex justify-end">
                                                 <button 
                                                     v-if="item.status === 'Pending'"
-                                                    @click="approvePayment(item.id, true)"
+                                                    @click="openApproveConfirm(item.id, true)"
                                                     class="text-sm text-white bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 transition-colors shadow-sm shadow-blue-200"
                                                 >
                                                     Approve
