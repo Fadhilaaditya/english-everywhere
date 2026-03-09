@@ -14,6 +14,7 @@ const programs = ref<any[]>([])
 const teachers = ref<any[]>([])
 const classrooms = ref<any[]>([])
 const selectedCourseId = ref<number | null>(null)
+const selectedTeacherId = ref<number | null>(null)
 const currentDate = ref(new Date())
 const isSidebarOpen = ref(false)
 
@@ -37,6 +38,7 @@ const form = ref({
   className: '',
   classroom: '',
   attendanceLink: '',
+  link: '',
   startTime: '08:00',
   endTime: '09:00',
   date: '',
@@ -70,22 +72,20 @@ const fetchData = async () => {
     programs.value = Array.isArray(resP.data) ? resP.data : resP.data.data || []
     teachers.value = Array.isArray(resT.data) ? resT.data : resT.data.data || []
     classrooms.value = Array.isArray(resC.data) ? resC.data : resC.data.data || []
-
-    if (programs.value.length > 0 && !selectedCourseId.value) {
-      selectedCourseId.value = programs.value[0].id
-    }
   } catch (e) {
     triggerToast('Gagal mengambil data guru/program/kelas', 'error')
   }
 }
 
 const fetchSchedules = async () => {
-  if (!selectedCourseId.value) return
   try {
-    const res = await axios.get(
-      `${API_BASE_URL}/teacher-schedules?programId=${selectedCourseId.value}`,
-      { headers: getHeaders() },
-    )
+    let url = `${API_BASE_URL}/teacher-schedules`
+    const params = []
+    if (selectedCourseId.value) params.push(`programId=${selectedCourseId.value}`)
+    if (selectedTeacherId.value) params.push(`teacherId=${selectedTeacherId.value}`)
+    if (params.length > 0) url += `?${params.join('&')}`
+
+    const res = await axios.get(url, { headers: getHeaders() })
     schedules.value = res.data
   } catch (e) {
     console.error('Error fetching schedules:', e)
@@ -110,6 +110,7 @@ const handleDayClick = (dayData: any) => {
     className: currentProgram?.title || currentProgram?.name || '',
     classroom: '',
     attendanceLink: '',
+    link: '',
     startTime: '08:00',
     endTime: '09:00',
     date: dateStr,
@@ -128,6 +129,7 @@ const handleEventClick = (event: any) => {
     className: event.className || '',
     classroom: event.classroom || '',
     attendanceLink: event.attendanceLink || '',
+    link: event.link || '',
   }
   showModal.value = true
 }
@@ -193,7 +195,7 @@ onMounted(async () => {
 onUnmounted(() => {
   if (pollingInterval) clearInterval(pollingInterval)
 })
-watch(selectedCourseId, () => {
+watch([selectedCourseId, selectedTeacherId], () => {
   fetchSchedules()
 })
 </script>
@@ -218,6 +220,7 @@ watch(selectedCourseId, () => {
         <ScheduleCalendar
           v-model:current-date="currentDate"
           v-model:selected-course-id="selectedCourseId"
+          v-model:selected-teacher-id="selectedTeacherId"
           :schedules="schedules"
           :is-loading="false"
           :programs="programs"

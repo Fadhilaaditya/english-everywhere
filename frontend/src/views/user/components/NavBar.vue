@@ -78,6 +78,16 @@ onMounted(() => {
             Jadwal
         </router-link>
       </template>
+
+      <!-- Common User Links -->
+      <router-link 
+          v-if="user" 
+          :to="getLinkPath('/profile')" 
+          class="hover:text-primary transition-colors"
+          active-class="font-bold text-lg text-gray-900"
+      >
+          Profile
+      </router-link>
       <div v-if="user" class="flex items-center gap-4">
           <button @click="handleLogout" class="bg-[#F4838D] hover:bg-[#F4838D]/80 text-white px-8 py-2 rounded-xl font-bold transition-colors cursor-pointer inline-block text-center shadow-md">
             Logout
@@ -114,9 +124,10 @@ onMounted(() => {
       </router-link>
 
       <template v-if="user?.role === 'teacher'">
-        <router-link to="/teacher/materials" class="text-[#00B4D8] font-bold text-lg" @click="toggleMenu">Materi Ajar</router-link>
         <router-link to="/teacher/schedule" class="text-[#00B4D8] font-bold text-lg" @click="toggleMenu">Jadwal</router-link>
       </template>
+      
+      <router-link v-if="user" :to="getLinkPath('/profile')" class="text-[#00B4D8] font-bold text-lg" @click="toggleMenu">Profile</router-link>
 
       <button v-if="user" @click="() => { handleLogout(); toggleMenu() }" class="bg-[#F4838D] hover:bg-[#F4838D]/80 text-white px-8 py-3 rounded-full font-bold transition-colors cursor-pointer inline-block text-center mt-2 shadow-md">
         Logout  

@@ -9,9 +9,10 @@ const props = defineProps<{
   programs: any[]
   selectedCourseId: number | null
   teachers: any[]
+  selectedTeacherId: number | null
 }>()
 
-const emit = defineEmits(['update:currentDate', 'update:selectedCourseId', 'dayClick', 'eventClick'])
+const emit = defineEmits(['update:currentDate', 'update:selectedCourseId', 'update:selectedTeacherId', 'dayClick', 'eventClick'])
 
 const goToToday = () => {
   emit('update:currentDate', new Date())
@@ -103,16 +104,34 @@ const getEventsForDay = (date: Date) => {
             <h2 class="text-xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">{{ currentMonthDisplay }}</h2>
        </div>
 
-       <div class="flex flex-wrap items-center gap-4">
+        <div class="flex flex-wrap items-center gap-4">
           <!-- Course Selector -->
           <div class="relative group">
             <select 
-              :value="selectedCourseId"
-              @change="emit('update:selectedCourseId', parseInt(($event.target as HTMLSelectElement).value))"
+              :value="selectedCourseId || ''"
+              @change="emit('update:selectedCourseId', ($event.target as HTMLSelectElement).value ? parseInt(($event.target as HTMLSelectElement).value) : null)"
               class="appearance-none border-2 border-gray-100 rounded-xl px-6 py-2.5 pr-12 text-sm font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-[#4FD1C5]/10 focus:border-[#4FD1C5] bg-gray-50/30 cursor-pointer transition-all hover:bg-gray-100/50"
             >
+              <option value="">All Programs</option>
               <option v-for="program in programs" :key="program.id" :value="program.id">
                 {{ program.title }}
+              </option>
+            </select>
+            <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400 group-hover:text-[#4FD1C5]">
+               <ChevronDown class="w-4 h-4" />
+            </div>
+          </div>
+
+          <!-- Teacher Selector -->
+          <div class="relative group">
+            <select 
+              :value="selectedTeacherId || ''"
+              @change="emit('update:selectedTeacherId', ($event.target as HTMLSelectElement).value ? parseInt(($event.target as HTMLSelectElement).value) : null)"
+              class="appearance-none border-2 border-gray-100 rounded-xl px-6 py-2.5 pr-12 text-sm font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-[#4FD1C5]/10 focus:border-[#4FD1C5] bg-gray-50/30 cursor-pointer transition-all hover:bg-gray-100/50"
+            >
+              <option value="">All Teachers</option>
+              <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
+                {{ teacher.user?.fullName || teacher.id }}
               </option>
             </select>
             <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400 group-hover:text-[#4FD1C5]">
