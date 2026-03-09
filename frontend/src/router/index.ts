@@ -52,6 +52,11 @@ const router = createRouter({
             name: 'appointment',
             component: () => import('../views/user/Appointment/Appointment.vue')
         },
+        {
+            path: '/profile',
+            name: 'user-profile',
+            component: () => import('../views/user/Profile/Profile.vue')
+        },
 
         // ==============================
         // TEACHER ROUTES (BARU)
@@ -86,6 +91,11 @@ const router = createRouter({
                     path: 'schedule', // URL: /teacher/schedule
                     name: 'teacher-schedule',
                     component: () => import('../views/teacher/Schedule/Schedule.vue')
+                },
+                {
+                    path: 'profile', // URL: /teacher/profile
+                    name: 'teacher-profile',
+                    component: () => import('../views/user/Profile/Profile.vue')
                 }
             ]
         },

@@ -25,6 +25,32 @@ exports.findAll = async (req, res) => {
     }
 };
 
+exports.findOne = async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const user = await User.findByPk(id, {
+            attributes: { exclude: ['password'] }, // Hide password from response
+            include: [
+                { model: db.Student, as: 'studentProfile' },
+                { model: db.Teacher, as: 'teacherProfile' }
+            ]
+        });
+
+        if (user) {
+            res.send(user);
+        } else {
+            res.status(404).send({
+                message: `Cannot find User with id=${id}.`
+            });
+        }
+    } catch (err) {
+        res.status(500).send({
+            message: "Error retrieving User with id=" + id
+        });
+    }
+};
+
 exports.getStats = async (req, res) => {
     try {
         const totalAccounts = await User.count({

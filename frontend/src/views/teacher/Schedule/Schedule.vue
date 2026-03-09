@@ -59,6 +59,7 @@ const fetchSchedules = async () => {
                 subject: schedule.program ? schedule.program.title || schedule.program.name : schedule.className || 'No Program',
                 room: schedule.classroom || 'Online Class',
                 attendanceLink: schedule.attendanceLink || '',
+                link: schedule.link || '',
                 status: 'Available' // Default because status field was removed
             }
         })

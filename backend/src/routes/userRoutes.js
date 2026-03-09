@@ -9,6 +9,9 @@ module.exports = app => {
     // Retrieve all Users (Student & Teacher)
     router.get("/", users.findAll);
 
+    // Retrieve a single User by id
+    router.get("/:id", users.findOne);
+
     // Delete User
     router.delete("/:id", users.delete);
 

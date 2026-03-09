@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { X, Loader2, Calendar as CalendarIcon } from 'lucide-vue-next'
+import { X, Loader2, Calendar as CalendarIcon, ChevronDown } from 'lucide-vue-next'
 import { watch, onMounted } from 'vue'
 
 const props = defineProps<{
@@ -46,6 +46,17 @@ watch(
   },
 )
 
+// Watcher untuk programId agar className sinkron
+watch(
+  () => props.form.programId,
+  (newId) => {
+    const selectedProg = props.programs.find((p) => p.id == newId)
+    if (selectedProg) {
+      props.form.className = selectedProg.title || selectedProg.name
+    }
+  }
+)
+
 onMounted(() => {
   syncFields()
   // Jika sedang edit, pastikan teacherName terisi
@@ -89,13 +100,21 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
           <!-- Program -->
           <div class="space-y-2">
             <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Program / Kelas</label>
-            <div class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-transparent text-gray-500 font-bold text-sm md:text-base">
-              {{ form.className }}
+            <div class="relative">
+              <select
+                v-model="form.programId"
+                required
+                class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 appearance-none outline-none transition-all font-bold text-sm md:text-base text-gray-700"
+              >
+                <option value="" disabled>Select Program...</option>
+                <option v-for="p in programs" :key="p.id" :value="p.id">
+                  {{ p.title || p.name }}
+                </option>
+              </select>
+              <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                <ChevronDown class="w-4 h-4 text-gray-400" />
+              </div>
             </div>
-            <input type="hidden" v-model="form.className" />
-            <p class="text-[10px] text-[#4FD1C5] font-black uppercase tracking-widest">
-              * Automatically follows program selection
-            </p>
           </div>
 
           <!-- Teacher -->
@@ -142,6 +161,15 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
               <input
                 type="url"
                 v-model="form.attendanceLink"
+                placeholder="https://..."
+                class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 outline-none transition-all font-bold text-sm md:text-base text-gray-700 placeholder:text-gray-300"
+              />
+            </div>
+            <div class="space-y-2 md:col-span-2">
+              <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Link Report Card</label>
+              <input
+                type="url"
+                v-model="form.link"
                 placeholder="https://..."
                 class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 outline-none transition-all font-bold text-sm md:text-base text-gray-700 placeholder:text-gray-300"
               />
