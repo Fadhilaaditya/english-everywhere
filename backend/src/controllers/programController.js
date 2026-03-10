@@ -27,14 +27,31 @@ exports.getAllBookedSchedules = async (req, res) => {
   }
 };
 
-// 2. Ambil semua Program (Dropdown)
+// 2. Ambil semua Program (Top-level only for homepage)
 exports.findAll = async (req, res) => {
   try {
-    const data = await Program.findAll();
+    const data = await Program.findAll({
+      where: { parentId: null }
+    });
     res.send(data);
   } catch (err) {
     res.status(500).send({
       message: err.message || "Gagal mengambil data program.",
+    });
+  }
+};
+
+// 2.1 Ambil detail levels untuk sebuah program
+exports.getLevels = async (req, res) => {
+  const parentId = req.params.id;
+  try {
+    const data = await Program.findAll({
+      where: { parentId: parentId }
+    });
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Gagal mengambil data levels program.",
     });
   }
 };

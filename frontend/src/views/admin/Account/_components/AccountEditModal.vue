@@ -26,24 +26,61 @@ const formData = ref({
     password: '',
     photo: '',
     role: 'student',
-    specialization: ''
+    specialization: '',
+    programId: null as number | null // Sub-level ID
 })
 
 const showPassword = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const previewUrl = ref('')
 const courses = ref<any[]>([])
+const subPrograms = ref<any[]>([])
+const selectedParentProgram = ref<any>(null)
 
 const fetchCourses = async () => {
     try {
         const response = await fetch('http://localhost:3001/api/programs')
         if (response.ok) {
             courses.value = await response.json()
+            
+            // If in edit mode, try to find and set the parent program
+            if (isEditMode.value && props.account?.fullData?.studentProfile?.program) {
+                const studentProgram = props.account.fullData.studentProfile.program
+                // If it's a child program, its 'parent' property should exist (via association)
+                const parent = studentProgram.parent || studentProgram 
+                
+                selectedParentProgram.value = courses.value.find((p: any) => p.id === parent.id)
+                if (selectedParentProgram.value) {
+                    fetchSubPrograms(selectedParentProgram.value.id)
+                }
+            }
         }
     } catch (e) {
         console.error('Failed to fetch courses', e)
     }
 }
+
+const fetchSubPrograms = async (parentId: number) => {
+    try {
+        const response = await fetch(`http://localhost:3001/api/programs/${parentId}/levels`)
+        if (response.ok) {
+            subPrograms.value = await response.json()
+            // If we are initializing from props, don't reset the programId yet
+        }
+    } catch (e) {
+        console.error('Failed to fetch sub-programs', e)
+    }
+}
+
+watch(selectedParentProgram, (newParent) => {
+    if (newParent) {
+        formData.value.course = newParent.title
+        fetchSubPrograms(newParent.id)
+    } else {
+        subPrograms.value = []
+        formData.value.programId = null
+    }
+})
 
 // Initialize form when account changes
 watch(() => props.account, (newVal) => {
@@ -60,12 +97,13 @@ watch(() => props.account, (newVal) => {
             phone: profile ? profile.phoneNumber : '',
             email: profile ? profile.email : '',
             birthDate: profile ? profile.birthDate : '',
-            course: profile && profile.course ? profile.course : 'Intermediate (B1)',
+            course: profile && profile.course ? profile.course : '',
             username: data.username || '',
             password: '', // Don't fill password
             photo: data.photo || '',
             role: data.role || 'student',
-            specialization: profile ? profile.specialization : ''
+            specialization: profile ? profile.specialization : '',
+            programId: profile ? profile.programId : null
         }
         previewUrl.value = '' // Reset preview
     } else {
@@ -77,12 +115,13 @@ watch(() => props.account, (newVal) => {
             phone: '',
             email: '',
             birthDate: '',
-            course: 'Intermediate (B1)',
+            course: '',
             username: '',
             password: '',
             photo: '',
             role: 'student',
-            specialization: ''
+            specialization: '',
+            programId: null
         }
         previewUrl.value = ''
     }
@@ -295,16 +334,34 @@ const processSubmission = async () => {
                 </div>
 
                  <!-- Course (Student) -->
-                <div v-if="formData.role === 'student'" class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Course</label>
-                    <select 
-                        v-model="formData.course"
-                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
-                    >
-                        <option v-for="course in courses" :key="course.id" :value="course.title">
-                            {{ course.title }}
-                        </option>
-                    </select>
+                <div v-if="formData.role === 'student'" class="space-y-4 md:col-span-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Program Series</label>
+                            <select 
+                                v-model="selectedParentProgram"
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
+                            >
+                                <option :value="null" disabled>Select Program Series</option>
+                                <option v-for="course in courses" :key="course.id" :value="course">
+                                    {{ course.title }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div v-if="subPrograms.length > 0" class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Specific Level</label>
+                            <select 
+                                v-model="formData.programId"
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
+                            >
+                                <option :value="null" disabled>Select Level</option>
+                                <option v-for="level in subPrograms" :key="level.id" :value="level.id">
+                                    {{ level.title }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Specialization (Teacher) -->

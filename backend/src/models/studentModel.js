@@ -43,6 +43,14 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
             allowNull: true
         },
+        programId: {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'programs',
+                key: 'id'
+            }
+        },
         userId: {
             type: Sequelize.INTEGER,
             allowNull: true,

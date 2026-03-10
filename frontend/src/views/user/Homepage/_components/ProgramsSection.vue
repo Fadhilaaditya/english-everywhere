@@ -15,16 +15,19 @@ const programs = ref<Program[]>([])
 
 const fetchPrograms = async () => {
   try {
-    const response = await fetch('http://localhost:3001/api/programs')
+    const response = await fetch('http://127.0.0.1:3001/api/programs')
     if (!response.ok) throw new Error('Failed to fetch programs')
     programs.value = await response.json()
+    console.log('Fetched programs:', programs.value)
   } catch (error) {
     console.error('Error fetching programs:', error)
   }
 }
 
 const filteredPrograms = computed(() => {
-  return programs.value.filter(program => program.category === activeFilter.value)
+  return programs.value.filter(program => 
+    program.category?.toUpperCase() === activeFilter.value?.toUpperCase()
+  )
 })
 
 onMounted(() => {
@@ -45,6 +48,8 @@ onMounted(() => {
     <div class="max-w-6xl mx-auto">
       <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
         <h2 class="text-3xl font-bold text-white text-center md:text-left">OUR PROGRAMS</h2>
+        <!-- Debug Info (Optional) -->
+        <span class="hidden">Programs: {{ programs.length }}</span>
         
         <div class="flex gap-2 flex-wrap justify-center">
           <button 
@@ -83,6 +88,11 @@ onMounted(() => {
             <p class="text-sm text-text-dark font-poppins flex-grow">{{ program.desc }}</p>
           </div>
         </div>
+      </div>
+
+      <!-- No Programs Feedback -->
+      <div v-if="filteredPrograms.length === 0" class="text-center py-20 bg-white/10 rounded-2xl border-2 border-dashed border-white/30">
+        <p class="text-white font-medium text-lg">No programs available in this category yet.</p>
       </div>
     </div>
   </section>

@@ -92,6 +92,10 @@ db.ProgramSchedule.belongsTo(db.Program, {
   as: "program",
 });
 
+// --- Self-Referential Program Levels ---
+db.Program.hasMany(db.Program, { as: 'levels', foreignKey: 'parentId' });
+db.Program.belongsTo(db.Program, { as: 'parent', foreignKey: 'parentId' });
+
 // --- Relasi ProgramSchedule <-> AppointmentBooking ---
 db.ProgramSchedule.hasMany(db.AppointmentBooking, {
   foreignKey: "scheduleId",
@@ -128,6 +132,15 @@ db.Program.hasMany(db.Payment, {
   as: "payments",
 });
 db.Payment.belongsTo(db.Program, {
+  foreignKey: "programId",
+  as: "program",
+});
+
+db.Program.hasMany(db.Student, {
+  foreignKey: "programId",
+  as: "students",
+});
+db.Student.belongsTo(db.Program, {
   foreignKey: "programId",
   as: "program",
 });

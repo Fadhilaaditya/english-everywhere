@@ -48,6 +48,8 @@ exports.createAccount = async (req, res) => {
             birthDate: req.body.birthDate,
             phoneNumber: req.body.phone,
             email: req.body.email,
+            course: req.body.level, // Store the label
+            programId: req.body.programId, // Store the actual sub-program ID
             userId: user.id
         });
 
@@ -100,7 +102,9 @@ exports.update = async (req, res) => {
             address: req.body.address,
             phoneNumber: req.body.phone,
             email: req.body.email,
-            birthDate: req.body.birthDate
+            birthDate: req.body.birthDate,
+            course: req.body.level, // Label
+            programId: req.body.programId // Sub-program ID
             // Add other fields as necessary
         });
 

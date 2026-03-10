@@ -13,7 +13,17 @@ exports.findAll = async (req, res) => {
                 }
             },
             include: [
-                { model: db.Student, as: 'studentProfile' },
+                {
+                    model: db.Student,
+                    as: 'studentProfile',
+                    include: [
+                        {
+                            model: db.Program,
+                            as: 'program',
+                            include: [{ model: db.Program, as: 'parent' }]
+                        }
+                    ]
+                },
                 { model: db.Teacher, as: 'teacherProfile' }
             ]
         });
@@ -32,7 +42,17 @@ exports.findOne = async (req, res) => {
         const user = await User.findByPk(id, {
             attributes: { exclude: ['password'] }, // Hide password from response
             include: [
-                { model: db.Student, as: 'studentProfile' },
+                {
+                    model: db.Student,
+                    as: 'studentProfile',
+                    include: [
+                        {
+                            model: db.Program,
+                            as: 'program',
+                            include: [{ model: db.Program, as: 'parent' }]
+                        }
+                    ]
+                },
                 { model: db.Teacher, as: 'teacherProfile' }
             ]
         });
@@ -111,7 +131,8 @@ exports.create = async (req, res) => {
                 phoneNumber: profileData.phone || '0',
                 email: profileData.email || `${username}@example.com`,
                 birthDate: profileData.birthDate,
-                course: profileData.course
+                course: profileData.course,
+                programId: profileData.programId
             }, { transaction });
         } else if (role === 'teacher') {
             await db.Teacher.create({
@@ -179,7 +200,17 @@ exports.update = async (req, res) => {
     try {
         const user = await User.findByPk(id, {
             include: [
-                { model: db.Student, as: 'studentProfile' },
+                {
+                    model: db.Student,
+                    as: 'studentProfile',
+                    include: [
+                        {
+                            model: db.Program,
+                            as: 'program',
+                            include: [{ model: db.Program, as: 'parent' }]
+                        }
+                    ]
+                },
                 { model: db.Teacher, as: 'teacherProfile' }
             ]
         });
@@ -211,7 +242,8 @@ exports.update = async (req, res) => {
                 phoneNumber: profileData.phone,
                 email: profileData.email,
                 birthDate: profileData.birthDate,
-                course: profileData.course
+                course: profileData.course,
+                programId: profileData.programId
             }, { transaction });
         } else if (user.role === 'teacher' && user.teacherProfile) {
             await user.teacherProfile.update({

@@ -25,21 +25,61 @@ const formData = ref({
     fatherName: '',
     motherName: '',
     birthPlace: '',
-    scheduleId: null as number | null
+    scheduleId: null as number | null,
+    programId: null as number | null // To store the specific sub-level ID
 })
 
 const programs = ref<any[]>([])
+const subPrograms = ref<any[]>([])
+const selectedParentProgram = ref<any>(null)
 
 const fetchPrograms = async () => {
     try {
         const response = await fetch('http://localhost:3001/api/programs')
         if (response.ok) {
             programs.value = await response.json()
+            
+            // Auto-select parent program based on applicant's current program title
+            if (props.applicant?.program?.title) {
+                const parent = programs.value.find(p => p.title === props.applicant.program.title)
+                if (parent) {
+                    selectedParentProgram.value = parent
+                    fetchSubPrograms(parent.id)
+                }
+            }
         }
     } catch (e) {
         console.error('Failed to fetch programs', e)
     }
 }
+
+const fetchSubPrograms = async (parentId: number) => {
+    try {
+        const response = await fetch(`http://localhost:3001/api/programs/${parentId}/levels`)
+        if (response.ok) {
+            subPrograms.value = await response.json()
+            // If levels exist, reset selected programId until one is picked
+            if (subPrograms.value.length > 0) {
+                formData.value.programId = null
+            } else {
+                // If no levels, use the parent ID
+                formData.value.programId = parentId
+            }
+        }
+    } catch (e) {
+        console.error('Failed to fetch sub-programs', e)
+    }
+}
+
+watch(selectedParentProgram, (newParent) => {
+    if (newParent) {
+        formData.value.level = newParent.title
+        fetchSubPrograms(newParent.id)
+    } else {
+        subPrograms.value = []
+        formData.value.programId = null
+    }
+})
 
 // Initialize form when applicant changes
 watch(() => props.applicant, (newVal) => {
@@ -57,7 +97,8 @@ watch(() => props.applicant, (newVal) => {
             fatherName: newVal.applicantFather || '',
             motherName: newVal.applicantMother || '',
             birthPlace: newVal.applicantBirthPlace || '',
-            scheduleId: newVal.id
+            scheduleId: newVal.id,
+            programId: null
         }
     }
 }, { immediate: true })
@@ -201,14 +242,28 @@ const executeCreateAccount = async () => {
 
                  <!-- Level (Rename to Programs) -->
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Programs</label>
+                    <label class="block text-sm font-medium text-gray-700">Program Series</label>
                     <select 
-                        v-model="formData.level"
+                        v-model="selectedParentProgram"
                         class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
                     >
-                        <option value="" disabled>Select Program</option>
-                        <option v-for="program in programs" :key="program.id" :value="program.title">
+                        <option :value="null" disabled>Select Program Series</option>
+                        <option v-for="program in programs" :key="program.id" :value="program">
                             {{ program.title }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Specific Level -->
+                <div v-if="subPrograms.length > 0" class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Specific Level</label>
+                    <select 
+                        v-model="formData.programId"
+                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
+                    >
+                        <option :value="null" disabled>Select Level</option>
+                        <option v-for="level in subPrograms" :key="level.id" :value="level.id">
+                            {{ level.title }}
                         </option>
                     </select>
                 </div>
