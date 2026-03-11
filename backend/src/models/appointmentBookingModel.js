@@ -10,7 +10,7 @@ module.exports = (sequelize, Sequelize) => {
         applicantPhone: { type: Sequelize.STRING },
         applicantEmail: { type: Sequelize.STRING },
         status: {
-            type: Sequelize.ENUM('PENDING', 'BOOKED', 'REJECTED', 'ACCEPTED'),
+            type: Sequelize.ENUM('PENDING', 'BOOKED', 'REJECTED', 'ACCEPTED', 'SUCCESS'),
             allowNull: false,
             defaultValue: 'PENDING'
         },

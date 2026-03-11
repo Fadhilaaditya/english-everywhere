@@ -24,6 +24,10 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.DATEONLY,
         allowNull: false,
       },
+      publishDate: {
+        type: Sequelize.DATEONLY,
+        allowNull: false,
+      },
       status: {
         type: Sequelize.ENUM("Success", "Pending", "Failed"),
         allowNull: false,

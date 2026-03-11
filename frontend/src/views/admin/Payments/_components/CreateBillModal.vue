@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { X, Plus, Calendar, Trash2, ChevronDown } from 'lucide-vue-next'
+import { X, Plus, Trash2, Loader2 } from 'lucide-vue-next'
+import CustomDropdown from '@/components/CustomDropdown.vue'
 import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -16,13 +17,14 @@ const formData = ref({
     billDate: new Date().toLocaleDateString('en-GB'),
     invoiceNo: `INV/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`, 
     studentId: null as number | null,
-    studentName: '',
     programId: null as number | null,
-    courseName: '',
+    publishDate: new Date().toISOString().slice(0, 10),
     courseFee: 0,
     paymentType: 'Lunas' as 'Lunas' | 'Cicilan',
-    installments: [] as { dueDate: string, amount: number }[]
+    installments: [] as { dueDate: string, publishDate: string, amount: number }[]
 })
+
+const isSubmitting = ref(false)
 
 // Real Data state
 const students = ref<any[]>([])
@@ -45,36 +47,45 @@ onMounted(() => {
   fetchInitialData();
 });
 
-const showStudentSearch = ref(false)
-const showCourseSearch = ref(false)
+const studentOptions = computed(() => 
+    students.value.map(s => ({ id: s.id, name: s.name, level: s.course, programId: s.programId }))
+)
 
-const filteredStudents = computed(() => {
-    return students.value.filter(s => s.name.toLowerCase().includes(formData.value.studentName.toLowerCase()))
+const courseOptions = computed(() => {
+    // Collect all programs and their levels into a flat list for selection
+    const allOptions: any[] = []
+    courses.value.forEach(c => {
+        if (c.levels && c.levels.length > 0) {
+            c.levels.forEach((l: any) => {
+                allOptions.push({ id: l.id, title: l.title })
+            })
+        } else {
+            allOptions.push({ id: c.id, title: c.title })
+        }
+    })
+    return allOptions
 })
 
-const filteredCourses = computed(() => {
-    return courses.value.filter(c => c.title.toLowerCase().includes(formData.value.courseName.toLowerCase()))
-})
-
-const selectStudent = (student: any) => {
-    formData.value.studentId = student.id
-    formData.value.studentName = student.name
-    showStudentSearch.value = false
-
-    // Auto-fill course if the student has a course field saved
-    if (student.course) {
-        const enrolledCourse = courses.value.find(c => c.title === student.course);
-        if (enrolledCourse) {
-            formData.value.programId = enrolledCourse.id;
-            formData.value.courseName = enrolledCourse.title;
+const handleStudentChange = (studentId: number) => {
+    const student = students.value.find(s => s.id === studentId);
+    if (student) {
+        // Priority 1: Match by programId (Specific Level)
+        if (student.programId) {
+            const enrolledCourse = courseOptions.value.find(c => c.id === student.programId);
+            if (enrolledCourse) {
+                formData.value.programId = enrolledCourse.id;
+                return;
+            }
+        }
+        
+        // Priority 2: Match by exact title string if programId doesn't exist or doesn't match
+        if (student.course) {
+            const enrolledCourse = courseOptions.value.find(c => c.title === student.course);
+            if (enrolledCourse) {
+                formData.value.programId = enrolledCourse.id;
+            }
         }
     }
-}
-
-const selectCourse = (course: any) => {
-    formData.value.programId = course.id
-    formData.value.courseName = course.title
-    showCourseSearch.value = false
 }
 
 // Payment Type Logic
@@ -88,8 +99,28 @@ watch(() => formData.value.paymentType, (newType) => {
 
 // Installment Logic
 const addInstallment = () => {
+    const count = formData.value.installments.length
+    let lastDueDate = formData.value.publishDate
+    let lastPublishDate = formData.value.publishDate
+
+    if (count > 0) {
+        const lastItem = formData.value.installments[count - 1]
+        if (lastItem) {
+            lastDueDate = lastItem.dueDate
+            lastPublishDate = lastItem.publishDate
+        }
+    }
+
+    // Helper to add one month
+    const addMonth = (dateStr: string) => {
+        const d = new Date(dateStr)
+        d.setMonth(d.getMonth() + 1)
+        return d.toISOString().slice(0, 10)
+    }
+
     formData.value.installments.push({
-        dueDate: new Date().toISOString().slice(0, 10),
+        dueDate: count === 0 ? formData.value.publishDate : addMonth(lastDueDate),
+        publishDate: count === 0 ? formData.value.publishDate : addMonth(lastPublishDate),
         amount: 0
     })
     recalculateInstallments()
@@ -114,206 +145,207 @@ watch(() => formData.value.courseFee, () => {
     }
 })
 
-const handleSubmit = () => {
-    const payload = {
-      studentId: formData.value.studentId,
-      programId: formData.value.programId,
-      amount: formData.value.courseFee,
-      deadline: new Date().toISOString().slice(0, 10), // For Lunas, mostly. Alternatively use real Date Picker for deadline
-      paymentType: formData.value.paymentType,
-      installments: formData.value.installments,
-      invoiceNo: formData.value.invoiceNo
-    };
-    emit('submit', payload)
-    
-    // Reset form briefly
-    formData.value.studentId = null;
-    formData.value.studentName = '';
-    formData.value.programId = null;
-    formData.value.courseName = '';
-    formData.value.courseFee = 0;
-    formData.value.installments = [];
-    emit('close')
+const handleSubmit = async () => {
+    if (!formData.value.studentId || !formData.value.programId) {
+        alert('Please select student and course');
+        return;
+    }
+
+    isSubmitting.value = true
+    try {
+        const payload = {
+          studentId: formData.value.studentId,
+          programId: formData.value.programId,
+          publishDate: formData.value.publishDate,
+          amount: formData.value.courseFee,
+          deadline: (formData.value.paymentType === 'Cicilan' && formData.value.installments.length > 0) 
+            ? formData.value.installments[0]!.dueDate 
+            : new Date().toISOString().slice(0, 10),
+          paymentType: formData.value.paymentType,
+          installments: formData.value.installments,
+          invoiceNo: formData.value.invoiceNo
+        };
+        emit('submit', payload)
+    } catch (e) {
+        console.error(e)
+    } finally {
+        isSubmitting.value = false
+    }
 }
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" @click.self="$emit('close')">
-    <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-      <!-- Header -->
-      <div class="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-        <h2 class="text-xl md:text-2xl font-bold text-gray-900">Create Bill</h2>
-        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors">
+  <div v-if="isOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50" @click="$emit('close')"></div>
+
+    <!-- Modal Content -->
+    <div class="relative bg-white w-full max-w-2xl rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200">
+      <!-- Sticky Header -->
+      <div class="p-4 md:p-8 py-4 md:py-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+        <h3 class="text-2xl font-bold text-gray-900">Create Bill</h3>
+        <button @click="$emit('close')" class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
             <X class="w-6 h-6" />
         </button>
       </div>
 
-      <div class="p-6 md:p-8 space-y-6 md:space-y-8">
-        <!-- Top Info -->
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            <div>
-                <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1">Transaction ID</label>
-                <div class="text-sm md:text-lg font-bold text-gray-900">Auto Generated</div>
-            </div>
-            <div>
-                <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1">Bill Date</label>
-                <div class="text-sm md:text-lg font-bold text-gray-900">{{ formData.billDate }}</div>
-            </div>
-            <div class="col-span-2 md:col-span-1">
-                <label class="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1">No Invoice</label>
-                <div class="text-sm md:text-lg font-bold text-gray-900">{{ formData.invoiceNo }}</div>
-            </div>
-        </div>
-
-        <!-- Inputs -->
-        <div class="space-y-6">
-            <!-- Student Search -->
-            <div class="relative">
-                <label class="block text-sm font-bold text-gray-700 mb-2">Nama Murid<span class="text-red-500">*</span></label>
-                <div class="relative">
-                    <input 
-                        v-model="formData.studentName"
-                        @input="showStudentSearch = true"
-                        type="text" 
-                        placeholder="Pilih Murid"
-                        class="w-full px-4 py-3 pr-12 rounded-xl bg-gray-50 border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 transition-all outline-none font-medium"
-                    >
-                    <button 
-                        @click="showStudentSearch = !showStudentSearch"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#4FD1C5] transition-colors p-1"
-                    >
-                        <ChevronDown class="w-5 h-5" />
-                    </button>
-                </div>
-                
-                <div v-if="showStudentSearch && filteredStudents.length > 0" class="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20">
-                    <div 
-                        v-for="student in filteredStudents" 
-                        :key="student.id"
-                        @click="selectStudent(student)"
-                        class="px-4 py-3 hover:bg-gray-50 cursor-pointer text-sm font-medium text-gray-700 transition-colors"
-                    >
-                        {{ student.name }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Course Search -->
-            <div class="relative">
-                <label class="block text-sm font-bold text-gray-700 mb-2">Course Name<span class="text-red-500">*</span></label>
-                <div class="relative">
-                    <input 
-                        v-model="formData.courseName"
-                        @input="showCourseSearch = true"
-                        type="text" 
-                        placeholder="Pilih Program"
-                        class="w-full px-4 py-3 pr-12 rounded-xl bg-gray-50 border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 transition-all outline-none font-medium"
-                    >
-                    <button 
-                         @click="showCourseSearch = !showCourseSearch"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#4FD1C5] transition-colors p-1"
-                    >
-                        <ChevronDown class="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div v-if="showCourseSearch && filteredCourses.length > 0" class="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20">
-                    <div 
-                        v-for="course in filteredCourses" 
-                        :key="course.id"
-                        @click="selectCourse(course)"
-                        class="px-4 py-3 hover:bg-gray-50 cursor-pointer text-sm font-medium text-gray-700 transition-colors"
-                    >
-                        {{ course.title }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-4">
-                <h3 class="text-sm font-bold text-gray-900">Termin Pembayaran</h3>
-                
-                <!-- Fee -->
+      <!-- Scrollable Form Body -->
+      <div class="p-4 md:p-8 overflow-y-auto">
+        <form @submit.prevent="handleSubmit" class="space-y-8">
+            <!-- Top Info Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 bg-gray-50/50 p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Biaya Kelas<span class="text-red-500">*</span></label>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Transaction ID</label>
+                    <div class="text-sm md:text-base font-bold text-gray-900">Auto Generated</div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Bill Date / Send Date</label>
                     <input 
-                        v-model.number="formData.courseFee"
-                        type="number" 
-                        placeholder="0"
-                        class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 transition-all outline-none font-medium"
+                        v-model="formData.publishDate"
+                        type="date"
+                        class="text-sm md:text-base font-bold text-gray-900 bg-transparent border-none p-0 focus:ring-0 w-full"
                     >
                 </div>
+                <div class="col-span-1">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">No Invoice</label>
+                    <div class="text-sm md:text-base font-bold text-gray-900 tracking-tight">{{ formData.invoiceNo }}</div>
+                </div>
+            </div>
 
-                <!-- Payment Type -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Jenis Pembayaran<span class="text-red-500">*</span></label>
-                    <div class="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl">
-                        <button 
-                            @click="formData.paymentType = 'Lunas'"
-                            class="py-2.5 rounded-lg text-sm font-bold transition-all"
-                            :class="formData.paymentType === 'Lunas' ? 'bg-[#4FD1C5] text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'"
-                        >
-                            Lunas
-                        </button>
-                        <button 
-                            @click="formData.paymentType = 'Cicilan'"
-                            class="py-2.5 rounded-lg text-sm font-bold transition-all"
-                            :class="formData.paymentType === 'Cicilan' ? 'bg-[#4FD1C5] text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'"
-                        >
-                            Cicilan
-                        </button>
+            <div class="space-y-6">
+                <!-- Selections Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Student Name</label>
+                        <CustomDropdown 
+                            v-model="formData.studentId"
+                            :options="studentOptions"
+                            label-key="name"
+                            value-key="id"
+                            placeholder="Select Student"
+                            @change="handleStudentChange"
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Specific Level</label>
+                        <CustomDropdown 
+                            v-model="formData.programId"
+                            :options="courseOptions"
+                            label-key="title"
+                            value-key="id"
+                            placeholder="Select Level"
+                        />
                     </div>
                 </div>
 
-                <!-- Installments Section -->
-                <div v-if="formData.paymentType === 'Cicilan'" class="space-y-4 pt-2">
-                    <div 
-                        v-for="(installment, index) in formData.installments" 
-                        :key="index"
-                        class="bg-gray-50 rounded-xl p-4 flex flex-col sm:flex-row gap-4 sm:items-end group relative"
-                    >
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Cicilan {{ index + 1 }}</label>
+                <!-- Fee & Payment Type Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Course Fee</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rp</span>
                             <input 
-                                v-model="installment.dueDate"
-                                type="date"
-                                class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 focus:border-[#4FD1C5] outline-none text-sm font-medium"
+                                v-model.number="formData.courseFee"
+                                type="number" 
+                                placeholder="0"
+                                class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 text-gray-700 font-bold"
                             >
                         </div>
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Jumlah</label>
-                            <input 
-                                v-model.number="installment.amount"
-                                type="number"
-                                class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 focus:border-[#4FD1C5] outline-none text-sm font-medium"
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Payment Type</label>
+                        <div class="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg">
+                            <button 
+                                type="button"
+                                @click="formData.paymentType = 'Lunas'"
+                                class="py-2.5 rounded-md text-xs font-bold transition-all"
+                                :class="formData.paymentType === 'Lunas' ? 'bg-[#4FD1C5] text-white shadow-sm' : 'text-gray-500 hover:bg-white'"
                             >
+                                PAID FULL
+                            </button>
+                            <button 
+                                type="button"
+                                @click="formData.paymentType = 'Cicilan'"
+                                class="py-2.5 rounded-md text-xs font-bold transition-all"
+                                :class="formData.paymentType === 'Cicilan' ? 'bg-[#4FD1C5] text-white shadow-sm' : 'text-gray-500 hover:bg-white'"
+                            >
+                                INSTALLMENT
+                            </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Installments -->
+                <div v-if="formData.paymentType === 'Cicilan'" class="space-y-4 animate-in slide-in-from-top-4 duration-300">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-bold text-gray-900 border-l-4 border-[#4FD1C5] pl-3">Installment Plan</h4>
                         <button 
-                            @click="removeInstallment(index)"
-                            class="p-2.5 text-red-400 bg-white border border-red-100 rounded-lg hover:bg-red-50 transition-colors self-end sm:self-auto"
+                            type="button" 
+                            @click="addInstallment"
+                            class="text-xs font-bold text-[#4FD1C5] hover:text-[#3dbdb0] flex items-center gap-1 transition-colors"
                         >
-                            <Trash2 class="w-5 h-5" />
+                            <Plus class="w-3 h-3" /> Add Installment
                         </button>
                     </div>
 
-                     <button 
-                        @click="addInstallment"
-                        class="w-full py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-bold hover:border-[#4FD1C5] hover:text-[#4FD1C5] transition-all flex items-center justify-center gap-2"
-                    >
-                        <Plus class="w-5 h-5" />
-                        Tambah Cicilan
-                    </button>
+                    <div class="space-y-3">
+                        <div 
+                            v-for="(installment, index) in formData.installments" 
+                            :key="index"
+                            class="group bg-gray-50 hover:bg-gray-100 cursor-default p-4 rounded-xl border border-gray-100 transition-all flex items-center gap-4 animate-in fade-in slide-in-from-left-2 duration-300"
+                        >
+                            <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-gray-400 border border-gray-100">
+                                {{ index + 1 }}
+                            </div>
+                            <div class="flex-1 relative">
+                                <label class="block text-[8px] font-bold text-gray-400 uppercase mb-1">Due Date</label>
+                                <input 
+                                    v-model="installment.dueDate"
+                                    type="date"
+                                    class="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/30 text-xs font-medium"
+                                >
+                            </div>
+                            <div class="flex-1 relative">
+                                <label class="block text-[8px] font-bold text-gray-400 uppercase mb-1">Send Date</label>
+                                <input 
+                                    v-model="installment.publishDate"
+                                    type="date"
+                                    class="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/30 text-xs font-medium"
+                                >
+                            </div>
+                            <div class="flex-1 relative">
+                                <label class="block text-[8px] font-bold text-gray-400 uppercase mb-1">Amount</label>
+                                <span class="absolute left-3 top-[calc(100%-24px)] -translate-y-1/2 text-gray-400 text-[10px] font-bold">Rp</span>
+                                <input 
+                                    v-model.number="installment.amount"
+                                    type="number"
+                                    class="w-full pl-8 pr-3 py-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/30 text-xs font-bold"
+                                >
+                            </div>
+                            <button 
+                                type="button"
+                                @click="removeInstallment(index)"
+                                class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                                <Trash2 class="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </form>
       </div>
 
-      <!-- Footer -->
-      <div class="p-4 md:p-8 border-t border-gray-100 sticky bottom-0 bg-white z-10">
-        <button 
-            @click="handleSubmit"
-            class="w-full py-3 md:py-4 bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white rounded-xl font-bold text-base md:text-lg shadow-lg shadow-[#4FD1C5]/20 transition-all active:scale-[0.99]"
+      <!-- Sticky Footer Actions -->
+      <div class="p-6 md:p-8 border-t border-gray-100 bg-white flex justify-end">
+        <button
+          type="button"
+          @click="handleSubmit"
+          :disabled="isSubmitting"
+          class="w-full py-3 rounded-lg text-white font-medium transition-colors bg-[#4FD1C5] hover:bg-[#3dbdb0] disabled:bg-gray-200 flex justify-center items-center gap-2 shadow-lg shadow-[#4FD1C5]/20"
         >
-            Create Bill
+          <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
+          <span>{{ isSubmitting ? 'Processing...' : 'Create Bill' }}</span>
         </button>
       </div>
     </div>

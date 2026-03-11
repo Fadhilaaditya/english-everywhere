@@ -39,6 +39,7 @@ require("./routes/userRoutes")(app);
 require("./routes/teacherRoutes")(app);
 require("./routes/classroomRoutes")(app);
 require("./routes/paymentRoutes")(app);
+require("./routes/dashboardRoutes")(app);
 
 // Root Route
 app.get("/", (req, res) => {

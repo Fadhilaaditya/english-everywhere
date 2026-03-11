@@ -26,7 +26,8 @@ const formData = ref({
     motherName: '',
     birthPlace: '',
     scheduleId: null as number | null,
-    programId: null as number | null // To store the specific sub-level ID
+    programId: null as number | null, // To store the specific sub-level ID
+    photo: '' // Student photo URL
 })
 
 const programs = ref<any[]>([])
@@ -98,10 +99,46 @@ watch(() => props.applicant, (newVal) => {
             motherName: newVal.applicantMother || '',
             birthPlace: newVal.applicantBirthPlace || '',
             scheduleId: newVal.id,
-            programId: null
+            programId: null,
+            photo: newVal.applicantPhoto || ''
         }
     }
 }, { immediate: true })
+
+const isUploading = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+
+const triggerFileInput = () => {
+    fileInput.value?.click()
+}
+
+const handleFileUpload = async (event: Event) => {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0]
+    if (!file) return
+
+    isUploading.value = true
+    const body = new FormData()
+    body.append('image', file)
+
+    try {
+        const response = await fetch(`${API_URL}/upload`, {
+            method: 'POST',
+            body: body,
+        })
+
+        if (!response.ok) throw new Error('Upload failed')
+
+        const data = await response.json()
+        formData.value.photo = data.secure_url
+    } catch (error) {
+        console.error('Error uploading image:', error)
+        alert('Failed to upload photo')
+    } finally {
+        isUploading.value = false
+    }
+}
 
 const isSubmitting = ref(false)
 const isConfirmOpen = ref(false)
@@ -162,11 +199,28 @@ const executeCreateAccount = async () => {
 
             <!-- Photo Upload -->
             <div class="flex flex-col items-center mb-8">
-                <div class="w-24 h-24 rounded-full border-2 border-gray-200 flex items-center justify-center mb-4">
-                    <User class="w-12 h-12 text-gray-400" />
+                <input 
+                    ref="fileInput"
+                    type="file" 
+                    accept="image/*"
+                    class="hidden"
+                    @change="handleFileUpload"
+                />
+                <div class="w-28 h-28 rounded-full border-2 border-gray-100 flex items-center justify-center mb-4 overflow-hidden relative group">
+                    <img v-if="formData.photo" :src="formData.photo" class="w-full h-full object-cover" />
+                    <User v-else class="w-12 h-12 text-gray-400" />
+                    
+                    <!-- Loading Overlay -->
+                    <div v-if="isUploading" class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </div>
                 </div>
-                <button class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    Upload New Photo
+                <button 
+                    @click="triggerFileInput"
+                    :disabled="isUploading"
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                    {{ isUploading ? 'Uploading...' : 'Upload New Photo' }}
                 </button>
             </div>
 

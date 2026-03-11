@@ -31,7 +31,8 @@ exports.getAllBookedSchedules = async (req, res) => {
 exports.findAll = async (req, res) => {
   try {
     const data = await Program.findAll({
-      where: { parentId: null }
+      where: { parentId: null },
+      include: ["levels"]
     });
     res.send(data);
   } catch (err) {
@@ -54,6 +55,31 @@ exports.getLevels = async (req, res) => {
       message: err.message || "Gagal mengambil data levels program.",
     });
   }
+};
+
+// 2.2 Ambil satu program dengan parent dan levels (eager loading)
+exports.findOne = (req, res) => {
+  const id = req.params.id;
+  Program.findByPk(id, {
+    include: [
+      { model: Program, as: 'parent' },
+      { model: Program, as: 'levels' }
+    ]
+  })
+    .then(data => {
+      if (data) {
+        res.send(data);
+      } else {
+        res.status(404).send({
+          message: `Cannot find Program with id=${id}.`
+        });
+      }
+    })
+    .catch(err => {
+      res.status(500).send({
+        message: "Error retrieving Program with id=" + id
+      });
+    });
 };
 
 // 2.1 Ambil semua jadwal (Global) dengan jumlah booking
@@ -228,7 +254,7 @@ exports.bookAppointment = async (req, res) => {
       applicantBirthDate: req.body.applicantBirthDate,
       applicantPhone: req.body.applicantPhone,
       applicantEmail: req.body.applicantEmail,
-      status: "PENDING",
+      status: "BOOKED",
     });
 
     res.status(201).send(booking);
@@ -311,7 +337,7 @@ exports.approveBooking = async (req, res) => {
   const id = req.params.id;
   try {
     const [num] = await db.AppointmentBooking.update(
-      { status: "BOOKED", isRead: false },
+      { status: "ACCEPTED", isRead: false },
       { where: { id: id } },
     );
     if (num == 1) {

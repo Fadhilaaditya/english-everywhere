@@ -274,7 +274,15 @@ const getAppointmentsForDay = (date: Date) => {
 
 const prevMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1) }
 const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1) }
-const goToToday = () => { currentDate.value = new Date() }
+const goToToday = () => { 
+    currentDate.value = new Date() 
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const date = String(today.getDate()).padStart(2, '0')
+    selectedDateForCreation.value = `${year}-${month}-${date}`
+    isCreateModalOpen.value = true
+}
 
 // --- Lifecycle & Watchers ---
 let pollingInterval: any = null

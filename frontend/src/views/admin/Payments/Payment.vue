@@ -10,6 +10,16 @@ const isSidebarOpen = ref(false)
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
 }
+const stats = ref({
+  totalTransactions: 0,
+  transactionsToday: 0,
+  jatuhTempoCount: 0,
+  tertundaCount: 0
+})
+
+const handleUpdateStats = (newStats: any) => {
+  stats.value = newStats
+}
 </script>
 
 <template>
@@ -27,10 +37,15 @@ const toggleSidebar = () => {
         </div>
 
         <!-- Summary -->
-        <PaymentSummary />
+        <PaymentSummary 
+          :total-transactions="stats.totalTransactions"
+          :transactions-today="stats.transactionsToday"
+          :jatuh-tempo-count="stats.jatuhTempoCount"
+          :tertunda-count="stats.tertundaCount"
+        />
 
         <!-- Table -->
-        <PaymentTable />
+        <PaymentTable @update-stats="handleUpdateStats" />
       </main>
     </div>
   </div>

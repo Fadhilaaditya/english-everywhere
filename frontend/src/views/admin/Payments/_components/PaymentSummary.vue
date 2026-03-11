@@ -1,10 +1,19 @@
 <script setup lang="ts">
-const summaryItems = [
-  { label: 'Total Transaction', value: '55', color: 'text-gray-900' },
-  { label: 'Total Transaction Today', value: '2', color: 'text-gray-900' },
-  { label: 'Pembayaran Jatuh Tempo', value: '0', color: 'text-red-500' },
-  { label: 'Transaksi Tertunda', value: '0', color: 'text-yellow-500' }
-]
+import { computed } from 'vue'
+
+const props = defineProps<{
+  totalTransactions: number
+  transactionsToday: number
+  jatuhTempoCount: number
+  tertundaCount: number
+}>()
+
+const summaryItems = computed(() => [
+  { label: 'Total Transaction', value: props.totalTransactions.toString(), color: 'text-gray-900' },
+  { label: 'Total Transaction Today', value: props.transactionsToday.toString(), color: 'text-gray-900' },
+  { label: 'Overdue Payment', value: props.jatuhTempoCount.toString(), color: 'text-red-500' },
+  { label: 'Pending Transaction', value: props.tertundaCount.toString(), color: 'text-yellow-500' }
+])
 </script>
 
 <template>

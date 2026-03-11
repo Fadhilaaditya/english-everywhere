@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/englishe/public_html/
+    - /bin/cp -R backend/* $DEPLOYPATH/api/
+    - /bin/cp -R frontend/dist/* $DEPLOYPATH/

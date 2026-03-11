@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { Calendar, Clock, X, MapPin } from 'lucide-vue-next'
-import { onUnmounted, watch } from 'vue'
+import { Calendar, Clock, X, MapPin, Image as ImageIcon } from 'lucide-vue-next'
+import { onUnmounted, watch, computed } from 'vue'
+
+// Swiper imports
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { Pagination, Navigation, Autoplay } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/pagination'
+import 'swiper/css/navigation'
 
 const props = defineProps<{
   isOpen: boolean
@@ -13,6 +20,13 @@ const emit = defineEmits(['close'])
 const handleClose = () => {
   emit('close')
 }
+
+const eventImages = computed(() => {
+    if (props.event?.images && Array.isArray(props.event.images) && props.event.images.length > 0) {
+        return props.event.images
+    }
+    return props.event?.image ? [props.event.image] : []
+})
 
 // Lock body scroll when modal is open
 watch(() => props.isOpen, (newVal: boolean) => {
@@ -44,9 +58,24 @@ onUnmounted(() => {
             {{ event?.price }} 
         </span>
 
-
-        <div class="w-full md:w-[360px] flex-shrink-0">
-           <img :src="event?.image" :alt="event?.title" class="w-full h-full object-cover rounded-3xl shadow-md aspect-[5/6]" />
+        <!-- Image Carousel -->
+        <div class="w-full md:w-[360px] flex-shrink-0 relative">
+           <swiper
+                v-if="eventImages.length > 0"
+                :modules="[Pagination, Navigation, Autoplay]"
+                :slides-per-view="1"
+                :pagination="{ clickable: true }"
+                :navigation="eventImages.length > 1"
+                :autoplay="{ delay: 3000, disableOnInteraction: false }"
+                class="w-full h-full rounded-3xl shadow-md aspect-[5/6] overflow-hidden"
+           >
+                <swiper-slide v-for="(img, index) in eventImages" :key="index">
+                    <img :src="img" :alt="event?.title" class="w-full h-full object-cover" />
+                </swiper-slide>
+           </swiper>
+           <div v-else class="w-full h-full bg-gray-100 rounded-3xl flex items-center justify-center aspect-[5/6]">
+               <ImageIcon class="w-12 h-12 text-gray-300" />
+           </div>
         </div>
 
         <div class="flex-1 flex flex-col">
@@ -57,21 +86,8 @@ onUnmounted(() => {
           </div>
 
           <div class="text-gray-600 space-y-3 mb-6 text-base leading-relaxed flex-1">
-              <p class="text-sm">Hi Ayah & Bunda! 👋</p>
-              <p class="text-sm">Yuk, ajak Ananda ikut seru-seruan di Open House: {{ event?.title }}! 🏰✨</p>
-              
-              <div>
-                  <p class="font-bold text-sm mb-1">📌 Apa aja yang bisa diikuti?</p> 
-                  <ul class="space-y-0.5 text-sm list-inside pl-4"> 
-                      <li>✅ Free trial class 🎓</li>
-                      <li>✅ Fun activity: Building Bricks 🧱 (bisa dibawa pulang!)</li>
-                      <li>✅ Kenalan lebih dekat dengan program & visi English Everywhere</li>
-                  </ul>
-              </div>
-
-              <div class="pt-2">
-                  <p class="text-sm">🎁 Plus... kuota terbatas, pendaftaran tutup 20 September!</p>
-                  <p class="text-sm">👉 Scan barcode di poster/IG Story untuk daftar sekarang!</p>
+              <div class="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed font-poppins">
+                  {{ event?.desc }}
               </div>
           </div>
 
@@ -106,3 +122,24 @@ onUnmounted(() => {
     </div>
   </Teleport>
 </template>
+
+<style scoped>
+/* Swiper Customization */
+:deep(.swiper-pagination-bullet-active) {
+    background: #52D1C6 !important;
+}
+:deep(.swiper-button-next),
+:deep(.swiper-button-prev) {
+    color: #52D1C6 !important;
+    background: white !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+}
+:deep(.swiper-button-next:after),
+:deep(.swiper-button-prev:after) {
+    font-size: 14px !important;
+    font-weight: bold !important;
+}
+</style>

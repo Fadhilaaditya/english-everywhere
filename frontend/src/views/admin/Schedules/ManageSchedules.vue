@@ -226,6 +226,7 @@ watch([selectedCourseId, selectedTeacherId], () => {
           :programs="programs"
           :teachers="teachers"
           @day-click="handleDayClick"
+          @today-click="handleDayClick"
           @event-click="handleEventClick"
           @delete="handleDelete"
         />
@@ -248,13 +249,14 @@ watch([selectedCourseId, selectedTeacherId], () => {
     />
 
     <ConfirmModal
-      :show="showConfirmModal"
-      title="Hapus Jadwal?"
-      message="Apakah Anda yakin ingin menghapus jadwal ini? Tindakan ini tidak dapat dibatalkan."
-      confirm-text="Ya, Hapus"
-      cancel-text="Batal"
+      :is-open="showConfirmModal"
+      title="Delete Schedule?"
+      message="Are you sure you want to delete this schedule? This action cannot be undone."
+      confirm-text="Delete"
+      cancel-text="Cancel"
+      type="danger"
       @confirm="confirmDelete"
-      @cancel="showConfirmModal = false"
+      @close="showConfirmModal = false"
     />
   </div>
 </template>

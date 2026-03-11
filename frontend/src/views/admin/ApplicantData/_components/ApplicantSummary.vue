@@ -1,26 +1,43 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const totalApplicants = ref(0)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const bookings = ref<any[]>([])
 
-const fetchApplicantsCount = async () => {
+const fetchBookings = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/programs/bookings/all?status=BOOKED')
+        const response = await fetch(`${API_URL}/programs/bookings/all`)
         if (response.ok) {
-            const data = await response.json()
-            totalApplicants.value = data.length
+            bookings.value = await response.json()
         }
     } catch (e) {
-        console.error('Failed to fetch applicant count', e)
+        console.error('Failed to fetch bookings', e)
     }
 }
+
+const stats = computed(() => {
+    // The table shows status=ACCEPTED, so let's sync the 'Total' logic to that
+    const tableRelevantBookings = bookings.value.filter(b => b.status === 'ACCEPTED')
+    
+    return [
+        { 
+            label: 'Total Applicants', 
+            value: tableRelevantBookings.length, 
+            color: 'text-gray-900'
+        },
+        { 
+            label: 'Total Bookings', 
+            value: bookings.value.filter(b => b.status === 'BOOKED').length, 
+            color: 'text-orange-500'
+        }
+    ]
+})
 
 let pollingInterval: any = null
 
 onMounted(() => {
-    fetchApplicantsCount()
-    // Poll every 1 seconds
-    pollingInterval = setInterval(fetchApplicantsCount, 1000)
+    fetchBookings()
+    pollingInterval = setInterval(fetchBookings, 3000)
 })
 
 onUnmounted(() => {
@@ -29,8 +46,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl border border-gray-200 p-6 w-64 shadow-sm">
-    <h3 class="text-gray-500 text-sm font-medium mb-2">Total Applicant</h3>
-    <p class="text-3xl font-bold text-gray-900">{{ totalApplicants }}</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 bg-white border border-gray-100 rounded-2xl md:rounded-[32px] overflow-hidden mb-6 md:mb-8 shadow-sm w-full">
+    <div
+      v-for="(item, index) in stats"
+      :key="item.label"
+      class="p-4 md:p-8 flex flex-col gap-1 md:gap-2 relative"
+      :class="[
+        index < stats.length - 1 ? 'border-b sm:border-b-0 sm:border-r border-gray-100' : '',
+        index === 1 ? 'sm:border-r-0 lg:border-r border-gray-100' : ''
+      ]"
+    >
+      <span class="text-xs md:text-sm font-medium text-gray-500 uppercase tracking-wider">{{ item.label }}</span>
+      <span class="text-2xl md:text-4xl font-bold" :class="item.color">{{ item.value }}</span>
+    </div>
   </div>
 </template>

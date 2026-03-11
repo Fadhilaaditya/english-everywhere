@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import { User, Edit, X, Eye, EyeOff } from 'lucide-vue-next'
 import ConfirmationModal from './ConfirmationModal.vue'
+import CustomDropdown from '@/components/CustomDropdown.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -36,6 +37,12 @@ const previewUrl = ref('')
 const courses = ref<any[]>([])
 const subPrograms = ref<any[]>([])
 const selectedParentProgram = ref<any>(null)
+
+const genderOptions = ['Male', 'Female']
+const roleOptions = [
+    { label: 'Student', value: 'student' },
+    { label: 'Teacher', value: 'teacher' }
+]
 
 const fetchCourses = async () => {
     try {
@@ -262,26 +269,22 @@ const processSubmission = async () => {
                 <!-- Gender -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Gender</label>
-                    <select 
+                    <CustomDropdown 
                         v-model="formData.gender"
-                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
-                    >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                    </select>
+                        :options="genderOptions"
+                        placeholder="Select Gender"
+                    />
                 </div>
 
                 <!-- Role Selection (NEW) -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Role Selection</label>
-                    <select 
+                    <CustomDropdown 
                         v-model="formData.role"
+                        :options="roleOptions"
                         :disabled="isEditMode"
-                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                        <option value="student">Student</option>
-                        <option value="teacher">Teacher</option>
-                    </select>
+                        placeholder="Select Role"
+                    />
                 </div>
 
                 <!-- Address (Full width) -->
@@ -338,28 +341,23 @@ const processSubmission = async () => {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Program Series</label>
-                            <select 
+                            <CustomDropdown 
                                 v-model="selectedParentProgram"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
-                            >
-                                <option :value="null" disabled>Select Program Series</option>
-                                <option v-for="course in courses" :key="course.id" :value="course">
-                                    {{ course.title }}
-                                </option>
-                            </select>
+                                :options="courses"
+                                label-key="title"
+                                placeholder="Select Program Series"
+                            />
                         </div>
 
                         <div v-if="subPrograms.length > 0" class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Specific Level</label>
-                            <select 
+                            <CustomDropdown 
                                 v-model="formData.programId"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
-                            >
-                                <option :value="null" disabled>Select Level</option>
-                                <option v-for="level in subPrograms" :key="level.id" :value="level.id">
-                                    {{ level.title }}
-                                </option>
-                            </select>
+                                :options="subPrograms"
+                                label-key="title"
+                                value-key="id"
+                                placeholder="Select Level"
+                            />
                         </div>
                     </div>
                 </div>

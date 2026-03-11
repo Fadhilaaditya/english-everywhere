@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import DayDetailsModal from './DayDetailsModal.vue'
+import CustomDropdown from '@/components/CustomDropdown.vue'
 
 const props = defineProps<{
   currentDate: Date
@@ -12,10 +14,22 @@ const props = defineProps<{
   selectedTeacherId: number | null
 }>()
 
-const emit = defineEmits(['update:currentDate', 'update:selectedCourseId', 'update:selectedTeacherId', 'dayClick', 'eventClick'])
+const emit = defineEmits(['update:currentDate', 'update:selectedCourseId', 'update:selectedTeacherId', 'dayClick', 'eventClick', 'todayClick'])
+
+const isDayModalOpen = ref(false)
+const selectedDayDate = ref<Date | string>('')
+const selectedDayEvents = ref<any[]>([])
+
+const openDayModal = (date: Date) => {
+    selectedDayDate.value = date
+    selectedDayEvents.value = getEventsForDay(date)
+    isDayModalOpen.value = true
+}
 
 const goToToday = () => {
-  emit('update:currentDate', new Date())
+  const today = new Date()
+  emit('update:currentDate', today)
+  emit('todayClick', { date: today })
 }
 
 // --- Navigasi Bulan ---
@@ -84,79 +98,109 @@ const getEventsForDay = (date: Date) => {
   const searchStr = `${y}-${m}-${d}`
   return props.schedules.filter((s) => s.date?.startsWith(searchStr))
 }
+
+const programOptions = computed(() => [
+  { id: null, title: 'All Programs' },
+  ...props.programs.map(p => ({ id: p.id, title: p.title || p.name }))
+])
+
+const teacherOptions = computed(() => [
+  { id: null, fullName: 'All Teachers' },
+  ...props.teachers.map(t => ({ id: t.id, fullName: t.user?.fullName || `Teacher ${t.id}` }))
+])
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-8">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-2 md:p-6">
     <!-- Header -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
-       <div class="flex flex-wrap items-center gap-4">
+    <div class="flex flex-row items-center justify-between mb-4 md:mb-8 gap-2">
+       <div class="flex items-center gap-2">
             <!-- Prev/Next Controls -->
-            <div class="flex bg-gray-100 rounded-xl p-1.5 border border-gray-200/50 shadow-inner">
-                <button @click="prevMonth" class="p-2 hover:bg-white rounded-lg transition-all shadow-sm group active:scale-95">
-                    <ChevronLeft class="w-5 h-5 text-gray-600 group-hover:text-[#4FD1C5]" />
+            <div class="flex bg-gray-100 rounded-lg p-1">
+                <button @click="prevMonth" class="p-1 sm:p-2 hover:bg-white rounded-md transition-all shadow-sm group active:scale-95">
+                    <ChevronLeft class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 group-hover:text-[#4FD1C5]" />
                 </button>
-                <button @click="nextMonth" class="p-2 hover:bg-white rounded-lg transition-all shadow-sm group active:scale-95">
-                    <ChevronRight class="w-5 h-5 text-gray-600 group-hover:text-[#4FD1C5]" />
+                <button @click="nextMonth" class="p-1 sm:p-2 hover:bg-white rounded-md transition-all shadow-sm group active:scale-95">
+                    <ChevronRight class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 group-hover:text-[#4FD1C5]" />
                 </button>
             </div>
             <!-- Month Title -->
-            <h2 class="text-xl md:text-3xl font-black text-gray-900 uppercase tracking-tighter">{{ currentMonthDisplay }}</h2>
+            <h2 class="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 uppercase tracking-wide">{{ currentMonthDisplay }}</h2>
        </div>
 
-        <div class="flex flex-wrap items-center gap-4">
+        <div class="hidden lg:flex flex-wrap items-center gap-4">
           <!-- Course Selector -->
-          <div class="relative group">
-            <select 
-              :value="selectedCourseId || ''"
-              @change="emit('update:selectedCourseId', ($event.target as HTMLSelectElement).value ? parseInt(($event.target as HTMLSelectElement).value) : null)"
-              class="appearance-none border-2 border-gray-100 rounded-xl px-6 py-2.5 pr-12 text-sm font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-[#4FD1C5]/10 focus:border-[#4FD1C5] bg-gray-50/30 cursor-pointer transition-all hover:bg-gray-100/50"
-            >
-              <option value="">All Programs</option>
-              <option v-for="program in programs" :key="program.id" :value="program.id">
-                {{ program.title }}
-              </option>
-            </select>
-            <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400 group-hover:text-[#4FD1C5]">
-               <ChevronDown class="w-4 h-4" />
-            </div>
+          <div class="w-48">
+            <CustomDropdown
+              :model-value="selectedCourseId"
+              :options="programOptions"
+              label-key="title"
+              value-key="id"
+              placeholder="All Programs"
+              @update:model-value="emit('update:selectedCourseId', $event)"
+            />
           </div>
 
           <!-- Teacher Selector -->
-          <div class="relative group">
-            <select 
-              :value="selectedTeacherId || ''"
-              @change="emit('update:selectedTeacherId', ($event.target as HTMLSelectElement).value ? parseInt(($event.target as HTMLSelectElement).value) : null)"
-              class="appearance-none border-2 border-gray-100 rounded-xl px-6 py-2.5 pr-12 text-sm font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-[#4FD1C5]/10 focus:border-[#4FD1C5] bg-gray-50/30 cursor-pointer transition-all hover:bg-gray-100/50"
-            >
-              <option value="">All Teachers</option>
-              <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
-                {{ teacher.user?.fullName || teacher.id }}
-              </option>
-            </select>
-            <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-gray-400 group-hover:text-[#4FD1C5]">
-               <ChevronDown class="w-4 h-4" />
-            </div>
+          <div class="w-48">
+            <CustomDropdown
+              :model-value="selectedTeacherId"
+              :options="teacherOptions"
+              label-key="fullName"
+              value-key="id"
+              placeholder="All Teachers"
+              @update:model-value="emit('update:selectedTeacherId', $event)"
+            />
           </div>
 
           <!-- Today Button -->
           <button 
             @click="goToToday"
-            class="px-6 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm font-black text-gray-600 hover:bg-white hover:shadow-md hover:text-[#4FD1C5] transition-all active:scale-95"
+            class="px-6 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
           >
             Today
           </button>
        </div>
+
+       <!-- Mobile Today Button -->
+        <button 
+            @click="goToToday"
+            class="lg:hidden px-3 py-1 bg-gray-100 rounded text-xs font-bold text-gray-600"
+        >
+            Today
+        </button>
+    </div>
+
+    <!-- Filters for Mobile (Visible when not lg) -->
+    <div class="lg:hidden grid grid-cols-2 gap-2 mb-4">
+        <CustomDropdown
+          :model-value="selectedCourseId"
+          :options="programOptions"
+          label-key="title"
+          value-key="id"
+          placeholder="Programs"
+          class="!py-1.5 !px-2 text-[10px]"
+          @update:model-value="emit('update:selectedCourseId', $event)"
+        />
+        <CustomDropdown
+          :model-value="selectedTeacherId"
+          :options="teacherOptions"
+          label-key="fullName"
+          value-key="id"
+          placeholder="Teachers"
+          class="!py-1.5 !px-2 text-[10px]"
+          @update:model-value="emit('update:selectedTeacherId', $event)"
+        />
     </div>
 
     <!-- Calendar Grid -->
-    <div class="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+    <div class="border border-gray-200 rounded-lg overflow-hidden">
           <!-- Days Header -->
-          <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80 backdrop-blur-sm">
+          <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
             <div 
               v-for="day in weekDays" 
               :key="day" 
-              class="py-4 text-center text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest border-r border-gray-200 last:border-r-0"
+              class="py-2 sm:py-3 text-center text-[10px] sm:text-xs font-bold text-gray-500 uppercase border-r border-gray-200 last:border-r-0"
             >
                 {{ day }}
             </div>
@@ -167,15 +211,15 @@ const getEventsForDay = (date: Date) => {
                 v-for="(day, index) in calendarDays" 
                 :key="index"
                 @click="emit('dayClick', day)"
-                class="min-h-[100px] sm:min-h-[140px] p-2 sm:p-3 border-b border-r border-gray-200 last:border-r-0 relative group transition-all hover:bg-gray-50/50 cursor-pointer"
-                :class="{ 'opacity-40 bg-gray-50/30': !day.isCurrentMonth }"
+                class="min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-b border-r border-gray-200 last:border-r-0 relative group transition-colors cursor-pointer"
+                :class="{ 'opacity-50 bg-gray-50/50': !day.isCurrentMonth, 'hover:bg-[#F0FFF4]': day.isCurrentMonth }"
             >
-                <div class="flex justify-between items-start mb-2 sm:mb-3">
+                <div class="flex justify-end sm:justify-between items-start mb-1 sm:mb-2">
                     <span 
-                        class="text-xs sm:text-lg font-black w-7 h-7 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition-all"
+                        class="text-xs sm:text-lg font-medium w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition-all"
                         :class="[
                           day.date.toDateString() === new Date().toDateString() 
-                          ? 'bg-[#4FD1C5] text-white shadow-lg shadow-[#4FD1C5]/30' 
+                          ? 'bg-[#52D3C4] text-white' 
                           : 'text-gray-900 group-hover:text-[#4FD1C5]'
                         ]"
                     >
@@ -184,32 +228,66 @@ const getEventsForDay = (date: Date) => {
                 </div>
 
                 <!-- Events -->
-                <div class="space-y-1.5">
-                    <div 
-                        v-for="(event, eIndex) in getEventsForDay(day.date).slice(0, 3)" 
-                        :key="eIndex"
-                        @click.stop="emit('eventClick', event)"
-                        class="text-[10px] sm:text-xs px-2 py-1.5 rounded-lg font-bold text-white shadow-sm transition-all truncate border border-white/10 hover:brightness-105 active:scale-95"
-                        :class="[
-                            event.status?.toUpperCase() === 'SUCCESS' ? 'bg-[#00B027]' :
-                            event.status?.toUpperCase() === 'PENDING' ? 'bg-[#EB7A52]' : 'bg-[#BCC1C9]'
-                        ]"
-                    >
-                        <span class="sm:inline hidden">{{ event.startTime.slice(0, 5) }} •</span>
-                        {{ (event.teacher?.user?.fullName || event.teacherName || '').split(' ')[0] }}
+                <div class="space-y-1">
+                    <!-- MOBILE VIEW: Condensed -->
+                    <div class="md:hidden flex flex-col items-center">
+                        <template v-if="getEventsForDay(day.date).length > 0">
+                             <div 
+                                class="text-[10px] px-1 py-0.5 rounded font-bold w-full text-center truncate mb-0.5 text-white"
+                                :class="[
+                                    getEventsForDay(day.date)[0]?.status?.toUpperCase() === 'SUCCESS' ? 'bg-[#00B027]' :
+                                    getEventsForDay(day.date)[0]?.status?.toUpperCase() === 'PENDING' ? 'bg-[#EB7A52]' : 'bg-[#BCC1C9]'
+                                ]"
+                                @click.stop="emit('eventClick', getEventsForDay(day.date)[0])"
+                             >
+                                {{ getEventsForDay(day.date)[0]?.startTime.slice(0, 5) }}
+                             </div>
+                             <span 
+                                v-if="getEventsForDay(day.date).length > 1" 
+                                @click.stop="openDayModal(day.date)"
+                                class="text-[9px] text-gray-500 font-bold cursor-pointer hover:bg-gray-100 px-1 rounded"
+                             >
+                                +{{ getEventsForDay(day.date).length - 1 }}
+                             </span>
+                        </template>
                     </div>
-                     
-                    <!-- More Badge -->
-                    <div 
-                        v-if="getEventsForDay(day.date).length > 3"
-                        class="text-[9px] sm:text-xs text-gray-400 font-bold px-2 py-1 hover:text-[#4FD1C5] hover:bg-[#4FD1C5]/5 rounded-lg cursor-pointer transition-all inline-block w-full"
-                    >
-                        +{{ getEventsForDay(day.date).length - 3 }} more
+
+                    <!-- DESKTOP VIEW: Detailed list -->
+                    <div class="hidden md:block space-y-1">
+                        <div 
+                            v-for="(event, eIndex) in getEventsForDay(day.date).slice(0, 2)" 
+                            :key="eIndex"
+                            @click.stop="emit('eventClick', event)"
+                            class="text-[10px] px-2 py-1 rounded-md font-medium text-white shadow-sm transition-opacity truncate"
+                            :class="[
+                                event.status?.toUpperCase() === 'SUCCESS' ? 'bg-[#00B027] hover:opacity-90' :
+                                event.status?.toUpperCase() === 'PENDING' ? 'bg-[#EB7A52] hover:opacity-90' : 'bg-[#BCC1C9] hover:opacity-90'
+                            ]"
+                        >
+                            {{ event.startTime.slice(0, 5) }} • {{ (event.teacher?.user?.fullName || event.teacherName || '').split(' ')[0] }}
+                        </div>
+                         
+                        <!-- More Badge -->
+                        <div 
+                            v-if="getEventsForDay(day.date).length > 2"
+                            @click.stop="openDayModal(day.date)"
+                            class="text-[10px] text-gray-500 font-medium px-1 hover:text-gray-700 hover:bg-gray-100 rounded cursor-pointer mt-0.5 text-center"
+                        >
+                            +{{ getEventsForDay(day.date).length - 2 }} more
+                        </div>
                     </div>
                 </div>
             </div>
           </div>
       </div>
+
+      <DayDetailsModal 
+        :is-open="isDayModalOpen"
+        :date="selectedDayDate"
+        :events="selectedDayEvents"
+        @close="isDayModalOpen = false"
+        @click-event="(e) => { isDayModalOpen = false; emit('eventClick', e) }"
+      />
   </div>
 </template>
 

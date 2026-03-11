@@ -34,7 +34,8 @@ exports.createAccount = async (req, res) => {
             username: req.body.username,
             password: password,
             fullName: req.body.fullName,
-            role: 'student'
+            role: 'student',
+            photo: req.body.photo // Add photo field
         });
 
         // Create Student linked to User
@@ -56,7 +57,7 @@ exports.createAccount = async (req, res) => {
         // Update Booking Status if bookingId (passed as scheduleId) is provided
         if (req.body.scheduleId) {
             await db.AppointmentBooking.update(
-                { status: 'ACCEPTED' },
+                { status: 'SUCCESS' },
                 { where: { id: req.body.scheduleId } }
             );
         }

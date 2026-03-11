@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { X, Calendar, Clock } from 'lucide-vue-next'
+import CustomDropdown from '@/components/CustomDropdown.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -30,6 +31,8 @@ const formData = ref({
 const bookings = ref<any[]>([])
 const selectedBookingIndex = ref(0)
 const isLoading = ref(false)
+
+const genderOptions = ['Male', 'Female']
 
 const selectedBooking = computed(() => {
     if (bookings.value.length === 0) return null
@@ -89,7 +92,7 @@ watch([() => props.appointment, selectedBookingIndex, bookings], () => {
 
 const isTaken = computed(() => {
     const booking = bookings.value[selectedBookingIndex.value]
-    return booking?.status === 'BOOKED'
+    return booking?.status === 'ACCEPTED'
 })
 const isRejected = computed(() => {
     const booking = bookings.value[selectedBookingIndex.value]
@@ -242,7 +245,7 @@ const handleDelete = () => {
                         selectedBookingIndex === index 
                             ? 'shadow-md scale-105' 
                             : 'opacity-70 grayscale-[0.5] hover:opacity-100 hover:grayscale-0',
-                        booking.status === 'BOOKED' 
+                        booking.status === 'ACCEPTED' 
                             ? (selectedBookingIndex === index ? 'bg-green-500 text-white border-green-500' : 'bg-green-50 text-green-600 border-green-200')
                             : booking.status === 'REJECTED'
                             ? (selectedBookingIndex === index ? 'bg-red-500 text-white border-red-500' : 'bg-red-50 text-red-600 border-red-200')
@@ -310,13 +313,11 @@ const handleDelete = () => {
                 <!-- Gender -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Gender</label>
-                    <select 
+                    <CustomDropdown 
                         v-model="formData.gender"
-                        class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 bg-white"
-                    >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                    </select>
+                        :options="genderOptions"
+                        placeholder="Select Gender"
+                    />
                 </div>
 
                 <!-- Address (Full width) -->

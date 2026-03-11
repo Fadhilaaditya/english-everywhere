@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { X, Loader2, Calendar as CalendarIcon, ChevronDown } from 'lucide-vue-next'
-import { watch, onMounted } from 'vue'
+import { X, Loader2 } from 'lucide-vue-next'
+import { watch, onMounted, computed, ref } from 'vue'
+import CustomDropdown from '@/components/CustomDropdown.vue'
 
 const props = defineProps<{
-  programs: any[]
+  programs: any[] // These are parent programs
   teachers: any[]
   classrooms: any[]
   form: any
@@ -15,17 +16,69 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'submit', 'delete'])
 
+const subPrograms = ref<any[]>([])
+const selectedParentProgram = ref<any>(null)
+
+const programOptions = computed(() => 
+  props.programs.map(p => ({ id: p.id, title: p.title || p.name }))
+)
+
+const teacherOptions = computed(() => 
+  props.teachers.map(t => ({ id: t.id, fullName: t.user?.fullName || `Teacher ${t.id}` }))
+)
+
+const classroomOptions = computed(() => 
+  props.classrooms.map(c => ({ name: c.name }))
+)
+
+const fetchSubPrograms = async (parentId: number) => {
+  try {
+    const response = await fetch(`http://localhost:3001/api/programs/${parentId}/levels`)
+    if (response.ok) {
+      subPrograms.value = await response.json()
+    }
+  } catch (e) {
+    console.error('Failed to fetch sub-programs', e)
+  }
+}
+
+watch(selectedParentProgram, (newParent) => {
+  if (newParent) {
+    fetchSubPrograms(newParent.id)
+  } else {
+    subPrograms.value = []
+    props.form.programId = null
+  }
+})
+
+// Initialize form logic
+const initializeHierarchy = async () => {
+  if (props.isEdit && props.form.programId) {
+    try {
+      const resp = await fetch(`http://localhost:3001/api/programs/${props.form.programId}`)
+      if (resp.ok) {
+        const prog = await resp.json()
+        const parent = prog.parent || prog
+        selectedParentProgram.value = props.programs.find(p => p.id === parent.id)
+        if (selectedParentProgram.value) {
+            await fetchSubPrograms(selectedParentProgram.value.id)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to initialize hierarchy', e)
+    }
+  } else if (props.selectedProgramFromCalendar) {
+      // If coming from calendar with a pre-selected program (usually a parent)
+      selectedParentProgram.value = props.programs.find(p => p.id == props.selectedProgramFromCalendar)
+  }
+}
+
 // Fungsi sinkronisasi data otomatis
 const syncFields = () => {
   if (!props.isEdit) {
-    // 2. Sinkronisasi Program & className
     if (props.selectedProgramFromCalendar) {
-      props.form.programId = props.selectedProgramFromCalendar
-      const selectedProg = props.programs.find((p) => p.id == props.selectedProgramFromCalendar)
-      if (selectedProg) {
-        // Gunakan .title atau .name sesuai database Anda
-        props.form.className = selectedProg.title || selectedProg.name
-      }
+      // Just set the parent, the watcher will handle subPrograms if needed
+      selectedParentProgram.value = props.programs.find((p) => p.id == props.selectedProgramFromCalendar)
     }
   }
 }
@@ -50,16 +103,16 @@ watch(
 watch(
   () => props.form.programId,
   (newId) => {
-    const selectedProg = props.programs.find((p) => p.id == newId)
+    const selectedProg = subPrograms.value.find((p) => p.id == newId) || props.programs.find(p => p.id == newId)
     if (selectedProg) {
       props.form.className = selectedProg.title || selectedProg.name
     }
   }
 )
 
-onMounted(() => {
+onMounted(async () => {
   syncFields()
-  // Jika sedang edit, pastikan teacherName terisi
+  await initializeHierarchy()
   if (props.form.teacherId) {
     updateTeacherName(props.form.teacherId)
   }
@@ -79,121 +132,123 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
 
     <!-- Modal Content -->
     <div
-      class="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+      class="relative bg-white w-full max-w-2xl rounded-2xl shadow-xl flex flex-col max-h-[90vh] overflow-hidden transform transition-all animate-in fade-in zoom-in duration-200"
     >
       <!-- Sticky Header -->
-      <div class="p-6 md:p-8 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-        <h3 class="text-xl md:text-2xl font-bold text-gray-900">
-          {{ isEdit ? 'Edit Schedule' : 'Create New Schedule' }}
+      <div class="p-4 md:p-8 py-4 md:py-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+        <h3 class="text-2xl font-bold text-gray-900">
+          {{ isEdit ? 'Manage Schedule' : 'Create New Schedule' }}
         </h3>
         <button 
           @click="emit('close')"
-          class="p-2 text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 rounded-xl hover:bg-gray-100"
+          class="p-2 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <X class="w-6 h-6" />
         </button>
       </div>
 
       <!-- Scrollable Form Body -->
-      <div class="p-6 md:p-8 overflow-y-auto">
+      <div class="p-4 md:p-8 overflow-y-auto">
         <form @submit.prevent="emit('submit')" class="space-y-6">
-          <!-- Program -->
-          <div class="space-y-2">
-            <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Program / Kelas</label>
-            <div class="relative">
-              <select
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Program Series -->
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Program Series</label>
+              <CustomDropdown
+                v-model="selectedParentProgram"
+                :options="programOptions"
+                label-key="title"
+                placeholder="Select Program Series..."
+              />
+            </div>
+
+            <!-- Specific Level -->
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Specific Level</label>
+              <CustomDropdown
                 v-model="form.programId"
-                required
-                class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 appearance-none outline-none transition-all font-bold text-sm md:text-base text-gray-700"
-              >
-                <option value="" disabled>Select Program...</option>
-                <option v-for="p in programs" :key="p.id" :value="p.id">
-                  {{ p.title || p.name }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                <ChevronDown class="w-4 h-4 text-gray-400" />
-              </div>
+                :options="subPrograms"
+                labelKey="title"
+                valueKey="id"
+                placeholder="Select Level..."
+                :disabled="!selectedParentProgram"
+              />
             </div>
-          </div>
 
-          <!-- Teacher -->
-          <div class="space-y-2">
-            <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Guru Pengajar</label>
-            <div class="relative">
-              <select
+            <!-- Teacher -->
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Teacher</label>
+              <CustomDropdown
                 v-model="form.teacherId"
-                required
-                class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 appearance-none outline-none transition-all font-bold text-sm md:text-base text-gray-700"
-              >
-                <option value="" disabled>Select Teacher...</option>
-                <option v-for="t in teachers" :key="t.id" :value="t.id">
-                  {{ t.user ? t.user.fullName : 'Name Not Available' }}
-                </option>
-              </select>
-              <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                <ChevronDown class="w-4 h-4 text-gray-400" />
-              </div>
+                :options="teacherOptions"
+                label-key="fullName"
+                value-key="id"
+                placeholder="Select Teacher..."
+              />
+            </div>
+
+             <!-- Classroom -->
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Classroom</label>
+              <CustomDropdown
+                v-model="form.classroom"
+                :options="classroomOptions"
+                label-key="name"
+                value-key="name"
+                placeholder="Select Classroom..."
+              />
             </div>
           </div>
 
-          <!-- Ruang Kelas & Link Absensi -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Links -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">
-              <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Classroom</label>
-              <div class="relative">
-                <select
-                  v-model="form.classroom"
-                  class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 appearance-none outline-none transition-all font-bold text-sm md:text-base text-gray-700"
-                >
-                  <option value="" disabled>Select Classroom...</option>
-                  <option v-for="c in classrooms" :key="c.id" :value="c.name">
-                    {{ c.name }}
-                  </option>
-                </select>
-                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                  <ChevronDown class="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Link Absensi</label>
+              <label class="block text-sm font-medium text-gray-700">Attendance Link</label>
               <input
                 type="url"
                 v-model="form.attendanceLink"
                 placeholder="https://..."
-                class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 outline-none transition-all font-bold text-sm md:text-base text-gray-700 placeholder:text-gray-300"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 text-gray-700 placeholder:text-gray-300"
               />
             </div>
-            <div class="space-y-2 md:col-span-2">
-              <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Link Report Card</label>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Report Card Link</label>
               <input
                 type="url"
                 v-model="form.link"
                 placeholder="https://..."
-                class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 outline-none transition-all font-bold text-sm md:text-base text-gray-700 placeholder:text-gray-300"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 text-gray-700 placeholder:text-gray-300"
               />
             </div>
           </div>
 
-          <!-- Time -->
-          <div class="grid grid-cols-2 gap-6">
+          <!-- Date & Time -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-2">
-              <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Jam Mulai</label>
+              <label class="block text-sm font-medium text-gray-700">Date</label>
+              <input
+                type="date"
+                v-model="form.date"
+                required
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 text-gray-700"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Start Time</label>
               <input
                 type="time"
                 v-model="form.startTime"
                 required
-                class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 outline-none transition-all font-bold text-sm md:text-base text-gray-700"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 text-gray-700"
               />
             </div>
             <div class="space-y-2">
-              <label class="block text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wider">Jam Selesai</label>
+              <label class="block text-sm font-medium text-gray-700">End Time</label>
               <input
                 type="time"
                 v-model="form.endTime"
                 required
-                class="w-full px-4 py-3 rounded-xl border border-transparent focus:bg-white focus:border-[#4FD1C5] focus:ring-4 focus:ring-[#4FD1C5]/10 bg-gray-50/50 outline-none transition-all font-bold text-sm md:text-base text-gray-700"
+                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 text-gray-700"
               />
             </div>
           </div>
@@ -201,20 +256,20 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
       </div>
 
       <!-- Sticky Footer Actions -->
-      <div class="p-6 md:p-8 border-t border-gray-100 bg-white flex gap-4">
+      <div class="p-6 md:p-8 border-t border-gray-100 bg-white flex flex-col sm:flex-row gap-4">
         <button
           v-if="isEdit"
           type="button"
           @click="emit('delete', form.id)"
-          class="flex-1 py-4 rounded-xl text-white font-black uppercase tracking-widest text-xs transition-all bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 active:scale-[0.98]"
+          class="flex-1 py-3 rounded-lg text-white font-medium transition-colors bg-red-500 hover:bg-red-600"
         >
-          Delete
+          Delete Schedule
         </button>
         <button
           type="button"
           @click="emit('submit')"
           :disabled="isSubmitting"
-          class="flex-[2] bg-[#4FD1C5] hover:bg-[#3dbdb0] disabled:bg-gray-200 text-white font-black uppercase tracking-widest text-xs py-4 rounded-xl flex justify-center items-center gap-2 transition-all shadow-lg shadow-[#4FD1C5]/20 active:scale-[0.98]"
+          class="flex-1 py-3 rounded-lg text-white font-medium transition-colors bg-[#4FD1C5] hover:bg-[#3dbdb0] disabled:bg-gray-200 flex justify-center items-center gap-2"
         >
           <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
           <span>{{ isSubmitting ? 'Processing...' : 'Save Schedule' }}</span>

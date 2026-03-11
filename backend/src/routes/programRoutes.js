@@ -10,6 +10,9 @@ module.exports = (app) => {
   // 1.1 Retrieve Levels for a Program
   router.get("/:id/levels", programs.getLevels);
 
+  // 1.2 Retrieve a single Program
+  router.get("/:id", programs.findOne);
+
   // 2.1 Retrieve all Schedules (Global)
   router.get("/schedules/global", programs.findAllGlobal);
   router.post("/schedules/global", programs.createSchedule);

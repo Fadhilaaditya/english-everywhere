@@ -1,4 +1,5 @@
 const db = require("../models");
+const { Op } = require("sequelize");
 const Payment = db.Payment;
 const PaymentInstallment = db.PaymentInstallment;
 const Student = db.Student;
@@ -21,12 +22,13 @@ exports.createPayment = async (req, res) => {
       programId,
       amount,
       deadline,
+      publishDate,
       paymentType, // "Lunas" or "Cicilan"
       installments, // Array of objects: { dueDate, amount }
       invoiceNo,
     } = req.body;
 
-    if (!studentId || !programId || !amount || !deadline) {
+    if (!studentId || !programId || !amount || !deadline || !publishDate) {
       return res.status(400).json({ message: "Data tidak lengkap" });
     }
 
@@ -37,6 +39,7 @@ exports.createPayment = async (req, res) => {
       invoiceNo: invoiceNo || `INV/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`,
       amount,
       deadline,
+      publishDate,
       paymentType: paymentType || "Lunas",
       status: "Pending",
       studentId,
@@ -51,6 +54,7 @@ exports.createPayment = async (req, res) => {
         installmentNumber: index + 1,
         amount: inst.amount,
         dueDate: inst.dueDate,
+        publishDate: inst.publishDate || publishDate, // Fallback to main bill send date
         status: "Pending",
       }));
 
@@ -96,10 +100,24 @@ exports.getUserPayments = async (req, res) => {
     }
 
     const payments = await Payment.findAll({
-      where: { studentId },
+      where: {
+        studentId,
+        publishDate: {
+          [Op.lte]: new Date()
+        }
+      },
       include: [
         { model: Program, as: "program", attributes: ["id", "title"] },
-        { model: PaymentInstallment, as: "installments" },
+        {
+          model: PaymentInstallment,
+          as: "installments",
+          where: {
+            publishDate: {
+              [Op.lte]: new Date()
+            }
+          },
+          required: false
+        },
       ],
       order: [["createdAt", "DESC"]],
     });
@@ -123,7 +141,7 @@ exports.confirmPayment = async (req, res) => {
     if (isInstallment) {
       const installment = await PaymentInstallment.findByPk(id);
       if (!installment) return res.status(404).json({ message: "Cicilan tidak ditemukan" });
-      
+
       // We can keep it "Pending" until admin approves, or change to a "Checking" state if Enum allowed it.
       // Since Enum is Success, Pending, Failed: we just leave it or you can manage it via frontend state.
       // For now, let's just return a success message that they've confirmed via WA.
@@ -157,7 +175,7 @@ exports.approvePayment = async (req, res) => {
       // Check if all installments are Success, then mark main Payment as Success
       const allInstallments = await PaymentInstallment.findAll({ where: { paymentId: installment.paymentId } });
       const allSuccess = allInstallments.every((inst) => inst.status === "Success");
-      
+
       if (allSuccess) {
         await Payment.update({ status: "Success", paymentDate: new Date() }, { where: { id: installment.paymentId } });
       }
@@ -185,7 +203,7 @@ exports.deletePayment = async (req, res) => {
     const { id } = req.params;
     const payment = await Payment.findByPk(id);
     if (!payment) return res.status(404).json({ message: "Tagihan tidak ditemukan" });
-    
+
     // Also delete installments
     await PaymentInstallment.destroy({ where: { paymentId: id } });
     await payment.destroy();

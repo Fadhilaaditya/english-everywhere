@@ -19,7 +19,7 @@ const filteredApplicants = computed(() => {
     const query = searchQuery.value.toLowerCase()
     return applicants.value.filter(app => 
         app.name.toLowerCase().includes(query) || 
-        app.program.toLowerCase().includes(query)
+        app.phone.toLowerCase().includes(query)
     )
 })
 
@@ -54,14 +54,14 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
 
 const fetchApplicants = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/programs/bookings/all?status=BOOKED')
+        const response = await fetch('http://localhost:3001/api/programs/bookings/all?status=ACCEPTED')
         if (response.ok) {
             const data = await response.json()
             applicants.value = data.map((item: any) => ({
                 id: item.id,
                 name: item.applicantName,
                 gender: item.applicantGender,
-                program: item.schedule?.program ? item.schedule.program.title : (item.schedule?.programId ? 'Loading...' : 'Global'),
+                phone: item.applicantPhone || '-',
                 date: formatDate(item.schedule?.date),
                 fullData: item
             }))
@@ -84,7 +84,7 @@ const markAsRead = async () => {
         await fetch('http://localhost:3001/api/programs/bookings/mark-read', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'BOOKED' })
+            body: JSON.stringify({ status: 'ACCEPTED' })
         })
     } catch (e) {
         console.error('Failed to mark as read', e)
@@ -164,7 +164,7 @@ const confirmDelete = async () => {
                 <input 
                     v-model="searchQuery"
                     type="text" 
-                    placeholder="Search name or program..."
+                    placeholder="Search name or phone..."
                     class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900/5 transition-all text-sm"
                 />
             </div>
@@ -176,7 +176,7 @@ const confirmDelete = async () => {
             <tr class="bg-gray-50 border-b border-gray-100">
                 <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900">Name User</th>
                 <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900">Gender</th>
-                <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900">Program Test</th>
+                <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900">Phone Number</th>
                 <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900">Test Date</th>
                 <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900">Action</th>
             </tr>
@@ -185,8 +185,8 @@ const confirmDelete = async () => {
             <tr v-for="applicant in paginatedApplicants" :key="applicant.id" class="hover:bg-gray-50/50">
                 <td class="py-6 px-6 text-sm font-medium text-gray-900">{{ applicant.name }}</td>
                 <td class="py-6 px-6 text-sm text-gray-900">{{ applicant.gender }}</td>
-                <td class="py-6 px-6 text-sm text-gray-900">{{ applicant.program }}</td>
-                <td class="py-6 px-6 text-sm text-gray-900 font-medium">{{ applicant.date }}</td>
+                <td class="py-6 px-6 text-sm text-gray-900 text-left">{{ applicant.phone }}</td>
+                <td class="py-6 px-6 text-sm text-gray-900 font-medium whitespace-nowrap">{{ applicant.date }}</td>
                 <td class="py-6 px-6">
                     <div class="flex items-center gap-4">
                         <button 
