@@ -10,6 +10,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'submit'])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const isEditMode = computed(() => !!props.account && Object.keys(props.account).length > 0)
 const title = computed(() => isEditMode.value ? 'Edit Account' : 'Create Account')
@@ -46,7 +47,7 @@ const roleOptions = [
 
 const fetchCourses = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/programs')
+        const response = await fetch(`${API_URL}/programs`)
         if (response.ok) {
             courses.value = await response.json()
             
@@ -69,7 +70,7 @@ const fetchCourses = async () => {
 
 const fetchSubPrograms = async (parentId: number) => {
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/${parentId}/levels`)
+        const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
         if (response.ok) {
             subPrograms.value = await response.json()
             // If we are initializing from props, don't reset the programId yet
@@ -154,7 +155,7 @@ const handleFileUpload = async (event: Event) => {
 
     try {
         isLoading.value = true
-        const response = await fetch('http://localhost:3001/api/upload', {
+        const response = await fetch(`${API_URL}/upload`, {
             method: 'POST',
             body: uploadData
         })
@@ -183,8 +184,8 @@ const processSubmission = async () => {
     isLoading.value = true
     try {
         const url = isEditMode.value 
-            ? `http://localhost:3001/api/users/${props.account.id}`
-            : `http://localhost:3001/api/users`
+            ? `${API_URL}/users/${props.account.id}`
+            : `${API_URL}/users`
             
         const method = isEditMode.value ? 'PUT' : 'POST'
         

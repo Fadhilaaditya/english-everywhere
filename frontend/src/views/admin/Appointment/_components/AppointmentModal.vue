@@ -10,6 +10,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'approve', 'update', 'delete', 'reject'])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const formData = ref({
     fullName: '',
@@ -43,7 +44,7 @@ watch(() => props.isOpen, async (newVal) => {
     if (newVal && props.appointment) {
         isLoading.value = true
         try {
-            const response = await fetch(`http://localhost:3001/api/programs/schedules/${props.appointment.id}/bookings`)
+            const response = await fetch(`${API_URL}/programs/schedules/${props.appointment.id}/bookings`)
             if (response.ok) {
                 bookings.value = await response.json()
                 selectedBookingIndex.value = 0

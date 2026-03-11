@@ -15,6 +15,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'submit', 'delete'])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const subPrograms = ref<any[]>([])
 const selectedParentProgram = ref<any>(null)
@@ -33,7 +34,7 @@ const classroomOptions = computed(() =>
 
 const fetchSubPrograms = async (parentId: number) => {
   try {
-    const response = await fetch(`http://localhost:3001/api/programs/${parentId}/levels`)
+    const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
     if (response.ok) {
       subPrograms.value = await response.json()
     }
@@ -55,7 +56,7 @@ watch(selectedParentProgram, (newParent) => {
 const initializeHierarchy = async () => {
   if (props.isEdit && props.form.programId) {
     try {
-      const resp = await fetch(`http://localhost:3001/api/programs/${props.form.programId}`)
+      const resp = await fetch(`${API_URL}/programs/${props.form.programId}`)
       if (resp.ok) {
         const prog = await resp.json()
         const parent = prog.parent || prog

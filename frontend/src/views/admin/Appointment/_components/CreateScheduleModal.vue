@@ -11,6 +11,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'submit'])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const date = ref('')
 const time = ref('')
@@ -29,7 +30,7 @@ watch(() => props.isOpen, async (newVal) => {
         
         // Fetch programs if not already passed or if list is empty
         try {
-            const response = await fetch('http://localhost:3001/api/programs')
+            const response = await fetch(`${API_URL}/programs`)
             if (response.ok) {
                 programs.value = await response.json()
             }
@@ -57,7 +58,7 @@ const executeCreate = async () => {
             status: 'AVAILABLE'
         }
         
-        const response = await fetch(`http://localhost:3001/api/programs/schedules/global`, {
+        const response = await fetch(`${API_URL}/programs/schedules/global`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

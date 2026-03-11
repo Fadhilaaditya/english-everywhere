@@ -33,9 +33,11 @@ const menuItems = ref([
    { name: 'Schedules', icon: CalendarDays, path: '/admin/schedules' },
 ])
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+
 const checkNewApplicants = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/programs/bookings/all')
+        const response = await fetch(`${API_URL}/programs/bookings/all`)
         if (response.ok) {
             const data = await response.json()
             

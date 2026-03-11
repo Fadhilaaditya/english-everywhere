@@ -36,7 +36,7 @@ const selectedParentProgram = ref<any>(null)
 
 const fetchPrograms = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/programs')
+        const response = await fetch(`${API_URL}/programs`)
         if (response.ok) {
             programs.value = await response.json()
             
@@ -56,7 +56,7 @@ const fetchPrograms = async () => {
 
 const fetchSubPrograms = async (parentId: number) => {
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/${parentId}/levels`)
+        const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
         if (response.ok) {
             subPrograms.value = await response.json()
             // If levels exist, reset selected programId until one is picked
@@ -164,7 +164,7 @@ const executeCreateAccount = async () => {
     
     isSubmitting.value = true
     try {
-        const response = await fetch('http://localhost:3001/api/students/account', {
+        const response = await fetch(`${API_URL}/students/account`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

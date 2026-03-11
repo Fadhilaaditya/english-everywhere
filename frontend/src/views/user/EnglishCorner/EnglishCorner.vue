@@ -5,10 +5,11 @@ import ArticleCard from './_components/ArticleCard.vue'
 
 // Dummy Data
 const articles = ref<any[]>([])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const fetchArticles = async () => {
   try {
-    const response = await fetch('http://localhost:3001/api/articles')
+    const response = await fetch(`${API_URL}/articles`)
     if (!response.ok) throw new Error('Failed to fetch articles')
     articles.value = await response.json()
   } catch (error) {

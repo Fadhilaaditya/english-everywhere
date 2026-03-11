@@ -6,6 +6,7 @@ import Toast from '@/components/Toast.vue'
 import ConfirmationModal from './ConfirmationModal.vue'
 
 const accounts = ref<any[]>([])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const isModalOpen = ref(false)
 const selectedAccount = ref<any>(null)
 
@@ -38,7 +39,7 @@ watch(searchQuery, () => {
 
 const fetchAccounts = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/users')
+        const response = await fetch(`${API_URL}/users`)
         if (response.ok) {
             const data = await response.json()
             accounts.value = data.map((item: any) => {
@@ -118,7 +119,7 @@ const processDelete = async () => {
     isDeleteConfirmOpen.value = false
     try {
         // Implement delete API call
-         const response = await fetch(`http://localhost:3001/api/users/${accountToDelete.value}`, {
+         const response = await fetch(`${API_URL}/users/${accountToDelete.value}`, {
             method: 'DELETE'
         })
         

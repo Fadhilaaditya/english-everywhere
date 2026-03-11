@@ -7,11 +7,12 @@ const router = useRouter()
 const route = useRoute()
 
 const article = ref<any>(null)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const fetchArticle = async () => {
   try {
     const slug = route.params.slug
-    const response = await fetch(`http://localhost:3001/api/articles/${slug}`)
+    const response = await fetch(`${API_URL}/articles/${slug}`)
     if (!response.ok) throw new Error('Failed to fetch article')
     const data = await response.json()
     

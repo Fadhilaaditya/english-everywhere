@@ -8,6 +8,7 @@ const router = useRouter()
 const isLoading = ref(true)
 const profileData = ref<any>(null)
 const errorMsg = ref('')
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const fetchProfile = async () => {
     isLoading.value = true
@@ -20,7 +21,7 @@ const fetchProfile = async () => {
         }
         
         const currentUser = JSON.parse(userDataStr)
-        const response = await axios.get(`http://localhost:3001/api/users/${currentUser.id}`, {
+        const response = await axios.get(`${API_URL}/users/${currentUser.id}`, {
             headers: {
                 'x-access-token': localStorage.getItem('token') || ''
             }

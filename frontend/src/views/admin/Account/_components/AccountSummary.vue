@@ -7,9 +7,11 @@ const stats = ref([
   { label: 'Total Teacher', value: '0' },
 ])
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+
 const fetchStats = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/users/stats')
+        const response = await fetch(`${API_URL}/users/stats`)
         if (response.ok) {
             const data = await response.json()
             stats.value = [

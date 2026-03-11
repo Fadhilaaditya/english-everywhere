@@ -8,6 +8,7 @@ import Toast from '@/components/Toast.vue'
 const applicants = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedApplicant = ref<any>(null)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 // Search and Pagination State
 const searchQuery = ref('')
@@ -54,7 +55,7 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
 
 const fetchApplicants = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/programs/bookings/all?status=ACCEPTED')
+        const response = await fetch(`${API_URL}/programs/bookings/all?status=ACCEPTED`)
         if (response.ok) {
             const data = await response.json()
             applicants.value = data.map((item: any) => ({
@@ -81,7 +82,7 @@ let pollingInterval: any = null
 
 const markAsRead = async () => {
     try {
-        await fetch('http://localhost:3001/api/programs/bookings/mark-read', {
+        await fetch(`${API_URL}/programs/bookings/mark-read`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'ACCEPTED' })
@@ -126,7 +127,7 @@ const confirmDelete = async () => {
     
     isDeleting.value = true
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/bookings/${applicantToDelete.value}`, {
+        const response = await fetch(`${API_URL}/programs/bookings/${applicantToDelete.value}`, {
             method: 'DELETE'
         })
         

@@ -17,6 +17,7 @@ const isInfoModalOpen = ref(false)
 const infoModalData = ref({ title: '', message: '' })
 const selectedDayDate = ref<string>('')
 const selectedDayEvents = ref<any[]>([])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 // Toast state
 const showToast = ref(false)
@@ -33,7 +34,7 @@ const events = ref<Record<string, { id: number, type: 'AVAILABLE' | 'PENDING' | 
 
 const fetchSchedules = async () => {
   try {
-    const response = await fetch(`http://localhost:3001/api/programs/schedules/global?t=${new Date().getTime()}`)
+    const response = await fetch(`${API_URL}/programs/schedules/global?t=${new Date().getTime()}`)
     if (!response.ok) throw new Error('Failed to fetch schedules')
     const data = await response.json()
     
@@ -162,7 +163,7 @@ const handleEventClick = (date: string, time: string, type: string, id: number, 
 const handleModalSubmit = async (payload: any) => {
     if (!selectedSchedule.value) return
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/schedules/${selectedSchedule.value.id}/book`, {
+        const response = await fetch(`${API_URL}/programs/schedules/${selectedSchedule.value.id}/book`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

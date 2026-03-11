@@ -13,6 +13,7 @@ const props = defineProps({
 const isModalOpen = ref(false)
 const selectedEvent = ref<any>(null)
 const events = ref<any[]>([])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const filteredEvents = computed(() => {
   if (!props.searchQuery) return events.value
@@ -29,7 +30,7 @@ const openModal = (event: any) => {
 
 const fetchEvents = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/events/past');
+        const response = await fetch(`${API_URL}/events/past`);
         if (!response.ok) throw new Error('Failed to fetch events');
         events.value = await response.json();
     } catch (error) {
