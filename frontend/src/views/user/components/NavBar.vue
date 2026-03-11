@@ -64,13 +64,6 @@ onMounted(() => {
 
       <template v-if="user?.role === 'teacher'">
         <router-link 
-            to="/teacher/materials" 
-            class="hover:text-primary transition-colors"
-            active-class="font-bold text-lg text-gray-900"
-        >
-            Materi Ajar
-        </router-link>
-        <router-link 
             to="/teacher/schedule" 
            class="hover:text-primary transition-colors"
             active-class="font-bold text-lg text-gray-900"
