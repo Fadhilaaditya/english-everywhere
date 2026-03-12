@@ -6,6 +6,10 @@ import PaymentService from '@/services/PaymentService'
 
 // Simulating logged-in user student ID for now (adjust as per actual auth implementation)
 const currentStudentId = ref<number | null>(null);
+const profileData = ref<any>(null);
+const isLoadingProfile = ref(true);
+
+import api from '@/api'
 
 // Get it from localStorage if available
 onMounted(async () => {
@@ -13,19 +17,25 @@ onMounted(async () => {
     if (userString) {
         try {
             const user = JSON.parse(userString);
-            // student profile ID
-            // For now hardcoding to ID 28 (Adit) based on SQL dump if not found
-            // In a real app we fetch the student profile by user ID
             currentStudentId.value = user?.student?.id || user?.studentId || 28;
+            
+            // Fetch Full Profile for Header Info
+            isLoadingProfile.value = true;
+            const profileRes = await api.get(`/users/${user.id}`);
+            profileData.value = profileRes.data;
+            
             await fetchBills();
         } catch(e) {
-            console.error('Failed to parse user', e)
+            console.error('Failed to parse user or fetch profile', e)
             currentStudentId.value = 28;
             await fetchBills();
+        } finally {
+            isLoadingProfile.value = false;
         }
     } else {
         currentStudentId.value = 28;
         await fetchBills();
+        isLoadingProfile.value = false;
     }
 })
 
@@ -141,6 +151,28 @@ const handleSimulateAdminApprove = async (bill: any) => {
   <div class="min-h-screen bg-gray-50 font-poppins">
     <div class="container mx-auto px-4 py-8">
         
+        <!-- Student Info Header -->
+        <div v-if="profileData" class="bg-white rounded-3xl p-6 md:p-8 mb-6 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div class="w-16 h-16 rounded-2xl bg-[#EFF2FC] flex items-center justify-center shrink-0">
+                <img v-if="profileData.photo" :src="profileData.photo" alt="Profile" class="w-full h-full object-cover rounded-2xl" />
+                <div v-else class="text-2xl font-bold text-[#4FD1C5]">{{ profileData.fullName?.charAt(0) }}</div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nama Lengkap</label>
+                    <div class="text-base font-bold text-gray-900">{{ profileData.fullName }}</div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Program Class</label>
+                    <div class="text-base font-bold text-gray-900">{{ profileData.studentProfile?.course || '-' }}</div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Specific Class</label>
+                    <div class="text-base font-bold text-gray-900">{{ profileData.studentProfile?.program?.title || '-' }}</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Total Banner -->
         <div class="bg-[#f54d42] rounded-3xl p-8 text-white mb-12 shadow-lg relative overflow-hidden">
             <div class="relative z-10">
