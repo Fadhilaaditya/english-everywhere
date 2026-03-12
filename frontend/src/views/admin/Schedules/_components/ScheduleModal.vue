@@ -18,7 +18,7 @@ const emit = defineEmits(['close', 'submit', 'delete'])
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const subPrograms = ref<any[]>([])
-const selectedParentProgram = ref<any>(null)
+const selectedParentProgramId = ref<number | null>(null)
 
 const programOptions = computed(() => 
   props.programs.map(p => ({ id: p.id, title: p.title || p.name }))
@@ -39,10 +39,13 @@ const fetchSubPrograms = async (parentId: number) => {
       const levels = await response.json()
       if (levels && levels.length > 0) {
         subPrograms.value = levels
-      } else if (selectedParentProgram.value) {
+      } else if (selectedParentProgramId.value) {
         // Fallback to parent program if no levels exist
-        subPrograms.value = [selectedParentProgram.value]
-        props.form.programId = selectedParentProgram.value.id
+        const parent = props.programs.find(p => p.id === selectedParentProgramId.value)
+        if (parent) {
+          subPrograms.value = [parent]
+          props.form.programId = parent.id
+        }
       } else {
         subPrograms.value = []
       }
@@ -52,9 +55,9 @@ const fetchSubPrograms = async (parentId: number) => {
   }
 }
 
-watch(selectedParentProgram, (newParent) => {
-  if (newParent) {
-    fetchSubPrograms(newParent.id)
+watch(selectedParentProgramId, (newParentId) => {
+  if (newParentId) {
+    fetchSubPrograms(newParentId)
   } else {
     subPrograms.value = []
     props.form.programId = null
@@ -68,18 +71,15 @@ const initializeHierarchy = async () => {
       const resp = await fetch(`${API_URL}/programs/${props.form.programId}`)
       if (resp.ok) {
         const prog = await resp.json()
-        const parent = prog.parent || prog
-        selectedParentProgram.value = props.programs.find(p => p.id === parent.id)
-        if (selectedParentProgram.value) {
-            await fetchSubPrograms(selectedParentProgram.value.id)
-        }
+        const parentId = prog.parentId || prog.id
+        selectedParentProgramId.value = parentId
+        await fetchSubPrograms(parentId)
       }
     } catch (e) {
       console.error('Failed to initialize hierarchy', e)
     }
   } else if (props.selectedProgramFromCalendar) {
-      // If coming from calendar with a pre-selected program (usually a parent)
-      selectedParentProgram.value = props.programs.find(p => p.id == props.selectedProgramFromCalendar)
+      selectedParentProgramId.value = Number(props.selectedProgramFromCalendar)
   }
 }
 
@@ -87,8 +87,7 @@ const initializeHierarchy = async () => {
 const syncFields = () => {
   if (!props.isEdit) {
     if (props.selectedProgramFromCalendar) {
-      // Just set the parent, the watcher will handle subPrograms if needed
-      selectedParentProgram.value = props.programs.find((p) => p.id == props.selectedProgramFromCalendar)
+      selectedParentProgramId.value = Number(props.selectedProgramFromCalendar)
     }
   }
 }
@@ -165,9 +164,10 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
             <div class="space-y-2">
               <label class="block text-sm font-medium text-gray-700">Program Series</label>
               <CustomDropdown
-                v-model="selectedParentProgram"
+                v-model="selectedParentProgramId"
                 :options="programOptions"
                 label-key="title"
+                value-key="id"
                 placeholder="Select Program Series..."
               />
             </div>
@@ -181,7 +181,7 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
                 labelKey="title"
                 valueKey="id"
                 placeholder="Select Level..."
-                :disabled="!selectedParentProgram"
+                :disabled="!selectedParentProgramId"
               />
             </div>
 
