@@ -33,6 +33,7 @@ module.exports = (app) => {
   // 6. Delete a Schedule
   // Pastikan exports.deleteSchedule ada di controller
   router.delete("/:id/schedules/:scheduleId", programs.deleteSchedule);
+  router.delete("/schedules/:scheduleId", programs.deleteSchedule); // Added to match frontend call
 
   // 7. Revert/Unbook Schedule
   // Pastikan exports.revertSchedule ada di controller
@@ -58,6 +59,9 @@ module.exports = (app) => {
 
   // 14. Approve individual booking
   router.put("/bookings/:id/approve", programs.approveBooking);
+
+  // 14.1 Accept individual booking (Pass Test)
+  router.put("/bookings/:id/accept", programs.acceptBooking);
 
   // 15. Mark bookings as read
   router.put("/bookings/mark-read", programs.markAsRead);

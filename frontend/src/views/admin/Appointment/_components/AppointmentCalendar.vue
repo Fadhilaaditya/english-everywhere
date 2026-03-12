@@ -273,6 +273,13 @@ const getAppointmentsForDay = (date: Date) => {
     })
 }
 
+const hasPendingAppointment = (date: Date) => {
+    const apps = getAppointmentsForDay(date)
+    return apps.some(app => 
+        app.bookings && app.bookings.some((b: any) => b.status === 'PENDING')
+    )
+}
+
 const prevMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1) }
 const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1) }
 const goToToday = () => { 
@@ -360,12 +367,19 @@ onUnmounted(() => {
                 :class="{'bg-gray-50/50 opacity-50': !day.isCurrentMonth, 'cursor-pointer hover:bg-[#F0FFF4]': day.isCurrentMonth}"
             >
                 <div class="flex justify-end sm:justify-between items-start mb-1 sm:mb-2">
-                    <span 
-                        class="text-xs sm:text-lg font-medium w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full"
-                        :class="{ 'bg-[#52D3C4] text-white': day.date.toDateString() === new Date().toDateString() }"
-                    >
-                        {{ day.date.getDate() }}
-                    </span>
+                    <div class="relative">
+                        <span 
+                            class="text-xs sm:text-lg font-medium w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full"
+                            :class="{ 'bg-[#52D3C4] text-white': day.date.toDateString() === new Date().toDateString() }"
+                        >
+                            {{ day.date.getDate() }}
+                        </span>
+                        <!-- Notification Dot -->
+                        <div 
+                            v-if="hasPendingAppointment(day.date)" 
+                            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm"
+                        ></div>
+                    </div>
                 </div>
 
                 <!-- Events -->

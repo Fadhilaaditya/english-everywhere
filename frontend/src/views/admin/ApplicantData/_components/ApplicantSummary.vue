@@ -16,9 +16,15 @@ const fetchBookings = async () => {
 }
 
 const stats = computed(() => {
-    // The table shows status=ACCEPTED, so let's sync the 'Total' logic to that
-    const tableRelevantBookings = bookings.value.filter(b => b.status === 'ACCEPTED')
+    const tableRelevantBookings = bookings.value.filter(b => ['ACCEPTED', 'BOOKED'].includes(b.status))
     
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
+    
+    const scheduledToday = tableRelevantBookings.filter(b => {
+        return b.schedule?.date === today
+    }).length
+
     return [
         { 
             label: 'Total Applicants', 
@@ -26,8 +32,8 @@ const stats = computed(() => {
             color: 'text-gray-900'
         },
         { 
-            label: 'Total Bookings', 
-            value: bookings.value.filter(b => b.status === 'BOOKED').length, 
+            label: 'Scheduled Today', 
+            value: scheduledToday, 
             color: 'text-orange-500'
         }
     ]

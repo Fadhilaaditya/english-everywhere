@@ -27,7 +27,21 @@ exports.getDashboardData = async (req, res) => {
             include: [{ model: PaymentInstallment, as: 'installments' }]
         });
 
-        let totalTransactions = allPayments.length;
+        const totalLunasSuccess = await Payment.count({
+            where: {
+                status: 'Success',
+                paymentType: 'Lunas'
+            }
+        });
+        const totalInstallmentsSuccess = await PaymentInstallment.count({
+            where: { status: 'Success' }
+        });
+
+        const pendingAppointmentsCount = await AppointmentBooking.count({
+            where: { status: 'PENDING' }
+        });
+
+        let totalTransactions = totalLunasSuccess + totalInstallmentsSuccess;
         let overduePayments = 0;
         let pendingPayments = 0;
 
@@ -44,30 +58,78 @@ exports.getDashboardData = async (req, res) => {
             }
         });
 
-        // 2. Recent Appointments (New Bookings)
+        // 2. Recent Appointments (This Month, excluding Accepted)
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA');
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toLocaleDateString('en-CA');
+
         const recentAppointments = await AppointmentBooking.findAll({
-            where: { status: 'BOOKED' },
-            limit: 5,
+            where: {
+                status: { [Op.ne]: 'SUCCESS' }
+            },
             order: [['createdAt', 'DESC']],
             include: [
                 {
                     model: ProgramSchedule,
                     as: 'schedule',
+                    where: {
+                        date: {
+                            [Op.between]: [startOfMonth, endOfMonth]
+                        }
+                    },
                     include: [{ model: Program, as: 'program' }]
                 }
             ]
         });
 
         // 3. Last Transactions (Successful)
-        const lastTransactions = await Payment.findAll({
-            where: { status: 'Success' },
-            limit: 5,
+        // Fetch standalone payments (Lunas)
+        const lastLunasTransactions = await Payment.findAll({
+            where: {
+                status: 'Success',
+                paymentType: 'Lunas'
+            },
+            limit: 20,
             order: [['paymentDate', 'DESC']],
             include: [
                 { model: Student, as: 'student', attributes: ['name'] },
                 { model: Program, as: 'program', attributes: ['title'] }
             ]
         });
+
+        // Fetch installments
+        const lastInstallmentTransactions = await PaymentInstallment.findAll({
+            where: { status: 'Success' },
+            limit: 20,
+            order: [['paymentDate', 'DESC']],
+            include: [
+                {
+                    model: Payment,
+                    as: 'payment',
+                    include: [
+                        { model: Student, as: 'student', attributes: ['name'] },
+                        { model: Program, as: 'program', attributes: ['title'] }
+                    ]
+                }
+            ]
+        });
+
+        // Merge and sort
+        const mergedTransactions = [
+            ...lastLunasTransactions.map(trx => ({
+                name: trx.student?.name || 'Unknown',
+                plan: trx.program?.title || 'General English',
+                amount: trx.amount,
+                paymentDate: trx.paymentDate
+            })),
+            ...lastInstallmentTransactions.map(inst => ({
+                name: inst.payment?.student?.name || 'Unknown',
+                plan: inst.payment?.program?.title || 'General English',
+                amount: inst.amount,
+                paymentDate: inst.paymentDate
+            }))
+        ].sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+            .slice(0, 20);
 
         // 4. Recent Events
         const recentEvents = await Event.findAll({
@@ -80,17 +142,19 @@ exports.getDashboardData = async (req, res) => {
                 totalAccounts,
                 totalTransactions,
                 overduePayments,
-                pendingPayments
+                pendingPayments,
+                pendingAppointments: pendingAppointmentsCount
             },
             appointments: recentAppointments.map(apt => ({
                 name: apt.applicantName,
                 date: apt.schedule?.date || '-',
                 time: apt.schedule?.time || '-',
-                test: apt.schedule?.program?.title || 'Placement Test'
+                test: apt.schedule?.program?.title || 'Placement Test',
+                status: apt.status
             })),
-            transactions: lastTransactions.map(trx => ({
-                name: trx.student?.name || 'Unknown',
-                plan: trx.program?.title || 'General English',
+            transactions: mergedTransactions.map(trx => ({
+                name: trx.name,
+                plan: trx.plan,
                 amount: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(trx.amount)
             })),
             events: recentEvents

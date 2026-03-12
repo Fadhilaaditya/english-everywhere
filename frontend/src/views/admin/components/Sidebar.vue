@@ -48,11 +48,11 @@ const checkNewApplicants = async () => {
                 appointmentMenu.hasNotification = hasPending
             }
 
-            // 2. Check for new BOOKED bookings (Applicant Data dot)
-            const hasNewBooked = data.some((b: any) => b.status === 'BOOKED' && b.isRead === false)
+            // 2. Check for new ACCEPTED bookings that are unread (Applicant Data dot)
+            const hasNewAccepted = data.some((b: any) => b.status === 'ACCEPTED' && b.isRead === false)
             const applicantMenu = menuItems.value.find(item => item.name === 'Applicant Data')
             if (applicantMenu) {
-                applicantMenu.hasNotification = hasNewBooked
+                applicantMenu.hasNotification = hasNewAccepted
             }
         }
     } catch (e) {

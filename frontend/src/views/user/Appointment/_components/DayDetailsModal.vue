@@ -15,6 +15,7 @@ const formatDate = (dateVal: Date | string) => {
 }
 
 const getStatusLabel = (event: any) => {
+    if (event.isPast) return 'Closed'
     const s = (event.status || event.type || '').toLowerCase()
     if (s === 'available') return 'Available'
     if (s === 'waiting' || s === 'pending') return 'Waiting'

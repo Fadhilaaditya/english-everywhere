@@ -55,7 +55,7 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
 
 const fetchApplicants = async () => {
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/all?status=ACCEPTED`)
+        const response = await fetch(`${API_URL}/programs/bookings/all?status=ACCEPTED,BOOKED`)
         if (response.ok) {
             const data = await response.json()
             applicants.value = data.map((item: any) => ({
@@ -64,6 +64,7 @@ const fetchApplicants = async () => {
                 gender: item.applicantGender,
                 phone: item.applicantPhone || '-',
                 date: formatDate(item.schedule?.date),
+                status: item.status,
                 fullData: item
             }))
         }
@@ -85,7 +86,7 @@ const markAsRead = async () => {
         await fetch(`${API_URL}/programs/bookings/mark-read`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'ACCEPTED' })
+            body: JSON.stringify({ status: 'ACCEPTED,BOOKED' })
         })
     } catch (e) {
         console.error('Failed to mark as read', e)
@@ -108,7 +109,20 @@ const handleAccept = (applicant: any) => {
     isModalOpen.value = true
 }
 
-// ... existing code ...
+const handlePassTest = async (id: number) => {
+    try {
+        const response = await fetch(`${API_URL}/programs/bookings/${id}/accept`, {
+            method: 'PUT'
+        })
+        if (response.ok) {
+            showToastNotification('Student marked as passed test (ACCEPTED)', 'success')
+            fetchApplicants()
+        }
+    } catch (e) {
+        console.error('Failed to pass test', e)
+        showToastNotification('Failed to update status', 'error')
+    }
+}
 
 const handleModalSubmit = (data: any) => {
     console.log('Creating account for:', data)
@@ -191,10 +205,18 @@ const confirmDelete = async () => {
                 <td class="py-6 px-6">
                     <div class="flex items-center gap-4">
                         <button 
-                            @click="handleAccept(applicant)"
-                            class="px-6 py-1.5 rounded-full border border-gray-900 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white transition-all"
+                            v-if="applicant.status === 'BOOKED'"
+                            @click="handlePassTest(applicant.id)"
+                            class="px-6 py-1.5 rounded-full border border-[#4FD1C5] text-sm font-medium text-[#4FD1C5] hover:bg-[#4FD1C5] hover:text-white transition-all whitespace-nowrap"
                         >
                             Accept
+                        </button>
+                        <button 
+                            v-if="applicant.status === 'ACCEPTED'"
+                            @click="handleAccept(applicant)"
+                            class="px-6 py-1.5 rounded-full border border-[#4FD1C5] text-sm font-medium text-[#4FD1C5] hover:bg-[#4FD1C5] hover:text-white transition-all whitespace-nowrap"
+                        >
+                            Create Account
                         </button>
                         <button 
                             @click="handleDelete(applicant.id)"
