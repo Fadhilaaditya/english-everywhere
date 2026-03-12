@@ -15,7 +15,8 @@ const dashboardData = ref({
         totalAccounts: 0,
         totalTransactions: 0,
         overduePayments: 0,
-        pendingPayments: 0
+        pendingPayments: 0,
+        pendingAppointments: 0
     },
     appointments: [],
     transactions: [],
