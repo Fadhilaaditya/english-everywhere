@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { X, Plus, Trash2, Loader2 } from 'lucide-vue-next'
-import CustomDropdown from '@/components/Dropdown.vue'
+import CustomDropdown from '@/components/CustomDropdown.vue'
 import api from '@/api'
 
 const props = defineProps<{
