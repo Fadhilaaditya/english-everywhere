@@ -58,12 +58,16 @@ const fetchSubPrograms = async (parentId: number) => {
     try {
         const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
         if (response.ok) {
-            subPrograms.value = await response.json()
-            // If levels exist, reset selected programId until one is picked
-            if (subPrograms.value.length > 0) {
+            const levels = await response.json()
+            if (levels && levels.length > 0) {
+                subPrograms.value = levels
                 formData.value.programId = null
+            } else if (selectedParentProgram.value) {
+                // Fallback to parent program
+                subPrograms.value = [selectedParentProgram.value]
+                formData.value.programId = parentId
             } else {
-                // If no levels, use the parent ID
+                subPrograms.value = []
                 formData.value.programId = parentId
             }
         }

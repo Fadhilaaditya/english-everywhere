@@ -36,7 +36,16 @@ const fetchSubPrograms = async (parentId: number) => {
   try {
     const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
     if (response.ok) {
-      subPrograms.value = await response.json()
+      const levels = await response.json()
+      if (levels && levels.length > 0) {
+        subPrograms.value = levels
+      } else if (selectedParentProgram.value) {
+        // Fallback to parent program if no levels exist
+        subPrograms.value = [selectedParentProgram.value]
+        props.form.programId = selectedParentProgram.value.id
+      } else {
+        subPrograms.value = []
+      }
     }
   } catch (e) {
     console.error('Failed to fetch sub-programs', e)
