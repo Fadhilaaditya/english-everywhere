@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import api from '@/api'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const bookings = ref<any[]>([])
 
 const fetchBookings = async () => {
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/all`)
-        if (response.ok) {
-            bookings.value = await response.json()
-        }
+        const response = await api.get('/programs/bookings/all')
+        bookings.value = response.data
     } catch (e) {
         console.error('Failed to fetch bookings', e)
     }

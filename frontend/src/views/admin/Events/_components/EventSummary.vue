@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+import api from '@/api'
 
 const stats = ref([
   { label: 'Total Events', value: 0, color: 'text-gray-900' },
@@ -11,9 +10,8 @@ const stats = ref([
 
 const fetchSummary = async () => {
     try {
-        const response = await fetch(`${API_URL}/events/summary`);
-        if (!response.ok) throw new Error('Failed to fetch summary');
-        const data = await response.json();
+        const response = await api.get('/events/summary');
+        const data = response.data;
         
         stats.value = [
             { label: 'Total Events', value: data.total, color: 'text-gray-900' },

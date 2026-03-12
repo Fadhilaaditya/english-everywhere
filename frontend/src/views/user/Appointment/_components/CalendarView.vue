@@ -32,11 +32,14 @@ const showToastNotification = (message: string, type: 'success' | 'error' | 'inf
 // Events state
 const events = ref<Record<string, { id: number, type: 'AVAILABLE' | 'PENDING' | 'BOOKED', time: string, name?: string }[]>>({})
 
+import api from '@/api'
+
 const fetchSchedules = async () => {
   try {
-    const response = await fetch(`${API_URL}/programs/schedules/global?t=${new Date().getTime()}`)
-    if (!response.ok) throw new Error('Failed to fetch schedules')
-    const data = await response.json()
+    const response = await api.get(`/programs/schedules/global`, {
+        params: { t: new Date().getTime() }
+    })
+    const data = response.data
     
     // Get today's date in YYYY-MM-DD format for comparison
     const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
@@ -121,7 +124,7 @@ const calendarDays = computed(() => {
          days.push({
             date: i,
             isCurrentMonth: false,
-             fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, i)
+            fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, i)
         })
     }
     return days
@@ -176,20 +179,13 @@ const handleEventClick = (date: string, time: string, type: string, id: number, 
 const handleModalSubmit = async (payload: any) => {
     if (!selectedSchedule.value) return
     try {
-        const response = await fetch(`${API_URL}/programs/schedules/${selectedSchedule.value.id}/book`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        if (!response.ok) {
-            const err = await response.json()
-            throw new Error(err.message || 'Failed to book')
-        }
+        await api.post(`/programs/schedules/${selectedSchedule.value.id}/book`, payload)
         showToastNotification('Registration successful! Waiting for admin approval.')
         isModalOpen.value = false
         fetchSchedules()
     } catch (e: any) {
-        showToastNotification(e.message, 'error')
+        const errorMsg = e.response?.data?.message || e.message || 'Something went wrong'
+        showToastNotification(errorMsg, 'error')
     }
 }
 </script>

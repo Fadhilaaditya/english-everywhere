@@ -57,20 +57,19 @@ const handleFileUpload = async (event: Event) => {
     await uploadToCloudinary(file)
 }
 
+import api from '@/api'
+
 const uploadToCloudinary = async (file: File) => {
     isUploading.value = true
     const formData = new FormData()
     formData.append('image', file)
 
     try {
-        const response = await fetch(`${API_URL}/upload`, {
-            method: 'POST',
-            body: formData,
+        const response = await api.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
         })
 
-        if (!response.ok) throw new Error('Upload failed')
-
-        const data = await response.json()
+        const data = response.data
         image.value = data.secure_url
         showNotification('Image uploaded successfully', 'success')
     } catch (error) {
@@ -82,11 +81,10 @@ const uploadToCloudinary = async (file: File) => {
 }
 
 const fetchArticle = async () => {
-    if (!isEditMode.value) return
+    if (!articleId.value) return
     try {
-        const response = await fetch(`${API_URL}/articles/${articleId.value}`)
-        if (!response.ok) throw new Error('Failed to fetch article')
-        const data = await response.json()
+        const response = await api.get(`/articles/${articleId.value}`)
+        const data = response.data
         
         title.value = data.title
         description.value = data.description
@@ -123,19 +121,11 @@ const handlePublish = async () => {
     }
 
     try {
-        const url = isEditMode.value 
-            ? `${API_URL}/articles/${articleId.value}`
-            : `${API_URL}/articles`
-        
-        const method = isEditMode.value ? 'PUT' : 'POST'
-
-        const response = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-
-        if (!response.ok) throw new Error('Failed to save article')
+        if (isEditMode.value) {
+            await api.put(`/articles/${articleId.value}`, payload)
+        } else {
+            await api.post('/articles', payload)
+        }
         
         showNotification(isEditMode.value ? 'Article updated successfully' : 'Article published successfully', 'success')
         

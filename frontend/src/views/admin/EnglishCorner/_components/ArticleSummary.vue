@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import api from '@/api'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const totalArticles = ref(0)
 const publishedArticles = ref(0)
 
 const fetchArticleCount = async () => {
     try {
-        const response = await fetch(`${API_URL}/articles`)
-        if (!response.ok) throw new Error('Failed to fetch articles')
-        const data = await response.json()
+        const response = await api.get('/articles')
+        const data = response.data
         totalArticles.value = data.length
         publishedArticles.value = data.filter((a: any) => a.status === 'published' || !a.status).length
     } catch (error) {

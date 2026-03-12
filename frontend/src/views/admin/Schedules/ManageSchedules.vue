@@ -6,7 +6,7 @@ import Toast from '@/components/Toast.vue'
 import ScheduleCalendar from './_components/ScheduleCalendar.vue'
 import ScheduleModal from './_components/ScheduleModal.vue'
 import ConfirmModal from './_components/ConfirmModal.vue'
-import axios from 'axios'
+import api from '@/api'
 
 // --- State ---
 const schedules = ref<any[]>([])
@@ -44,14 +44,7 @@ const form = ref({
   date: '',
 })
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
 // --- Utils ---
-const getHeaders = () => ({
-  'Content-Type': 'application/json',
-  'x-access-token': localStorage.getItem('token') || '',
-})
-
 const triggerToast = (message: string, type: 'success' | 'error' = 'success') => {
   toastMessage.value = message
   toastType.value = type
@@ -65,9 +58,9 @@ const triggerToast = (message: string, type: 'success' | 'error' = 'success') =>
 const fetchData = async () => {
   try {
     const [resP, resT, resC] = await Promise.all([
-      axios.get(`${API_BASE_URL}/programs`, { headers: getHeaders() }),
-      axios.get(`${API_BASE_URL}/teachers`, { headers: getHeaders() }),
-      axios.get(`${API_BASE_URL}/classrooms`, { headers: getHeaders() }),
+      api.get('/programs'),
+      api.get('/teachers'),
+      api.get('/classrooms'),
     ])
     programs.value = Array.isArray(resP.data) ? resP.data : resP.data.data || []
     teachers.value = Array.isArray(resT.data) ? resT.data : resT.data.data || []
@@ -79,13 +72,11 @@ const fetchData = async () => {
 
 const fetchSchedules = async () => {
   try {
-    let url = `${API_BASE_URL}/teacher-schedules`
-    const params = []
-    if (selectedCourseId.value) params.push(`programId=${selectedCourseId.value}`)
-    if (selectedTeacherId.value) params.push(`teacherId=${selectedTeacherId.value}`)
-    if (params.length > 0) url += `?${params.join('&')}`
+    const params: any = {}
+    if (selectedCourseId.value) params.programId = selectedCourseId.value
+    if (selectedTeacherId.value) params.teacherId = selectedTeacherId.value
 
-    const res = await axios.get(url, { headers: getHeaders() })
+    const res = await api.get('/teacher-schedules', { params })
     schedules.value = res.data
   } catch (e) {
     console.error('Error fetching schedules:', e)
@@ -141,10 +132,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   try {
     const isEdit = !!selectedAppointment.value
-    const url = isEdit
-      ? `${API_BASE_URL}/teacher-schedules/${selectedAppointment.value.id}`
-      : `${API_BASE_URL}/teacher-schedules`
-
+    
     // Pastikan ID dikirim sebagai angka jika Backend mewajibkan Integer
     const payload = {
       ...form.value,
@@ -152,8 +140,11 @@ const handleSubmit = async () => {
       teacherId: parseInt(form.value.teacherId),
     }
 
-    const method = isEdit ? axios.put : axios.post
-    await method(url, payload, { headers: getHeaders() })
+    if (isEdit) {
+      await api.put(`/teacher-schedules/${selectedAppointment.value.id}`, payload)
+    } else {
+      await api.post('/teacher-schedules', payload)
+    }
 
     triggerToast(isEdit ? 'Jadwal diperbarui' : 'Jadwal disimpan ke database')
     showModal.value = false
@@ -174,7 +165,7 @@ const handleDelete = (id: number) => {
 const confirmDelete = async () => {
   if (!scheduleToDelete.value) return
   try {
-    await axios.delete(`${API_BASE_URL}/teacher-schedules/${scheduleToDelete.value}`, { headers: getHeaders() })
+    await api.delete(`/teacher-schedules/${scheduleToDelete.value}`)
     triggerToast('Jadwal dihapus')
     showModal.value = false
     showConfirmModal.value = false

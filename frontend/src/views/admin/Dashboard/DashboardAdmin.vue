@@ -7,8 +7,9 @@ import DashboardAppointment from './_components/DashboardAppointment.vue'
 import LastTransaction from './_components/LastTransaction.vue'
 import RecentEvents from './_components/RecentEvents.vue'
 
+import api from '@/api'
+
 const isSidebarOpen = ref(false)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const dashboardData = ref({
     stats: {
@@ -27,9 +28,8 @@ const isLoading = ref(true)
 
 const fetchDashboardData = async () => {
     try {
-        const response = await fetch(`${API_URL}/dashboard`)
-        if (!response.ok) throw new Error('Failed to fetch dashboard data')
-        dashboardData.value = await response.json()
+        const response = await api.get('/dashboard')
+        dashboardData.value = response.data
     } catch (error) {
         console.error('Error fetching dashboard data:', error)
     } finally {

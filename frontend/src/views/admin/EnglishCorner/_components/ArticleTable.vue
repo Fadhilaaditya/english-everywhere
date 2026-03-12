@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
+import api from '@/api'
 import { useRouter } from 'vue-router'
 import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import Toast from '../../../../components/Toast.vue'
 
 const router = useRouter()
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const articles = ref<any[]>([])
 
 // Search and Pagination State
@@ -48,9 +48,8 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
 
 const fetchArticles = async () => {
     try {
-        const response = await fetch(`${API_URL}/articles`)
-        if (!response.ok) throw new Error('Failed to fetch articles')
-        articles.value = await response.json()
+        const response = await api.get('/articles')
+        articles.value = response.data
     } catch (error) {
         console.error('Error fetching articles:', error)
     }
@@ -68,10 +67,7 @@ const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this article?')) return
 
     try {
-        const response = await fetch(`${API_URL}/articles/${id}`, {
-            method: 'DELETE'
-        })
-        if (!response.ok) throw new Error('Failed to delete article')
+        await api.delete(`/articles/${id}`)
         await fetchArticles()
         showNotification('Article deleted successfully', 'success')
     } catch (error) {

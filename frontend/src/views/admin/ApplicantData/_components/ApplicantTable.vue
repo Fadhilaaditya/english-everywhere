@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import api from '@/api'
 import { Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import ApplicantAcceptModal from './ApplicantAcceptModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
@@ -8,7 +9,6 @@ import Toast from '@/components/Toast.vue'
 const applicants = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedApplicant = ref<any>(null)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 // Search and Pagination State
 const searchQuery = ref('')
@@ -55,19 +55,17 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
 
 const fetchApplicants = async () => {
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/all?status=ACCEPTED,BOOKED`)
-        if (response.ok) {
-            const data = await response.json()
-            applicants.value = data.map((item: any) => ({
-                id: item.id,
-                name: item.applicantName,
-                gender: item.applicantGender,
-                phone: item.applicantPhone || '-',
-                date: formatDate(item.schedule?.date),
-                status: item.status,
-                fullData: item
-            }))
-        }
+        const response = await api.get('/programs/bookings/all?status=ACCEPTED,BOOKED')
+        const data = response.data
+        applicants.value = data.map((item: any) => ({
+            id: item.id,
+            name: item.applicantName,
+            gender: item.applicantGender,
+            phone: item.applicantPhone || '-',
+            date: formatDate(item.schedule?.date),
+            status: item.status,
+            fullData: item
+        }))
     } catch (e) {
         console.error('Failed to fetch applicants', e)
     }
@@ -83,11 +81,7 @@ let pollingInterval: any = null
 
 const markAsRead = async () => {
     try {
-        await fetch(`${API_URL}/programs/bookings/mark-read`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'ACCEPTED,BOOKED' })
-        })
+        await api.put('/programs/bookings/mark-read', { status: 'ACCEPTED,BOOKED' })
     } catch (e) {
         console.error('Failed to mark as read', e)
     }
@@ -111,13 +105,9 @@ const handleAccept = (applicant: any) => {
 
 const handlePassTest = async (id: number) => {
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/${id}/accept`, {
-            method: 'PUT'
-        })
-        if (response.ok) {
-            showToastNotification('Student marked as passed test (ACCEPTED)', 'success')
-            fetchApplicants()
-        }
+        await api.put(`/programs/bookings/${id}/accept`)
+        showToastNotification('Student marked as passed test (ACCEPTED)', 'success')
+        fetchApplicants()
     } catch (e) {
         console.error('Failed to pass test', e)
         showToastNotification('Failed to update status', 'error')
@@ -141,17 +131,10 @@ const confirmDelete = async () => {
     
     isDeleting.value = true
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/${applicantToDelete.value}`, {
-            method: 'DELETE'
-        })
-        
-        if (response.ok) {
-            showToastNotification('Applicant deleted and schedule reverted to available', 'success')
-            fetchApplicants()
-            isDeleteModalOpen.value = false
-        } else {
-            throw new Error('Failed to revert schedule')
-        }
+        await api.delete(`/programs/bookings/${applicantToDelete.value}`)
+        showToastNotification('Applicant deleted and schedule reverted to available', 'success')
+        fetchApplicants()
+        isDeleteModalOpen.value = false
     } catch (e) {
         console.error('Failed to delete applicant', e)
         showToastNotification('Failed to delete applicant', 'error')

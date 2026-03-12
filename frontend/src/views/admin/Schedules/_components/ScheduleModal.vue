@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X, Loader2 } from 'lucide-vue-next'
 import { watch, onMounted, computed, ref } from 'vue'
+import api from '@/api'
 import CustomDropdown from '@/components/CustomDropdown.vue'
 
 const props = defineProps<{
@@ -15,7 +16,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'submit', 'delete'])
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const subPrograms = ref<any[]>([])
 const selectedParentProgramId = ref<number | null>(null)
@@ -34,21 +34,19 @@ const classroomOptions = computed(() =>
 
 const fetchSubPrograms = async (parentId: number) => {
   try {
-    const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
-    if (response.ok) {
-      const levels = await response.json()
-      if (levels && levels.length > 0) {
-        subPrograms.value = levels
-      } else if (selectedParentProgramId.value) {
-        // Fallback to parent program if no levels exist
-        const parent = props.programs.find(p => p.id === selectedParentProgramId.value)
-        if (parent) {
-          subPrograms.value = [parent]
-          props.form.programId = parent.id
-        }
-      } else {
-        subPrograms.value = []
+    const response = await api.get(`/programs/${parentId}/levels`)
+    const levels = response.data
+    if (levels && levels.length > 0) {
+      subPrograms.value = levels
+    } else if (selectedParentProgramId.value) {
+      // Fallback to parent program if no levels exist
+      const parent = props.programs.find(p => p.id === selectedParentProgramId.value)
+      if (parent) {
+        subPrograms.value = [parent]
+        props.form.programId = parent.id
       }
+    } else {
+      subPrograms.value = []
     }
   } catch (e) {
     console.error('Failed to fetch sub-programs', e)
@@ -68,13 +66,11 @@ watch(selectedParentProgramId, (newParentId) => {
 const initializeHierarchy = async () => {
   if (props.isEdit && props.form.programId) {
     try {
-      const resp = await fetch(`${API_URL}/programs/${props.form.programId}`)
-      if (resp.ok) {
-        const prog = await resp.json()
-        const parentId = prog.parentId || prog.id
-        selectedParentProgramId.value = parentId
-        await fetchSubPrograms(parentId)
-      }
+      const resp = await api.get(`/programs/${props.form.programId}`)
+      const prog = resp.data
+      const parentId = prog.parentId || prog.id
+      selectedParentProgramId.value = parentId
+      await fetchSubPrograms(parentId)
     } catch (e) {
       console.error('Failed to initialize hierarchy', e)
     }

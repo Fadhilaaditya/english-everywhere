@@ -12,6 +12,7 @@ import {
 } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted } from 'vue'
+import api from '@/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -33,13 +34,14 @@ const menuItems = ref([
    { name: 'Schedules', icon: CalendarDays, path: '/admin/schedules' },
 ])
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+
+const user = JSON.parse(localStorage.getItem('user') || '{}')
 
 const checkNewApplicants = async () => {
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/all`)
-        if (response.ok) {
-            const data = await response.json()
+        const response = await api.get('/programs/bookings/all')
+        if (response.status === 200) {
+            const data = response.data
             
             // 1. Check for new PENDING bookings (Appointment dot)
             const hasPending = data.some((b: any) => b.status === 'PENDING')

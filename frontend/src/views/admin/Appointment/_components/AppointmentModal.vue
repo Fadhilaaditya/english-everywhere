@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import api from '@/api'
 import { X, Calendar, Clock } from 'lucide-vue-next'
 import CustomDropdown from '@/components/CustomDropdown.vue'
 
@@ -10,7 +11,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'approve', 'update', 'delete', 'reject'])
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const formData = ref({
     fullName: '',
@@ -44,11 +44,9 @@ watch(() => props.isOpen, async (newVal) => {
     if (newVal && props.appointment) {
         isLoading.value = true
         try {
-            const response = await fetch(`${API_URL}/programs/schedules/${props.appointment.id}/bookings`)
-            if (response.ok) {
-                bookings.value = await response.json()
-                selectedBookingIndex.value = 0
-            }
+            const response = await api.get(`/programs/schedules/${props.appointment.id}/bookings`)
+            bookings.value = response.data
+            selectedBookingIndex.value = 0
         } catch (e) {
             console.error('Failed to fetch bookings', e)
         } finally {
@@ -144,13 +142,8 @@ const handlePassTest = async () => {
     if (!selectedBooking.value) return
     isLoading.value = true
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/${selectedBooking.value.id}/accept`, {
-            method: 'PUT'
-        })
-        if (response.ok) {
-            emit('close')
-            // The list will re-fetch based on polling or emitted events
-        }
+        await api.put(`/programs/bookings/${selectedBooking.value.id}/accept`)
+        emit('close')
     } catch (e) {
         console.error('Failed to pass test', e)
     } finally {

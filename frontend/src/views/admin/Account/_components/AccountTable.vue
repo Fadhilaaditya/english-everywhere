@@ -5,8 +5,9 @@ import AccountEditModal from './AccountEditModal.vue'
 import Toast from '@/components/Toast.vue'
 import ConfirmationModal from './ConfirmationModal.vue'
 
+import api from '@/api'
+
 const accounts = ref<any[]>([])
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const isModalOpen = ref(false)
 const selectedAccount = ref<any>(null)
 
@@ -39,23 +40,21 @@ watch(searchQuery, () => {
 
 const fetchAccounts = async () => {
     try {
-        const response = await fetch(`${API_URL}/users`)
-        if (response.ok) {
-            const data = await response.json()
-            accounts.value = data.map((item: any) => {
-                const isStudent = item.role === 'student'
-                const profile = isStudent ? item.studentProfile : item.teacherProfile
-                
-                return {
-                    id: item.id,
-                    name: item.fullName || (profile ? profile.name : '-'),
-                    username: item.username,
-                    dob: profile && profile.birthDate ? formatDate(profile.birthDate) : '-',
-                    role: capitalize(item.role),
-                    fullData: item 
-                }
-            })
-        }
+        const response = await api.get('/users')
+        const data = response.data
+        accounts.value = data.map((item: any) => {
+            const isStudent = item.role === 'student'
+            const profile = isStudent ? item.studentProfile : item.teacherProfile
+            
+            return {
+                id: item.id,
+                name: item.fullName || (profile ? profile.name : '-'),
+                username: item.username,
+                dob: profile && profile.birthDate ? formatDate(profile.birthDate) : '-',
+                role: capitalize(item.role),
+                fullData: item 
+            }
+        })
     } catch (e) {
         console.error('Failed to fetch accounts', e)
     }
@@ -119,16 +118,10 @@ const processDelete = async () => {
     isDeleteConfirmOpen.value = false
     try {
         // Implement delete API call
-         const response = await fetch(`${API_URL}/users/${accountToDelete.value}`, {
-            method: 'DELETE'
-        })
+         await api.delete(`/users/${accountToDelete.value}`)
         
-        if (response.ok) {
-            showToastNotification('Account deleted successfully')
-            fetchAccounts()
-        } else {
-            throw new Error('Failed to delete')
-        }
+        showToastNotification('Account deleted successfully')
+        fetchAccounts()
     } catch (e) {
         console.error('Failed to delete account', e)
         showToastNotification('Failed to delete account', 'error')

@@ -3,6 +3,7 @@ import { ref, watch, computed, onMounted } from 'vue'
 import { User, Edit, X, Eye, EyeOff } from 'lucide-vue-next'
 import ConfirmationModal from './ConfirmationModal.vue'
 import CustomDropdown from '@/components/CustomDropdown.vue'
+import api from '@/api'
 
 const props = defineProps<{
   isOpen: boolean
@@ -10,7 +11,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'submit'])
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const isEditMode = computed(() => !!props.account && Object.keys(props.account).length > 0)
 const title = computed(() => isEditMode.value ? 'Edit Account' : 'Create Account')
@@ -47,20 +47,18 @@ const roleOptions = [
 
 const fetchCourses = async () => {
     try {
-        const response = await fetch(`${API_URL}/programs`)
-        if (response.ok) {
-            courses.value = await response.json()
+        const response = await api.get('/programs')
+        courses.value = response.data
+        
+        // If in edit mode, try to find and set the parent program
+        if (isEditMode.value && props.account?.fullData?.studentProfile?.program) {
+            const studentProgram = props.account.fullData.studentProfile.program
+            // If it's a child program, its 'parent' property should exist (via association)
+            const parent = studentProgram.parent || studentProgram 
             
-            // If in edit mode, try to find and set the parent program
-            if (isEditMode.value && props.account?.fullData?.studentProfile?.program) {
-                const studentProgram = props.account.fullData.studentProfile.program
-                // If it's a child program, its 'parent' property should exist (via association)
-                const parent = studentProgram.parent || studentProgram 
-                
-                selectedParentProgram.value = courses.value.find((p: any) => p.id === parent.id)
-                if (selectedParentProgram.value) {
-                    fetchSubPrograms(selectedParentProgram.value.id)
-                }
+            selectedParentProgram.value = courses.value.find((p: any) => p.id === parent.id)
+            if (selectedParentProgram.value) {
+                fetchSubPrograms(selectedParentProgram.value.id)
             }
         }
     } catch (e) {
@@ -70,19 +68,17 @@ const fetchCourses = async () => {
 
 const fetchSubPrograms = async (parentId: number) => {
     try {
-        const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
-        if (response.ok) {
-            const levels = await response.json()
-            if (levels && levels.length > 0) {
-                subPrograms.value = levels
-            } else if (selectedParentProgram.value) {
-                subPrograms.value = [selectedParentProgram.value]
-                if (!formData.value.programId) {
-                    formData.value.programId = selectedParentProgram.value.id
-                }
-            } else {
-                subPrograms.value = []
+        const response = await api.get(`/programs/${parentId}/levels`)
+        const levels = response.data
+        if (levels && levels.length > 0) {
+            subPrograms.value = levels
+        } else if (selectedParentProgram.value) {
+            subPrograms.value = [selectedParentProgram.value]
+            if (!formData.value.programId) {
+                formData.value.programId = selectedParentProgram.value.id
             }
+        } else {
+            subPrograms.value = []
         }
     } catch (e) {
         console.error('Failed to fetch sub-programs', e)
@@ -164,17 +160,12 @@ const handleFileUpload = async (event: Event) => {
 
     try {
         isLoading.value = true
-        const response = await fetch(`${API_URL}/upload`, {
-            method: 'POST',
-            body: uploadData
+        const response = await api.post('/upload', uploadData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
         })
 
-        if (response.ok) {
-            const data = await response.json()
-            formData.value.photo = data.secure_url
-        } else {
-            throw new Error('Upload failed')
-        }
+        const data = response.data
+        formData.value.photo = data.secure_url
     } catch (e) {
         console.error('Photo upload error:', e)
     } finally {
@@ -192,30 +183,18 @@ const processSubmission = async () => {
     isConfirmOpen.value = false // Close confirm modal
     isLoading.value = true
     try {
-        const url = isEditMode.value 
-            ? `${API_URL}/users/${props.account.id}`
-            : `${API_URL}/users`
-            
-        const method = isEditMode.value ? 'PUT' : 'POST'
-        
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData.value)
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.message || 'Failed to process account')
+        if (isEditMode.value) {
+            await api.put(`/users/${props.account.id}`, formData.value)
+        } else {
+            await api.post('/users', formData.value)
         }
         
         emit('submit', formData.value)
         emit('close')
     } catch (e: any) {
         console.error('Error processing account:', e)
-        alert(e.message || 'Something went wrong')
+        const errorMsg = e.response?.data?.message || e.message || 'Something went wrong'
+        alert(errorMsg)
     } finally {
         isLoading.value = false
     }
@@ -286,12 +265,14 @@ const processSubmission = async () => {
                     />
                 </div>
 
-                <!-- Role Selection (NEW) -->
+                <!-- Role Selection -->
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Role Selection</label>
                     <CustomDropdown 
                         v-model="formData.role"
                         :options="roleOptions"
+                        label-key="label"
+                        value-key="value"
                         :disabled="isEditMode"
                         placeholder="Select Role"
                     />
@@ -346,8 +327,22 @@ const processSubmission = async () => {
                     />
                 </div>
 
-                 <!-- Course (Student) -->
-                <div v-if="formData.role === 'student'" class="space-y-4 md:col-span-2">
+                <!-- Specialization (Teacher Only) -->
+                <div v-if="formData.role === 'teacher'" class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Specialization</label>
+                    <div class="relative">
+                        <input 
+                            v-model="formData.specialization"
+                            type="text" 
+                            placeholder="e.g. TOEFL iBT, Business English"
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
+                        />
+                         <Edit class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    </div>
+                </div>
+
+                 <!-- Course (Student Only) -->
+                <div v-if="formData.role === 'student'" class="space-y-4 md:col-span-2 border-t border-gray-100 pt-6 mt-2">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Program Series</label>
@@ -369,20 +364,6 @@ const processSubmission = async () => {
                                 placeholder="Select Level"
                             />
                         </div>
-                    </div>
-                </div>
-
-                <!-- Specialization (Teacher) -->
-                <div v-else class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Specialization</label>
-                    <div class="relative">
-                        <input 
-                            v-model="formData.specialization"
-                            type="text" 
-                            placeholder="e.g. TOEFL iBT, Business English"
-                            class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
-                        />
-                         <Edit class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     </div>
                 </div>
 
@@ -443,6 +424,7 @@ const processSubmission = async () => {
         title="Save Changes"
         message="Are you sure you want to save these changes to the account?"
         confirm-text="Save"
+        type="primary"
         @close="isConfirmOpen = false"
         @confirm="processSubmission"
     />

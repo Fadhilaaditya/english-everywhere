@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import api from '@/api'
 import AppointmentModal from './AppointmentModal.vue'
 import CreateScheduleModal from './CreateScheduleModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
@@ -18,7 +19,6 @@ const isModalOpen = ref(false)
 const isCreateModalOpen = ref(false)
 const selectedDayEvents = ref<any[]>([])
 const selectedDayDate = ref<Date | string>(new Date())
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const isDayModalOpen = ref(false)
 
 // Confirm Modal State
@@ -55,25 +55,25 @@ const openDayModal = (date: Date, events: any[]) => {
 // --- API Actions ---
 const fetchSchedules = async () => {
     try {
-        const response = await fetch(`${API_URL}/programs/schedules/global?t=${new Date().getTime()}`)
-        if (response.ok) {
-            const data = await response.json()
-            appointments.value = data
-                .filter((item: any) => {
-                    const status = item.status ? item.status.trim().toUpperCase() : ''
-                    return status !== 'ACCEPTED'
-                })
-                .map((item: any) => {
-                    const bookedCount = item.bookings ? item.bookings.filter((b: any) => b.status !== 'REJECTED').length : 0
-                    const isFull = bookedCount >= item.maxSlots
-                    
-                    return {
-                        ...item,
-                        status: isFull ? 'booked' : 'available',
-                        name: `${bookedCount}/${item.maxSlots} Slots`,
-                    }
-                })
-        }
+        const response = await api.get('/programs/schedules/global', {
+            params: { t: new Date().getTime() }
+        })
+        const data = response.data
+        appointments.value = data
+            .filter((item: any) => {
+                const status = item.status ? item.status.trim().toUpperCase() : ''
+                return status !== 'ACCEPTED'
+            })
+            .map((item: any) => {
+                const bookedCount = item.bookings ? item.bookings.filter((b: any) => b.status !== 'REJECTED').length : 0
+                const isFull = bookedCount >= item.maxSlots
+                
+                return {
+                    ...item,
+                    status: isFull ? 'booked' : 'available',
+                    name: `${bookedCount}/${item.maxSlots} Slots`,
+                }
+            })
     } catch (e) {
         console.error('Failed to fetch schedules', e)
     }
@@ -81,11 +81,8 @@ const fetchSchedules = async () => {
 
 const fetchPrograms = async () => {
     try {
-        const response = await fetch(`${API_URL}/programs`)
-        if (response.ok) {
-            programs.value = await response.json()
-            // No longer forcing selectedCourseId
-        }
+        const response = await api.get('/programs')
+        programs.value = response.data
     } catch (e) {
         console.error('Failed to fetch programs', e)
     }
@@ -124,10 +121,7 @@ const handleModalDelete = () => {
 const executeDelete = async () => {
     if (!selectedAppointment.value) return
     try {
-        const response = await fetch(`${API_URL}/programs/schedules/${selectedAppointment.value.id}`, {
-            method: 'DELETE'
-        })
-        if (!response.ok) throw new Error('Failed to delete')
+        await api.delete(`/programs/schedules/${selectedAppointment.value.id}`)
 
         showToastNotification('Schedule Deleted Successfully!')
         isModalOpen.value = false
@@ -151,12 +145,7 @@ const handleModalApprove = (data: any) => {
 const executeApprove = async (data: any) => {
     if (!data.id) return
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/${data.id}/approve`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        if (!response.ok) throw new Error('Failed to approve')
+        await api.put(`/programs/bookings/${data.id}/approve`, data)
 
         showToastNotification('Appointment Approved Successfully!')
         isModalOpen.value = false
@@ -179,12 +168,11 @@ const handleModalUpdate = (data: any) => {
 
 const executeUpdate = async (data: any) => {
     try {
-        const response = await fetch(`${API_URL}/programs/schedules/${data.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ time: data.time, date: data.date, maxSlots: data.maxSlots })
+        await api.put(`/programs/schedules/${data.id}`, {
+            time: data.time,
+            date: data.date,
+            maxSlots: data.maxSlots
         })
-        if (!response.ok) throw new Error('Failed to update')
         
         showToastNotification('Schedule Updated Successfully!')
         isModalOpen.value = false
@@ -207,10 +195,7 @@ const handleModalReject = (id: number) => {
 
 const executeReject = async (id: number) => {
     try {
-        const response = await fetch(`${API_URL}/programs/bookings/${id}/reject`, {
-            method: 'PUT'
-        })
-        if (!response.ok) throw new Error('Failed to reject booking')
+        await api.put(`/programs/bookings/${id}/reject`)
         
         showToastNotification('Booking Rejected Successfully!')
         isModalOpen.value = false

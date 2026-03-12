@@ -1,16 +1,61 @@
 <script setup lang="ts">
-import { X, AlertTriangle } from 'lucide-vue-next'
+import { X, AlertTriangle, CheckCircle, Info, HelpCircle } from 'lucide-vue-next'
+import { computed } from 'vue'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   isOpen: boolean
   title?: string
   message?: string
   confirmText?: string
   cancelText?: string
-  type?: 'danger' | 'warning' | 'info'
-}>()
+  type?: 'danger' | 'warning' | 'info' | 'primary'
+}>(), {
+    type: 'danger'
+})
 
 defineEmits(['close', 'confirm'])
+
+const styles = computed(() => {
+    switch (props.type) {
+        case 'primary':
+            return {
+                iconBg: 'bg-teal-50',
+                iconColor: 'text-teal-500',
+                btnBg: 'bg-[#4FD1C5]',
+                btnHover: 'hover:bg-[#3dbdb0]',
+                btnShadow: 'shadow-[#4FD1C5]/20',
+                icon: CheckCircle
+            }
+        case 'warning':
+            return {
+                iconBg: 'bg-amber-50',
+                iconColor: 'text-amber-500',
+                btnBg: 'bg-amber-500',
+                btnHover: 'hover:bg-amber-600',
+                btnShadow: 'shadow-amber-500/20',
+                icon: AlertTriangle
+            }
+        case 'info':
+            return {
+                iconBg: 'bg-blue-50',
+                iconColor: 'text-blue-500',
+                btnBg: 'bg-blue-500',
+                btnHover: 'hover:bg-blue-600',
+                btnShadow: 'shadow-blue-500/20',
+                icon: Info
+            }
+        case 'danger':
+        default:
+            return {
+                iconBg: 'bg-red-50',
+                iconColor: 'text-red-500',
+                btnBg: 'bg-[#FF6B6B]',
+                btnHover: 'hover:bg-[#ff5252]',
+                btnShadow: 'shadow-[#FF6B6B]/20',
+                icon: AlertTriangle
+            }
+    }
+})
 </script>
 
 <template>
@@ -29,13 +74,12 @@ defineEmits(['close', 'confirm'])
         </button>
 
         <div class="text-center">
-            <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle class="w-8 h-8 text-red-500" />
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" :class="styles.iconBg">
+                <component :is="styles.icon" class="w-8 h-8" :class="styles.iconColor" />
             </div>
             
             <h3 class="text-xl font-bold text-gray-900 mb-2">{{ title || 'Are you sure?' }}</h3>
             <p class="text-gray-500 mb-8">{{ message || 'This action cannot be undone.' }}</p>
-
             <div class="grid grid-cols-2 gap-4">
                 <button 
                     @click="$emit('close')"
@@ -45,7 +89,8 @@ defineEmits(['close', 'confirm'])
                 </button>
                 <button 
                     @click="$emit('confirm')"
-                    class="w-full py-2.5 rounded-lg bg-[#FF6B6B] text-white font-medium hover:bg-[#ff5252] transition-colors shadow-lg shadow-[#FF6B6B]/20"
+                    class="w-full py-2.5 rounded-lg text-white font-medium transition-colors shadow-lg"
+                    :class="[styles.btnBg, styles.btnHover, styles.btnShadow]"
                 >
                     {{ confirmText || 'Confirm' }}
                 </button>
