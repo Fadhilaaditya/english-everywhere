@@ -23,5 +23,5 @@ module.exports = function (app) {
   );
 
   // Rute Umum/Admin
-  app.get("/api/teachers", controller.findAll);
+  app.get("/api/teachers", [authJwt.verifyToken, authJwt.isAdmin], controller.findAll);
 };

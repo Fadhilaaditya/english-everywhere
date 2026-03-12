@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import api from '@/api'
 import { User, Edit, X } from 'lucide-vue-next'
 // Import ConfirmModal from relative path as it's in a sibling view's components
 // Alternatively could move to shared components, but for now relative path
@@ -36,17 +37,15 @@ const selectedParentProgram = ref<any>(null)
 
 const fetchPrograms = async () => {
     try {
-        const response = await fetch(`${API_URL}/programs`)
-        if (response.ok) {
-            programs.value = await response.json()
-            
-            // Auto-select parent program based on applicant's current program title
-            if (props.applicant?.program?.title) {
-                const parent = programs.value.find(p => p.title === props.applicant.program.title)
-                if (parent) {
-                    selectedParentProgram.value = parent
-                    fetchSubPrograms(parent.id)
-                }
+        const response = await api.get('/programs')
+        programs.value = response.data
+        
+        // Auto-select parent program based on applicant's current program title
+        if (props.applicant?.program?.title) {
+            const parent = programs.value.find(p => p.title === props.applicant.program.title)
+            if (parent) {
+                selectedParentProgram.value = parent
+                fetchSubPrograms(parent.id)
             }
         }
     } catch (e) {
@@ -56,6 +55,7 @@ const fetchPrograms = async () => {
 
 const fetchSubPrograms = async (parentId: number) => {
     try {
+<<<<<<< HEAD
         const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
         if (response.ok) {
             const levels = await response.json()
@@ -70,6 +70,20 @@ const fetchSubPrograms = async (parentId: number) => {
                 subPrograms.value = []
                 formData.value.programId = parentId
             }
+=======
+        const response = await api.get(`/programs/${parentId}/levels`)
+        const levels = response.data
+        if (levels && levels.length > 0) {
+            subPrograms.value = levels
+            formData.value.programId = null
+        } else if (selectedParentProgram.value) {
+            // Fallback to parent program
+            subPrograms.value = [selectedParentProgram.value]
+            formData.value.programId = parentId
+        } else {
+            subPrograms.value = []
+            formData.value.programId = parentId
+>>>>>>> cca89c18e5f74c05ceeb05d7db317bb140bc4dc3
         }
     } catch (e) {
         console.error('Failed to fetch sub-programs', e)
@@ -111,7 +125,6 @@ watch(() => props.applicant, (newVal) => {
 
 const isUploading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const triggerFileInput = () => {
     fileInput.value?.click()
@@ -127,15 +140,8 @@ const handleFileUpload = async (event: Event) => {
     body.append('image', file)
 
     try {
-        const response = await fetch(`${API_URL}/upload`, {
-            method: 'POST',
-            body: body,
-        })
-
-        if (!response.ok) throw new Error('Upload failed')
-
-        const data = await response.json()
-        formData.value.photo = data.secure_url
+        const response = await api.post('/upload', body)
+        formData.value.photo = response.data.secure_url
     } catch (error) {
         console.error('Error uploading image:', error)
         alert('Failed to upload photo')
@@ -168,23 +174,10 @@ const executeCreateAccount = async () => {
     
     isSubmitting.value = true
     try {
-        const response = await fetch(`${API_URL}/students/account`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData.value)
-        })
-
-        if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.message || 'Failed to create account')
-        }
-
-        const data = await response.json()
-        emit('submit', data)
+        const response = await api.post('/students/account', formData.value)
+        emit('submit', response.data)
     } catch (e: any) {
-        alert(e.message)
+        alert(e.response?.data?.message || e.message)
     } finally {
         isSubmitting.value = false
     }

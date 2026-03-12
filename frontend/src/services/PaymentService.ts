@@ -1,25 +1,23 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import api from '@/api';
 
 export default {
   // === Admin Endpoints ===
-  
+
   // Get all payments for admin table
   async getAllPayments() {
-    const response = await axios.get(`${API_URL}/payments`);
+    const response = await api.get('/payments');
     return response.data;
   },
 
   // Create new bill (Lunas or Cicilan)
   async createPayment(paymentData: any) {
-    const response = await axios.post(`${API_URL}/payments`, paymentData);
+    const response = await api.post('/payments', paymentData);
     return response.data;
   },
 
   // Approve payment (mark as Success)
   async approvePayment(id: number, isInstallment: boolean = false) {
-    const response = await axios.put(`${API_URL}/payments/${id}/approve`, {
+    const response = await api.put(`/payments/${id}/approve`, {
       isInstallment
     });
     return response.data;
@@ -27,21 +25,21 @@ export default {
 
   // Delete payment
   async deletePayment(id: number) {
-    const response = await axios.delete(`${API_URL}/payments/${id}`);
+    const response = await api.delete(`/payments/${id}`);
     return response.data;
   },
 
   // === User Endpoints ===
-  
+
   // Get payments by student ID
   async getUserPayments(studentId: number) {
-    const response = await axios.get(`${API_URL}/payments/user/${studentId}`);
+    const response = await api.get(`/payments/user/${studentId}`);
     return response.data;
   },
 
   // Confirm payment via WA (marks status as waiting/confirmed if needed)
   async confirmPayment(id: number, isInstallment: boolean = false) {
-    const response = await axios.put(`${API_URL}/payments/${id}/confirm`, {
+    const response = await api.put(`/payments/${id}/confirm`, {
       isInstallment
     });
     return response.data;

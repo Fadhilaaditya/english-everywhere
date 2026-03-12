@@ -22,8 +22,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 // Toast state
 const showToast = ref(false)
 const toastMessage = ref('')
-const toastType = ref<'success' | 'error'>('success')
-const showToastNotification = (message: string, type: 'success' | 'error' = 'success') => {
+const toastType = ref<'success' | 'error' | 'info'>('success')
+const showToastNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     toastMessage.value = message
     toastType.value = type
     showToast.value = true
@@ -32,19 +32,28 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
 // Events state
 const events = ref<Record<string, { id: number, type: 'AVAILABLE' | 'PENDING' | 'BOOKED', time: string, name?: string }[]>>({})
 
+import api from '@/api'
+
 const fetchSchedules = async () => {
   try {
-    const response = await fetch(`${API_URL}/programs/schedules/global?t=${new Date().getTime()}`)
-    if (!response.ok) throw new Error('Failed to fetch schedules')
-    const data = await response.json()
+    const response = await api.get(`/programs/schedules/global`, {
+        params: { t: new Date().getTime() }
+    })
+    const data = response.data
+    
+    // Get today's date in YYYY-MM-DD format for comparison
+    const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
     
     events.value = data.reduce((acc: any, item: any) => {
       const bookedCount = item.bookings ? item.bookings.filter((b: any) => b.status !== 'REJECTED').length : 0
       const slotsLeft = item.maxSlots - bookedCount
-      const isFull = slotsLeft <= 0
+      
+      // An appointment is 'full' if slotsLeft <= 0 OR if it's in the past
+      const isPast = item.date < today
+      const isFull = slotsLeft <= 0 || isPast
       
       const type = isFull ? 'BOOKED' : 'AVAILABLE'
-      const label = isFull ? 'Full' : `${slotsLeft}/${item.maxSlots} Slots`
+      const label = isPast ? 'Closed' : (isFull ? 'Full' : `${slotsLeft}/${item.maxSlots} Slots`)
       
       if (!acc[item.date]) acc[item.date] = []
       acc[item.date].push({
@@ -53,7 +62,8 @@ const fetchSchedules = async () => {
         type: type,
         name: label,
         maxSlots: item.maxSlots,
-        bookedCount: bookedCount
+        bookedCount: bookedCount,
+        isPast: isPast
       })
       return acc
     }, {})
@@ -114,7 +124,7 @@ const calendarDays = computed(() => {
          days.push({
             date: i,
             isCurrentMonth: false,
-             fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, i)
+            fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, i)
         })
     }
     return days
@@ -147,6 +157,12 @@ const openDayModal = (date: string, events: any[]) => {
 }
 
 const handleEventClick = (date: string, time: string, type: string, id: number, eventData?: any) => {
+    // If it's a past appointment, don't allow booking
+    if (eventData?.isPast) {
+        showToastNotification('Information: This appointment date has already passed.', 'info')
+        return
+    }
+
     if (type === 'AVAILABLE' || type === 'BOOKED' || type === 'PENDING') {
         selectedSchedule.value = { 
             id, 
@@ -163,20 +179,13 @@ const handleEventClick = (date: string, time: string, type: string, id: number, 
 const handleModalSubmit = async (payload: any) => {
     if (!selectedSchedule.value) return
     try {
-        const response = await fetch(`${API_URL}/programs/schedules/${selectedSchedule.value.id}/book`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        if (!response.ok) {
-            const err = await response.json()
-            throw new Error(err.message || 'Failed to book')
-        }
+        await api.post(`/programs/schedules/${selectedSchedule.value.id}/book`, payload)
         showToastNotification('Registration successful! Waiting for admin approval.')
         isModalOpen.value = false
         fetchSchedules()
     } catch (e: any) {
-        showToastNotification(e.message, 'error')
+        const errorMsg = e.response?.data?.message || e.message || 'Something went wrong'
+        showToastNotification(errorMsg, 'error')
     }
 }
 </script>
@@ -321,6 +330,15 @@ const handleModalSubmit = async (payload: any) => {
         :title="infoModalData.title"
         :message="infoModalData.message"
         @close="isInfoModalOpen = false"
+    />
+
+    <DayDetailsModal 
+        v-if="isDayModalOpen"
+        :is-open="isDayModalOpen"
+        :date="selectedDayDate"
+        :events="selectedDayEvents"
+        @close="isDayModalOpen = false"
+        @click-event="handleEventClick(selectedDayDate, $event.time, $event.type, $event.id, $event)"
     />
 
     <Toast :show="showToast" :message="toastMessage" :type="toastType" @close="showToast = false" />

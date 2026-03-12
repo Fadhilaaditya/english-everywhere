@@ -20,9 +20,9 @@
       </div>
 
       <div class="relative z-10">
-        <button class="bg-white text-[#FF9213] hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition-colors shadow-md cursor-pointer">
+        <a href="#programs" class="inline-block bg-white text-[#FF9213] hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition-colors shadow-md cursor-pointer">
           Daftar Class
-        </button>
+        </a>
       </div>
     </div>
   </section>

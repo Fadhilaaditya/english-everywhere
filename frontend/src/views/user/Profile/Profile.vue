@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { User, Mail, Phone, MapPin, Calendar, BookOpen, GraduationCap, Briefcase, FileText } from 'lucide-vue-next'
-import axios from 'axios'
 import { useRouter } from 'vue-router'
+import { User, Mail, Phone, MapPin, Calendar, BookOpen, GraduationCap, Briefcase, FileText } from 'lucide-vue-next'
+import api from '@/api'
 
 const router = useRouter()
 const isLoading = ref(true)
 const profileData = ref<any>(null)
 const errorMsg = ref('')
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const fetchProfile = async () => {
     isLoading.value = true
@@ -21,11 +20,7 @@ const fetchProfile = async () => {
         }
         
         const currentUser = JSON.parse(userDataStr)
-        const response = await axios.get(`${API_URL}/users/${currentUser.id}`, {
-            headers: {
-                'x-access-token': localStorage.getItem('token') || ''
-            }
-        })
+        const response = await api.get(`/users/${currentUser.id}`)
         
         profileData.value = response.data
     } catch (err: any) {

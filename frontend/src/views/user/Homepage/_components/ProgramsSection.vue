@@ -10,15 +10,15 @@ interface Program {
   category: string
 }
 
+import api from '@/api'
+
 const activeFilter = ref('REGULAR')
 const programs = ref<Program[]>([])
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const fetchPrograms = async () => {
   try {
-    const response = await fetch(`${API_URL}/programs`)
-    if (!response.ok) throw new Error('Failed to fetch programs')
-    programs.value = await response.json()
+    const response = await api.get('/programs')
+    programs.value = response.data
     console.log('Fetched programs:', programs.value)
   } catch (error) {
     console.error('Error fetching programs:', error)

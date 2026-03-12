@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X, Loader2 } from 'lucide-vue-next'
 import { watch, onMounted, computed, ref } from 'vue'
+import api from '@/api'
 import CustomDropdown from '@/components/CustomDropdown.vue'
 
 const props = defineProps<{
@@ -15,10 +16,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'submit', 'delete'])
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const subPrograms = ref<any[]>([])
-const selectedParentProgram = ref<any>(null)
+const selectedParentProgramId = ref<number | null>(null)
 
 const programOptions = computed(() => 
   props.programs.map(p => ({ id: p.id, title: p.title || p.name }))
@@ -34,6 +34,7 @@ const classroomOptions = computed(() =>
 
 const fetchSubPrograms = async (parentId: number) => {
   try {
+<<<<<<< HEAD
     const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
     if (response.ok) {
       const levels = await response.json()
@@ -46,15 +47,30 @@ const fetchSubPrograms = async (parentId: number) => {
       } else {
         subPrograms.value = []
       }
+=======
+    const response = await api.get(`/programs/${parentId}/levels`)
+    const levels = response.data
+    if (levels && levels.length > 0) {
+      subPrograms.value = levels
+    } else if (selectedParentProgramId.value) {
+      // Fallback to parent program if no levels exist
+      const parent = props.programs.find(p => p.id === selectedParentProgramId.value)
+      if (parent) {
+        subPrograms.value = [parent]
+        props.form.programId = parent.id
+      }
+    } else {
+      subPrograms.value = []
+>>>>>>> cca89c18e5f74c05ceeb05d7db317bb140bc4dc3
     }
   } catch (e) {
     console.error('Failed to fetch sub-programs', e)
   }
 }
 
-watch(selectedParentProgram, (newParent) => {
-  if (newParent) {
-    fetchSubPrograms(newParent.id)
+watch(selectedParentProgramId, (newParentId) => {
+  if (newParentId) {
+    fetchSubPrograms(newParentId)
   } else {
     subPrograms.value = []
     props.form.programId = null
@@ -65,21 +81,16 @@ watch(selectedParentProgram, (newParent) => {
 const initializeHierarchy = async () => {
   if (props.isEdit && props.form.programId) {
     try {
-      const resp = await fetch(`${API_URL}/programs/${props.form.programId}`)
-      if (resp.ok) {
-        const prog = await resp.json()
-        const parent = prog.parent || prog
-        selectedParentProgram.value = props.programs.find(p => p.id === parent.id)
-        if (selectedParentProgram.value) {
-            await fetchSubPrograms(selectedParentProgram.value.id)
-        }
-      }
+      const resp = await api.get(`/programs/${props.form.programId}`)
+      const prog = resp.data
+      const parentId = prog.parentId || prog.id
+      selectedParentProgramId.value = parentId
+      await fetchSubPrograms(parentId)
     } catch (e) {
       console.error('Failed to initialize hierarchy', e)
     }
   } else if (props.selectedProgramFromCalendar) {
-      // If coming from calendar with a pre-selected program (usually a parent)
-      selectedParentProgram.value = props.programs.find(p => p.id == props.selectedProgramFromCalendar)
+      selectedParentProgramId.value = Number(props.selectedProgramFromCalendar)
   }
 }
 
@@ -87,8 +98,7 @@ const initializeHierarchy = async () => {
 const syncFields = () => {
   if (!props.isEdit) {
     if (props.selectedProgramFromCalendar) {
-      // Just set the parent, the watcher will handle subPrograms if needed
-      selectedParentProgram.value = props.programs.find((p) => p.id == props.selectedProgramFromCalendar)
+      selectedParentProgramId.value = Number(props.selectedProgramFromCalendar)
     }
   }
 }
@@ -165,9 +175,10 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
             <div class="space-y-2">
               <label class="block text-sm font-medium text-gray-700">Program Series</label>
               <CustomDropdown
-                v-model="selectedParentProgram"
+                v-model="selectedParentProgramId"
                 :options="programOptions"
                 label-key="title"
+                value-key="id"
                 placeholder="Select Program Series..."
               />
             </div>
@@ -181,7 +192,7 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
                 labelKey="title"
                 valueKey="id"
                 placeholder="Select Level..."
-                :disabled="!selectedParentProgram"
+                :disabled="!selectedParentProgramId"
               />
             </div>
 

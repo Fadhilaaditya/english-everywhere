@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
+import api from '@/api'
 import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import EventModal from './EventModal.vue'
 import Toast from '../../../../components/Toast.vue'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const events = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedEvent = ref(null)
@@ -49,9 +49,8 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
 
 const fetchEvents = async () => {
   try {
-    const response = await fetch(`${API_URL}/events`)
-    if (!response.ok) throw new Error('Failed to fetch events')
-    events.value = await response.json()
+    const response = await api.get('/events')
+    events.value = response.data
   } catch (error) {
     console.error('Error fetching events:', error)
   }
@@ -64,9 +63,8 @@ const handleCreate = () => {
 
 const handleEdit = async (event: any) => {
     try {
-        const response = await fetch(`${API_URL}/events/${event.id}`)
-        if (!response.ok) throw new Error('Failed to fetch event details')
-        selectedEvent.value = await response.json()
+        const response = await api.get(`/events/${event.id}`)
+        selectedEvent.value = response.data
         isModalOpen.value = true
     } catch (error) {
         console.error('Error fetching event details:', error)
@@ -78,11 +76,7 @@ const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this event?')) return
 
     try {
-        const response = await fetch(`${API_URL}/events/${id}`, {
-            method: 'DELETE'
-        })
-        if (!response.ok) throw new Error('Failed to delete')
-        
+        await api.delete(`/events/${id}`)
         await fetchEvents()
         showNotification('Event deleted successfully', 'success')
     } catch (error) {

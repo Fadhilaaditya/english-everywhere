@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import api from '@/api'
 import { X, Calendar, Clock } from 'lucide-vue-next'
 import ConfirmModal from './ConfirmModal.vue'
 
@@ -11,7 +12,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'submit'])
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const date = ref('')
 const time = ref('')
@@ -30,10 +30,8 @@ watch(() => props.isOpen, async (newVal) => {
         
         // Fetch programs if not already passed or if list is empty
         try {
-            const response = await fetch(`${API_URL}/programs`)
-            if (response.ok) {
-                programs.value = await response.json()
-            }
+            const response = await api.get('/programs')
+            programs.value = response.data
         } catch (e) {
             console.error('Failed to fetch programs in modal', e)
         }
@@ -58,15 +56,7 @@ const executeCreate = async () => {
             status: 'AVAILABLE'
         }
         
-        const response = await fetch(`${API_URL}/programs/schedules/global`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        })
-        
-        if (!response.ok) throw new Error('Failed to create schedule')
+        const response = await api.post('/programs/schedules/global', payload)
         
         emit('submit')
         emit('close')

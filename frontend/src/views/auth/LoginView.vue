@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/api'
 import { Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -9,7 +10,6 @@ const password = ref('')
 const showPassword = ref(false)
 const errorMessage = ref('')
 const isLoading = ref(false)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const togglePassword = () => {
   showPassword.value = !showPassword.value
@@ -20,22 +20,12 @@ const handleLogin = async () => {
     isLoading.value = true
     
     try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                username: username.value,
-                password: password.value
-            })
+        const response = await api.post('/auth/login', {
+            username: username.value,
+            password: password.value
         })
 
-        const data = await response.json()
-
-        if (!response.ok) {
-            throw new Error(data.message || 'Login failed')
-        }
+        const data = response.data
 
         // ==========================================
         // PERUBAHAN PENTING DI SINI
@@ -45,28 +35,30 @@ const handleLogin = async () => {
         localStorage.setItem('token', data.accessToken)
         
         // 2. Simpan Role (PENTING untuk Navbar!)
-        localStorage.setItem('role', data.role) 
+        // Normalisasi role 'user' menjadi 'student' jika diperlukan
+        const normalizedRole = data.role === 'user' ? 'student' : data.role
+        localStorage.setItem('role', normalizedRole) 
 
         // 3. Simpan User Data
         localStorage.setItem('user', JSON.stringify({
             id: data.id,
             username: data.username,
             fullName: data.fullName,
-            role: data.role,
-            studentId: data.studentId // Menambahkan ini agar PaymentView bisa membacanya
+            role: normalizedRole,
+            studentId: data.studentId 
         }))
         
         // 4. Logika Redirect yang Sudah Diperbarui
-        if (data.role === 'admin') {
+        if (normalizedRole === 'admin') {
             router.push('/admin')
-        } else if (data.role === 'teacher') {
-            router.push('/teacher') // <--- Redirect khusus Guru
+        } else if (normalizedRole === 'teacher') {
+            router.push('/teacher') 
         } else {
-            router.push('/') // Redirect Siswa/Umum
+            router.push('/') 
         }
         
     } catch (error: any) {
-        errorMessage.value = error.message
+        errorMessage.value = error.response?.data?.message || error.message
         console.error('Login error:', error)
     } finally {
         isLoading.value = false

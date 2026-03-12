@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import api from '@/api'
 
 const stats = ref([
   { label: 'Total Account', value: '0' },
@@ -7,19 +8,15 @@ const stats = ref([
   { label: 'Total Teacher', value: '0' },
 ])
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
 const fetchStats = async () => {
     try {
-        const response = await fetch(`${API_URL}/users/stats`)
-        if (response.ok) {
-            const data = await response.json()
-            stats.value = [
-                { label: 'Total Account', value: String(data.totalAccounts || 0) },
-                { label: 'Total Student', value: String(data.totalStudents || 0) },
-                { label: 'Total Teacher', value: String(data.totalTeachers || 0) },
-            ]
-        }
+        const response = await api.get('/users/stats')
+        const data = response.data
+        stats.value = [
+            { label: 'Total Account', value: String(data.totalAccounts || 0) },
+            { label: 'Total Student', value: String(data.totalStudents || 0) },
+            { label: 'Total Teacher', value: String(data.totalTeachers || 0) },
+        ]
     } catch (e) {
         console.error('Failed to fetch stats', e)
     }

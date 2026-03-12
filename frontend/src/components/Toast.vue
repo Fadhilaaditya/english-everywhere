@@ -5,13 +5,24 @@ import { CheckCircle, XCircle, X } from 'lucide-vue-next'
 const props = defineProps<{
   show: boolean
   message: string
-  type?: 'success' | 'error'
+  title?: string
+  type?: 'success' | 'error' | 'info'
   duration?: number
 }>()
 
 const emit = defineEmits(['close'])
 
-const isSuccess = computed(() => props.type !== 'error')
+const toastType = computed(() => props.type || 'success')
+const isError = computed(() => toastType.value === 'error')
+const isInfo = computed(() => toastType.value === 'info')
+const isSuccess = computed(() => toastType.value === 'success')
+
+const displayTitle = computed(() => {
+    if (props.title) return props.title
+    if (isError.value) return 'Error'
+    if (isInfo.value) return 'Information'
+    return 'Success'
+})
 
 let timer: any
 
@@ -45,16 +56,26 @@ onUnmounted(() => {
     <div 
         v-if="show"
         class="fixed bottom-4 right-4 z-50 flex items-center gap-3 p-4 rounded-lg shadow-lg min-w-[300px] border-l-4 bg-white"
-        :class="isSuccess ? 'border-[#4FD1C5]' : 'border-red-500'"
+        :class="[
+            isError ? 'border-red-500' : 
+            isInfo ? 'border-blue-500' : 'border-[#4FD1C5]'
+        ]"
     >
-        <div :class="isSuccess ? 'text-[#4FD1C5]' : 'text-red-500'">
+        <div :class="[
+            isError ? 'text-red-500' : 
+            isInfo ? 'text-blue-500' : 'text-[#4FD1C5]'
+        ]">
             <CheckCircle v-if="isSuccess" class="w-6 h-6" />
-            <XCircle v-else class="w-6 h-6" />
+            <XCircle v-else-if="isError" class="w-6 h-6" />
+            <CheckCircle v-else class="w-6 h-6" /> <!-- Fallback icon for info -->
         </div>
         
         <div class="flex-1">
-            <h4 class="font-medium text-gray-900" :class="isSuccess ? 'text-[#4FD1C5]' : 'text-red-600'">
-                {{ isSuccess ? 'Success' : 'Error' }}
+            <h4 class="font-bold text-gray-900" :class="[
+                isError ? 'text-red-600' : 
+                isInfo ? 'text-blue-600' : 'text-[#4FD1C5]'
+            ]">
+                {{ displayTitle }}
             </h4>
             <p class="text-sm text-gray-600">{{ message }}</p>
         </div>

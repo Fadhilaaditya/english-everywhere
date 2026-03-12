@@ -292,7 +292,7 @@ watch(() => props.schedule, (newVal) => {
                     <label class="block text-sm font-medium text-gray-700">No Telp</label>
                     <input 
                         v-model="formData.phone"
-                        type="number"
+                        type="text"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
                         :class="{ 'border-red-500 focus:ring-red-200': errors.phone }"
                         :disabled="isReadOnly"
@@ -333,17 +333,3 @@ watch(() => props.schedule, (newVal) => {
   </div>
 </template>
 
-<style scoped>
-/* Chrome, Safari, Edge, Opera */
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* Firefox */
-input[type=number] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-</style>

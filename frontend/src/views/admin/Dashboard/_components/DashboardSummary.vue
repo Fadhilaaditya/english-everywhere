@@ -7,12 +7,13 @@ const props = defineProps<{
     totalTransactions: number
     overduePayments: number
     pendingPayments: number
+    pendingAppointments: number
   }
 }>()
 
 const summaryItems = computed(() => [
   { label: 'Total Account', value: props.stats.totalAccounts.toString(), color: 'text-gray-900' },
-  { label: 'Total Transaksi', value: props.stats.totalTransactions.toString(), color: 'text-gray-900' },
+  { label: 'Appointment Pending', value: (props.stats.pendingAppointments || 0).toString(), color: 'text-gray-900' },
   { label: 'Pembayaran Jatuh Tempo', value: props.stats.overduePayments.toString(), color: 'text-red-500' },
   { label: 'Transaksi Tertunda', value: props.stats.pendingPayments.toString(), color: 'text-yellow-500' },
 ])

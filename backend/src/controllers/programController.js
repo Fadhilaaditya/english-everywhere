@@ -172,6 +172,12 @@ exports.updateSchedule = async (req, res) => {
 exports.deleteSchedule = async (req, res) => {
   const id = req.params.scheduleId;
   try {
+    // 1. Delete associated bookings first to avoid foreign key constraints
+    await db.AppointmentBooking.destroy({
+      where: { scheduleId: id },
+    });
+
+    // 2. Delete the schedule
     const num = await ProgramSchedule.destroy({
       where: { id: id },
     });
@@ -182,6 +188,7 @@ exports.deleteSchedule = async (req, res) => {
       res.status(404).send({ message: "Jadwal tidak ditemukan." });
     }
   } catch (err) {
+    console.error("Error in deleteSchedule:", err);
     res.status(500).send({ message: "Gagal menghapus jadwal." });
   }
 };
@@ -254,7 +261,7 @@ exports.bookAppointment = async (req, res) => {
       applicantBirthDate: req.body.applicantBirthDate,
       applicantPhone: req.body.applicantPhone,
       applicantEmail: req.body.applicantEmail,
-      status: "BOOKED",
+      status: "PENDING",
     });
 
     res.status(201).send(booking);
@@ -279,7 +286,15 @@ exports.getBookingsBySchedule = async (req, res) => {
 // 11. Ambil semua booking secara global (Admin)
 exports.getAllBookings = async (req, res) => {
   const status = req.query.status;
-  const whereClause = status ? { status: status } : {};
+  let whereClause = {};
+
+  if (status) {
+    if (status.includes(',')) {
+      whereClause.status = { [Op.in]: status.split(',') };
+    } else {
+      whereClause.status = status;
+    }
+  }
 
   try {
     const data = await db.AppointmentBooking.findAll({
@@ -332,8 +347,26 @@ exports.rejectBooking = async (req, res) => {
     res.status(500).send({ message: "Error mereject booking." });
   }
 };
-// 14. Approve individual booking
+// 14. Approve individual booking (PENDING -> BOOKED)
 exports.approveBooking = async (req, res) => {
+  const id = req.params.id;
+  try {
+    const [num] = await db.AppointmentBooking.update(
+      { status: "BOOKED", isRead: false },
+      { where: { id: id } },
+    );
+    if (num == 1) {
+      res.send({ message: "Booking berhasil diapprove (Status: BOOKED)." });
+    } else {
+      res.send({ message: `Gagal mengapprove booking dengan id=${id}.` });
+    }
+  } catch (err) {
+    res.status(500).send({ message: "Error mengapprove booking." });
+  }
+};
+
+// 14.1 Accept individual booking (BOOKED -> ACCEPTED)
+exports.acceptBooking = async (req, res) => {
   const id = req.params.id;
   try {
     const [num] = await db.AppointmentBooking.update(
@@ -341,12 +374,12 @@ exports.approveBooking = async (req, res) => {
       { where: { id: id } },
     );
     if (num == 1) {
-      res.send({ message: "Booking berhasil diapprove." });
+      res.send({ message: "Siswa dinyatakan lolos (Status: ACCEPTED)." });
     } else {
-      res.send({ message: `Gagal mengapprove booking dengan id=${id}.` });
+      res.send({ message: `Gagal memperbarui status booking dengan id=${id}.` });
     }
   } catch (err) {
-    res.status(500).send({ message: "Error mengapprove booking." });
+    res.status(500).send({ message: "Error memperbarui status booking." });
   }
 };
 

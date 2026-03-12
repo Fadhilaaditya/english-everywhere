@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import EventModal from './EventModal.vue'
 import EventCard from './EventCard.vue'
+import api from '@/api'
 
 const props = defineProps({
   searchQuery: {
@@ -13,7 +14,6 @@ const props = defineProps({
 const isModalOpen = ref(false)
 const selectedEvent = ref<any>(null)
 const events = ref<any[]>([])
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const filteredEvents = computed(() => {
   if (!props.searchQuery) return events.value
@@ -30,9 +30,8 @@ const openModal = (event: any) => {
 
 const fetchEvents = async () => {
     try {
-        const response = await fetch(`${API_URL}/events/upcoming`);
-        if (!response.ok) throw new Error('Failed to fetch events');
-        events.value = await response.json();
+        const response = await api.get('/events/upcoming');
+        events.value = response.data;
     } catch (error) {
         console.error('Error fetching events:', error);
     }

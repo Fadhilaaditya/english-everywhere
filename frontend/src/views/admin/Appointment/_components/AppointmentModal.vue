@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import api from '@/api'
 import { X, Calendar, Clock } from 'lucide-vue-next'
 import CustomDropdown from '@/components/CustomDropdown.vue'
 
@@ -10,7 +11,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'approve', 'update', 'delete', 'reject'])
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const formData = ref({
     fullName: '',
@@ -44,11 +44,9 @@ watch(() => props.isOpen, async (newVal) => {
     if (newVal && props.appointment) {
         isLoading.value = true
         try {
-            const response = await fetch(`${API_URL}/programs/schedules/${props.appointment.id}/bookings`)
-            if (response.ok) {
-                bookings.value = await response.json()
-                selectedBookingIndex.value = 0
-            }
+            const response = await api.get(`/programs/schedules/${props.appointment.id}/bookings`)
+            bookings.value = response.data
+            selectedBookingIndex.value = 0
         } catch (e) {
             console.error('Failed to fetch bookings', e)
         } finally {
@@ -91,9 +89,21 @@ watch([() => props.appointment, selectedBookingIndex, bookings], () => {
     }
 }, { immediate: true })
 
-const isTaken = computed(() => {
+const isPending = computed(() => {
+    const booking = bookings.value[selectedBookingIndex.value]
+    return booking?.status === 'PENDING'
+})
+const isBooked = computed(() => {
+    const booking = bookings.value[selectedBookingIndex.value]
+    return booking?.status === 'BOOKED'
+})
+const isAccepted = computed(() => {
     const booking = bookings.value[selectedBookingIndex.value]
     return booking?.status === 'ACCEPTED'
+})
+const isSuccess = computed(() => {
+    const booking = bookings.value[selectedBookingIndex.value]
+    return booking?.status === 'SUCCESS'
 })
 const isRejected = computed(() => {
     const booking = bookings.value[selectedBookingIndex.value]
@@ -125,6 +135,19 @@ const calculateEndTime = (startTime: string) => {
 const handleApprove = () => {
     if (selectedBooking.value) {
         emit('approve', { id: selectedBooking.value.id, ...formData.value })
+    }
+}
+
+const handlePassTest = async () => {
+    if (!selectedBooking.value) return
+    isLoading.value = true
+    try {
+        await api.put(`/programs/bookings/${selectedBooking.value.id}/accept`)
+        emit('close')
+    } catch (e) {
+        console.error('Failed to pass test', e)
+    } finally {
+        isLoading.value = false
     }
 }
 
@@ -382,23 +405,47 @@ const handleDelete = () => {
 
             <!-- Actions -->
             <div class="flex flex-col sm:flex-row gap-4 pt-4 mt-8">
-                <button 
-                    v-if="!isRejected"
-                    @click="handleReject"
-                    class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30"
-                >
-                    Reject
-                </button>
-                <button 
-                    @click="handleApprove"
-                    :disabled="isTaken"
-                    class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors shadow-lg shadow-[#4FD1C5]/30 flex items-center justify-center gap-2"
-                     :class="isTaken ? 'w-full bg-gray-400 cursor-not-allowed shadow-none' : 'bg-[#4FD1C5] hover:bg-[#3dbdb0]'"
-                >
-                    {{ isTaken ? 'Approved' : isRejected ? 'Restore & Approve' : 'Approve' }}
-                </button>
+                <template v-if="!isSuccess">
+                    <button 
+                        v-if="!isRejected"
+                        @click="handleReject"
+                        class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30"
+                    >
+                        Reject
+                    </button>
+                    
+                    <!-- PENDING -> BOOKED -->
+                    <button 
+                        v-if="isPending"
+                        @click="handleApprove"
+                        class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors shadow-lg shadow-[#4FD1C5]/30 bg-[#4FD1C5] hover:bg-[#3dbdb0]"
+                    >
+                        Approve Booking
+                    </button>
+
+                    <!-- BOOKED -> ACCEPTED -->
+                    <button 
+                        v-if="isBooked"
+                        @click="handlePassTest"
+                        class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors shadow-lg shadow-[#4FD1C5]/30 bg-[#4FD1C5] hover:bg-[#3dbdb0]"
+                    >
+                        Accept
+                    </button>
+
+                    <!-- REJECTED -> BOOKED (Restore) -->
+                    <button 
+                        v-if="isRejected"
+                        @click="handleApprove"
+                        class="flex-1 py-4 rounded-lg text-white text-xl font-medium transition-colors shadow-lg shadow-[#4FD1C5]/30 bg-[#4FD1C5] hover:bg-[#3dbdb0]"
+                    >
+                        Restore & Approve
+                    </button>
+                </template>
+                <div v-else class="w-full py-4 bg-green-50 border border-green-200 rounded-lg text-center text-green-700 font-bold text-xl shadow-sm">
+                    Student account created successfully!
+                </div>
             </div>
-        </div>
+破        </div>
         
         <div v-else class="py-12 text-center text-gray-500">
             No applicants yet for this time slot.

@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { X, Plus, Trash2, Loader2 } from 'lucide-vue-next'
-import CustomDropdown from '@/components/CustomDropdown.vue'
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import CustomDropdown from '@/components/Dropdown.vue'
+import api from '@/api'
 
 const props = defineProps<{
     isOpen: boolean
@@ -33,8 +31,8 @@ const courses = ref<any[]>([])
 const fetchInitialData = async () => {
   try {
     const [studentsRes, programsRes] = await Promise.all([
-      axios.get(`${API_URL}/students`),
-      axios.get(`${API_URL}/programs`)
+      api.get('/students'),
+      api.get('/programs')
     ]);
     students.value = studentsRes.data || [];
     courses.value = programsRes.data || [];
