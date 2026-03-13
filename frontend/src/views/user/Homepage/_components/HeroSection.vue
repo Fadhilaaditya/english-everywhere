@@ -1,5 +1,7 @@
 <script setup lang="ts">
-// No script needed for now
+const contactWhatsApp = () => {
+  window.open('https://wa.me/62895322721820', '_blank')
+}
 </script>
 
 <template>
@@ -19,7 +21,10 @@
         Our fun and interactive courses are designed from kids to professionals to learn English confidently, anytime and anywhere.
       </p>
       
-      <button class="bg-secondary hover:bg-teal-500 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg transition-transform hover:scale-105 cursor-pointer">
+      <button 
+        @click="contactWhatsApp"
+        class="bg-secondary hover:bg-teal-500 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg transition-transform hover:scale-105 cursor-pointer"
+      >
         Grow With Us
       </button>
     </div>
