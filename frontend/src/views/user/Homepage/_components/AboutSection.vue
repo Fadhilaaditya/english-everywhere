@@ -4,13 +4,20 @@
 
 <template>
   <section id="about-us" class="py-16 px-6 md:px-12 bg-white relative overflow-hidden">
+<<<<<<< HEAD
     <img src="/Kupu%20Kupu%201.svg" alt="Decoration Kupu Kupu" class="absolute -top-6 -right-6 w-32 md:w-64 md:top-5 md:right-0 pointer-events-none opacity-80" />
 
     <div class="absolute bottom-0 left-0 md:left-0 text-primary pointer-events-none opacity-80 md:opacity-100">
        <img src="/6.%20EEV%20Lebaran%20-%20Flo%201.svg" alt="Decorative Flo" class="w-32 md:w-64" />
+=======
+    <img src="/Kupu%20Kupu%201.png" alt="Decoration Kupu Kupu" class="absolute top-5 right-0 w-28 md:w-50 pointer-events-none z-0" />
+
+    <div class="absolute bottom-0 left-0 text-primary pointer-events-none z-0">
+       <img src="/6.%20EEV%20Lebaran%20-%20Flo%201%20(1).png" alt="Decorative Flo" class="w-28 md:w-50"  />
+>>>>>>> 399d507 (feat: add About Us, Call to Action, and FAQ sections to the user homepage with corresponding assets.)
     </div>
 
-    <div class="max-w-4xl mx-auto mb-10">
+    <div class="max-w-4xl mx-auto mb-10 relative z-10">
       <h3 class="text-accent font-bold text-3xl mb-15 uppercase tracking-wide">About Us</h3>
       <h2 class="text-3xl md:text-4xl font-bold text-text-dark mb-4">
         LET'S SPEAK ENGLISH EVERYWHERE!
