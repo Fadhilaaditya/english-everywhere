@@ -75,10 +75,10 @@
   </script>
 
   <template>
-    <section class="py-16 px-6 md:px-12 bg-white relative overflow-hidden">
+    <section class="pt-16 pb-44 md:py-16 px-6 md:px-12 bg-white relative overflow-hidden">
       <!-- Decorations -->
-      <img src="/1.%20EEV%20Lebaran%20-%20Leo%201.svg" alt="Decoration Leo" class="absolute bottom-0 -left-0 w-32 md:w-48 opacity-80 z-0 pointer-events-none" />
-    <img src="/4.%20EEV%20Lebaran%20-%20Kin%201.svg" alt="Kin" class="absolute top-10 right-4 w-24 md:w-44 z-0" />
+      <img src="/1.%20EEV%20Lebaran%20-%20Leo%201.png" alt="Decoration Leo" class="absolute bottom-0 -left-3 md:-left-20 lg:-left-8 xl:left-0 w-36 md:w-56 opacity-80 z-0 pointer-events-none" />
+      <img src="/4.%20EEV%20Lebaran%20-%20Kin%201.png" alt="Kin" class="absolute top-10 right-0 md:right-4 w-24 md:w-44 z-0 pointer-events-none" />
 
       <div class="max-w-4xl mx-auto text-center mb-10 relative z-10">
         <h2 class="text-2xl md:text-3xl font-bold text-text-dark uppercase">

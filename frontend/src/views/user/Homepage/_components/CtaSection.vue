@@ -12,10 +12,10 @@
       </div>
 
       <!-- Dira Image - absolutely positioned relative to the wrapper -->
-      <img src="/2.%20EEV%20Lebaran%20-%20Dira%201.svg" alt="Student Dira" class="absolute -bottom-6 -left-6 md:-left-10 w-48 md:w-64 z-20 pointer-events-none drop-shadow-lg" />
+      <img src="/2.%20EEV%20Lebaran%20-%20Dira%201.png" alt="Student Dira" class="absolute -bottom-6 -left-6 md:-left-10 w-38 md:w-64 z-20 pointer-events-none drop-shadow-lg" />
 
       <div class="relative z-10 text-white max-w-xl">
-        <h2 class="text-2xl md:text-3xl font-bold mb-2">
+        <h2 class="text-2xl md:text-3xl md:text-left text-center font-bold mb-2">
           Daftar dan raih kesempatan karier yang lebih baik!
         </h2>
       </div>
