@@ -21,8 +21,8 @@ const router = createRouter({
             name: 'home',
             component: HomeView,
             meta: { 
-                title: 'Home | English Everywhere',
-                description: 'English Everywhere - Belajar bahasa Inggris dengan metode komunikatif dan interaktif.'
+                title: 'Kursus Bahasa Inggris Tangerang & Tangsel | English Everywhere',
+                description: 'English Everywhere - Kursus bahasa Inggris interaktif di Tangerang & Tangerang Selatan. Belajar komunikatif dan menyenangkan.'
             }
         },
         {
@@ -40,8 +40,8 @@ const router = createRouter({
             name: 'events',
             component: () => import('../views/user/Events/Event.vue'),
             meta: { 
-                title: 'Events | English Everywhere',
-                description: 'Ikuti berbagai event seru dan workshop bahasa Inggris dari English Everywhere.'
+                title: 'Event & Webinar Bahasa Inggris | English Everywhere',
+                description: 'Daftar event seru, webinar, dan workshop bahasa Inggris di Tangerang bersama English Everywhere.'
             }
         },
         {
@@ -49,8 +49,8 @@ const router = createRouter({
             name: 'english-corner',
             component: () => import('../views/user/EnglishCorner/EnglishCorner.vue'),
             meta: { 
-                title: 'English Corner | English Everywhere',
-                description: 'Baca artikel menarik, tips belajar, dan wawasan baru tentang bahasa Inggris di English Corner.'
+                title: 'Tips & Artikel Belajar Bahasa Inggris | English Corner',
+                description: 'Tips belajar bahasa Inggris, wawasan budaya, dan artikel menarik lainnya di English Corner.'
             }
         },
         {
