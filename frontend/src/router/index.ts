@@ -29,7 +29,11 @@ const router = createRouter({
             path: '/login',
             name: 'login',
             component: () => import('../views/auth/LoginView.vue'),
-            meta: { hideLayout: true }
+            meta: { 
+                hideLayout: true,
+                title: 'Login | English Everywhere',
+                description: 'Masuk ke akun English Everywhere Anda.'
+            }
         },
         {
             path: '/events',
@@ -52,22 +56,38 @@ const router = createRouter({
         {
             path: '/english-corner/:slug',
             name: 'article-detail',
-            component: () => import('../views/user/EnglishCorner/[slug]/Article.vue')
+            component: () => import('../views/user/EnglishCorner/[slug]/Article.vue'),
+            meta: { 
+                title: 'Article | English Everywhere',
+                description: 'Baca selengkapnya artikel menarik di English Corner.'
+            }
         },
         {
             path: '/payment',
             name: 'payment',
-            component: () => import('../views/user/Payment/PaymentView.vue')
+            component: () => import('../views/user/Payment/PaymentView.vue'),
+            meta: { 
+                title: 'Payment | English Everywhere',
+                description: 'Selesaikan pembayaran kelas English Everywhere Anda.'
+            }
         },
         {
             path: '/appointment',
             name: 'appointment',
-            component: () => import('../views/user/Appointment/Appointment.vue')
+            component: () => import('../views/user/Appointment/Appointment.vue'),
+            meta: { 
+                title: 'Appointment | English Everywhere',
+                description: 'Jadwalkan sesi belajar Anda di English Everywhere.'
+            }
         },
         {
             path: '/profile',
             name: 'user-profile',
-            component: () => import('../views/user/Profile/Profile.vue')
+            component: () => import('../views/user/Profile/Profile.vue'),
+            meta: { 
+                title: 'Profile | English Everywhere',
+                description: 'Kelola profil dan akun English Everywhere Anda.'
+            }
         },
 
         // ==============================
@@ -82,32 +102,56 @@ const router = createRouter({
                 {
                     path: '', // URL: /teacher
                     name: 'teacher-home',
-                    component: () => import('../views/user/Homepage/HomeView.vue')
+                    component: () => import('../views/user/Homepage/HomeView.vue'),
+                    meta: { 
+                        title: 'Teacher Home | English Everywhere',
+                        description: 'Dashboard pengajar English Everywhere.'
+                    }
                 },
                 {
                     path: 'events', // URL: /teacher/events
                     name: 'teacher-events',
-                    component: () => import('../views/user/Events/Event.vue')
+                    component: () => import('../views/user/Events/Event.vue'),
+                    meta: { 
+                        title: 'Teacher Events | English Everywhere',
+                        description: 'Lihat event mendatang untuk pengajar.'
+                    }
                 },
                 {
                     path: 'english-corner', // URL: /teacher/english-corner
                     name: 'teacher-english-corner',
-                    component: () => import('../views/user/EnglishCorner/EnglishCorner.vue')
+                    component: () => import('../views/user/EnglishCorner/EnglishCorner.vue'),
+                    meta: { 
+                        title: 'Teacher English Corner | English Everywhere',
+                        description: 'Kelola artikel di English Corner.'
+                    }
                 },
                 {
                     path: 'materials', // URL: /teacher/materials
                     name: 'teacher-materials',
-                    component: () => import('../views/teacher/LearningMaterial/LearningMaterial.vue')
+                    component: () => import('../views/teacher/LearningMaterial/LearningMaterial.vue'),
+                    meta: { 
+                        title: 'Learning Materials | English Everywhere',
+                        description: 'Akses materi pembelajaran untuk pengajar.'
+                    }
                 },
                 {
                     path: 'schedule', // URL: /teacher/schedule
                     name: 'teacher-schedule',
-                    component: () => import('../views/teacher/Schedule/Schedule.vue')
+                    component: () => import('../views/teacher/Schedule/Schedule.vue'),
+                    meta: { 
+                        title: 'My Schedule | English Everywhere',
+                        description: 'Lihat dan kelola jadwal mengajar Anda.'
+                    }
                 },
                 {
                     path: 'profile', // URL: /teacher/profile
                     name: 'teacher-profile',
-                    component: () => import('../views/user/Profile/Profile.vue')
+                    component: () => import('../views/user/Profile/Profile.vue'),
+                    meta: { 
+                        title: 'Teacher Profile | English Everywhere',
+                        description: 'Kelola profil pengajar Anda.'
+                    }
                 }
             ]
         },
@@ -187,11 +231,22 @@ router.afterEach((to) => {
     const pageTitle = to.meta.title ? `${to.meta.title}` : baseTitle;
     document.title = pageTitle;
 
-    // Dynamic Description
-    const descriptionTag = document.querySelector('meta[name="description"]');
-    if (descriptionTag) {
-        descriptionTag.setAttribute('content', (to.meta.description as string) || 'Belajar Bahasa Inggris Seru & Interaktif bersama English Everywhere.');
-    }
+    // Helper to update meta tags
+    const updateMeta = (selector: string, content: string) => {
+        const el = document.querySelector(selector);
+        if (el) el.setAttribute('content', content);
+    };
+
+    const description = (to.meta.description as string) || 'Belajar Bahasa Inggris Seru & Interaktif bersama English Everywhere.';
+    
+    // Update Meta Tags
+    updateMeta('meta[name="description"]', description);
+    
+    // Update OG Tags (for browser tools)
+    updateMeta('meta[property="og:title"]', pageTitle);
+    updateMeta('meta[property="og:description"]', description);
+    updateMeta('meta[property="twitter:title"]', pageTitle);
+    updateMeta('meta[property="twitter:description"]', description);
 });
 
 // ==============================
