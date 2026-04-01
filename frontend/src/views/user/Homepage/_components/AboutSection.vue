@@ -4,10 +4,10 @@
 
 <template>
   <section id="about-us" class="py-16 px-6 md:px-12 bg-white relative overflow-hidden">
-    <img src="/Kupu%20Kupu%201.svg" alt="Decoration Kupu Kupu" class="absolute top-5 right-0 w-48 md:w-64 pointer-events-none opacity-90" />
+    <img src="/Kupu%20Kupu%201.svg" alt="Decoration Kupu Kupu" class="absolute -top-6 -right-6 w-32 md:w-64 md:top-5 md:right-0 pointer-events-none opacity-80" />
 
-    <div class="absolute bottom-0 left-0 text-primary pointer-events-none">
-       <img src="/6.%20EEV%20Lebaran%20-%20Flo%201.svg" alt="Decorative Flo" class="w-48 md:w-64" />
+    <div class="absolute bottom-0 left-0 md:left-0 text-primary pointer-events-none opacity-80 md:opacity-100">
+       <img src="/6.%20EEV%20Lebaran%20-%20Flo%201.svg" alt="Decorative Flo" class="w-32 md:w-64" />
     </div>
 
     <div class="max-w-4xl mx-auto mb-10">
