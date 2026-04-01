@@ -19,7 +19,11 @@ const router = createRouter({
         {
             path: '/',
             name: 'home',
-            component: HomeView
+            component: HomeView,
+            meta: { 
+                title: 'Home | English Everywhere',
+                description: 'English Everywhere - Belajar bahasa Inggris dengan metode komunikatif dan interaktif.'
+            }
         },
         {
             path: '/login',
@@ -30,12 +34,20 @@ const router = createRouter({
         {
             path: '/events',
             name: 'events',
-            component: () => import('../views/user/Events/Event.vue')
+            component: () => import('../views/user/Events/Event.vue'),
+            meta: { 
+                title: 'Events | English Everywhere',
+                description: 'Ikuti berbagai event seru dan workshop bahasa Inggris dari English Everywhere.'
+            }
         },
         {
             path: '/english-corner',
             name: 'english-corner',
-            component: () => import('../views/user/EnglishCorner/EnglishCorner.vue')
+            component: () => import('../views/user/EnglishCorner/EnglishCorner.vue'),
+            meta: { 
+                title: 'English Corner | English Everywhere',
+                description: 'Baca artikel menarik, tips belajar, dan wawasan baru tentang bahasa Inggris di English Corner.'
+            }
         },
         {
             path: '/english-corner/:slug',
@@ -165,6 +177,22 @@ const router = createRouter({
         }
     ]
 })
+
+// ==============================
+// SEO / META GUARD
+// ==============================
+router.afterEach((to) => {
+    // Dynamic Title
+    const baseTitle = 'English Everywhere';
+    const pageTitle = to.meta.title ? `${to.meta.title}` : baseTitle;
+    document.title = pageTitle;
+
+    // Dynamic Description
+    const descriptionTag = document.querySelector('meta[name="description"]');
+    if (descriptionTag) {
+        descriptionTag.setAttribute('content', (to.meta.description as string) || 'Belajar Bahasa Inggris Seru & Interaktif bersama English Everywhere.');
+    }
+});
 
 // ==============================
 // NAVIGATION GUARD
