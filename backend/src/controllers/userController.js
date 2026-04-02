@@ -131,6 +131,8 @@ exports.create = async (req, res) => {
                 phoneNumber: profileData.phone || '0',
                 email: profileData.email || `${username}@example.com`,
                 birthDate: profileData.birthDate,
+                fatherName: profileData.fatherName || '',
+                motherName: profileData.motherName || '',
                 course: profileData.course,
                 programId: profileData.programId
             }, { transaction });
@@ -242,6 +244,8 @@ exports.update = async (req, res) => {
                 phoneNumber: profileData.phone,
                 email: profileData.email,
                 birthDate: profileData.birthDate,
+                fatherName: profileData.fatherName,
+                motherName: profileData.motherName,
                 course: profileData.course,
                 programId: profileData.programId
             }, { transaction });
