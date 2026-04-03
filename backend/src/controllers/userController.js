@@ -272,3 +272,172 @@ exports.update = async (req, res) => {
         });
     }
 };
+
+exports.importBulk = async (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const bcrypt = require("bcryptjs");
+    const logFile = path.join(__dirname, '../../import_debug.log');
+    
+    fs.appendFileSync(logFile, `!!! ENTERING IMPORT BULK (V5) !!! at ${new Date().toISOString()}\n`);
+    
+    const usersData = req.body.users || req.body; 
+    if (!Array.isArray(usersData)) {
+        fs.appendFileSync(logFile, `ERROR: Data is not an array: ${typeof req.body}\n`);
+        return res.status(400).send({ message: "Data must be an array of objects" });
+    }
+
+    const results = { success: 0, failed: 0, errors: [] };
+
+    for (const data of usersData) {
+        let currentEmail = "not_set";
+        let currentUsername = "unknown";
+        let transaction = null;
+        try {
+            transaction = await db.sequelize.transaction();
+            
+            // 1. Basic Data Extraction
+            const usernameStr = (data.username || data.fullName || 'unknown').toString().trim();
+            const fullNameStr = (data.fullName || data.username || 'Unknown Name').toString().trim();
+            const roleStr = (data.role || 'student').toString().toLowerCase().trim();
+            currentUsername = usernameStr;
+            const profileData = data.profileData || data;
+
+            // 2. Helper for Excel Dates
+            const excelDateToJS = (serial) => {
+                return new Date(Math.round((serial - 25569) * 86400 * 1000));
+            };
+
+            // 3. Normalize Gender
+            let gender = profileData.gender || 'Male';
+            const g = gender.toString().toLowerCase().trim();
+            if (['laki-laki', 'pria', 'male', 'l', 'm', 'laki laki', 'laki_laki'].includes(g)) gender = 'Male';
+            else if (['perempuan', 'wanita', 'female', 'p', 'f', 'woman'].includes(g)) gender = 'Female';
+            else gender = 'Male';
+
+            // 4. Hardened Email Validation
+            let email = profileData.email ? profileData.email.toString().trim() : '';
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email) || email.length < 5) {
+                const safeUsername = usernameStr.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                email = `${safeUsername || 'user'}_${Math.floor(Math.random()*1000)}@example.com`;
+            }
+            currentEmail = email;
+
+            // 5. Normalize BirthDate
+            let birthDateRaw = profileData.birthDate || null;
+            let birthDate = null;
+            if (birthDateRaw) {
+                let d;
+                if (birthDateRaw instanceof Date) {
+                    d = birthDateRaw;
+                } else if (!isNaN(birthDateRaw)) {
+                    const serial = parseFloat(birthDateRaw);
+                    if (serial > 10000 && serial < 100000) d = excelDateToJS(serial);
+                    else d = new Date(birthDateRaw);
+                } else {
+                    d = new Date(birthDateRaw);
+                }
+                if (d && !isNaN(d.getTime())) {
+                    birthDate = d.toISOString().split('T')[0];
+                }
+            }
+
+            fs.appendFileSync(logFile, `[DEBUG] Processing: ${usernameStr} | Final Email: ${email} | BirthDate: ${birthDate}\n`);
+
+            // 6. User Account
+            const hashedPassword = await bcrypt.hash('12345678', 8);
+            const [user, createdUser] = await db.User.findOrCreate({
+                where: { username: usernameStr },
+                defaults: {
+                    fullName: fullNameStr,
+                    username: usernameStr,
+                    password: hashedPassword,
+                    role: roleStr
+                },
+                transaction
+            });
+
+            // 7. Profile
+            if (roleStr === 'student') {
+                let programId = profileData.programId;
+                let courseName = (profileData.course || '').toString().trim();
+                
+                if (!programId && courseName) {
+                    const program = await db.Program.findOne({ 
+                        where: { 
+                            title: { [Sequelize.Op.like]: courseName } 
+                        } 
+                    });
+                    if (program) {
+                        programId = program.id;
+                        fs.appendFileSync(logFile, `[DEBUG] Matched Program "${courseName}" -> ID ${programId}\n`);
+                    } else {
+                        fs.appendFileSync(logFile, `[DEBUG] Failed to match Program title: "${courseName}"\n`);
+                    }
+                }
+
+                const studentData = {
+                    name: fullNameStr,
+                    gender,
+                    address: profileData.address || '',
+                    phoneNumber: (profileData.phone || profileData.phoneNumber || '0').toString(),
+                    email,
+                    birthPlace: (profileData.birthPlace || '').toString(),
+                    birthDate,
+                    fatherName: (profileData.fatherName || profileData.parentName || '').toString(),
+                    motherName: (profileData.motherName || '').toString(),
+                    course: (profileData.course || '').toString(),
+                    programId: programId || null,
+                    userId: user.id
+                };
+
+                const [student, createdProfile] = await db.Student.findOrCreate({
+                    where: { userId: user.id },
+                    defaults: studentData,
+                    transaction
+                });
+
+                if (!createdProfile) {
+                    await student.update(studentData, { transaction });
+                }
+            } else if (roleStr === 'teacher') {
+                const teacherData = {
+                    name: fullNameStr,
+                    gender,
+                    address: profileData.address || '',
+                    phoneNumber: (profileData.phone || profileData.phoneNumber || '0').toString(),
+                    email,
+                    birthPlace: (profileData.birthPlace || '').toString(),
+                    birthDate,
+                    specialization: (profileData.specialization || '').toString(),
+                    bio: (profileData.bio || '').toString(),
+                    userId: user.id
+                };
+
+                const [teacher, createdProfile] = await db.Teacher.findOrCreate({
+                    where: { userId: user.id },
+                    defaults: teacherData,
+                    transaction
+                });
+
+                if (!createdProfile) {
+                    await teacher.update(teacherData, { transaction });
+                }
+            }
+
+            await transaction.commit();
+            results.success++;
+        } catch (err) {
+            if (transaction) await transaction.rollback();
+            fs.appendFileSync(logFile, `Caught Error for row "${currentUsername}": ${err.message} | Email was: "${currentEmail}"\n`);
+            results.failed++;
+            results.errors.push({ username: currentUsername, message: err.message });
+        }
+    }
+
+    res.send({
+        message: `Import complete. ${results.success} success, ${results.failed} failed.`,
+        summary: results
+    });
+};

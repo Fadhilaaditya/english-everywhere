@@ -47,22 +47,24 @@ const roleOptions = [
     { label: 'Teacher', value: 'teacher' }
 ]
 
+const updateSelectedProgramFromAccount = () => {
+    if (isEditMode.value && props.account?.fullData?.studentProfile?.program && courses.value.length > 0) {
+        const studentProgram = props.account.fullData.studentProfile.program
+        const parent = studentProgram.parent || studentProgram 
+        
+        const foundParent = courses.value.find((p: any) => p.id === parent.id)
+        if (foundParent) {
+            selectedParentProgram.value = foundParent
+            fetchSubPrograms(foundParent.id)
+        }
+    }
+}
+
 const fetchCourses = async () => {
     try {
         const response = await api.get('/programs')
         courses.value = response.data
-        
-        // If in edit mode, try to find and set the parent program
-        if (isEditMode.value && props.account?.fullData?.studentProfile?.program) {
-            const studentProgram = props.account.fullData.studentProfile.program
-            // If it's a child program, its 'parent' property should exist (via association)
-            const parent = studentProgram.parent || studentProgram 
-            
-            selectedParentProgram.value = courses.value.find((p: any) => p.id === parent.id)
-            if (selectedParentProgram.value) {
-                fetchSubPrograms(selectedParentProgram.value.id)
-            }
-        }
+        updateSelectedProgramFromAccount()
     } catch (e) {
         console.error('Failed to fetch courses', e)
     }
@@ -123,6 +125,7 @@ watch(() => props.account, (newVal) => {
             motherName: profile ? profile.motherName : ''
         }
         previewUrl.value = '' // Reset preview
+        updateSelectedProgramFromAccount()
     } else {
         // Create mode or Reset
         formData.value = {
@@ -143,6 +146,7 @@ watch(() => props.account, (newVal) => {
             motherName: ''
         }
         previewUrl.value = ''
+        selectedParentProgram.value = null
     }
 }, { immediate: true })
 
