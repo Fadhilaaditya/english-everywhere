@@ -3,6 +3,7 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 import { onMounted, onUnmounted, watch } from 'vue'
 import NavBar from './views/user/components/NavBar.vue'
 import Footer from './views/user/components/Footer.vue'
+import WhatsAppFloating from './components/WhatsAppFloating.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,6 +59,7 @@ watch(() => route.path, () => {
   <div class="font-sans antialiased text-gray-900 bg-white">
     <NavBar v-if="!route.meta.hideLayout" />
     <RouterView />
+    <WhatsAppFloating v-if="!route.meta.hideLayout" />
     <Footer v-if="!route.meta.hideLayout" />
   </div>
 </template>
