@@ -4,12 +4,6 @@
 
 <template>
   <section id="about-us" class="py-16 px-6 md:px-12 bg-white relative overflow-hidden">
-<<<<<<< HEAD
-    <img src="/Kupu%20Kupu%201.png" alt="Decoration Kupu Kupu" class="absolute top-5 right-0 w-28 md:w-50 pointer-events-none z-0" />
-
-    <div class="absolute bottom-0 left-0 text-primary pointer-events-none z-0">
-       <img src="/6.%20EEV%20Lebaran%20-%20Flo%201%20(1).png" alt="Decorative Flo" class="w-28 md:w-50"  />
-=======
     <img 
       src="/Kupu%20Kupu%201.png" 
       alt="Decoration Kupu Kupu" 
@@ -18,7 +12,6 @@
 
     <div class="absolute -bottom-8 -left-8 md:bottom-0 md:left-0 text-primary pointer-events-none opacity-40 md:opacity-100 z-0">
        <img src="/6.%20EEV%20Lebaran%20-%20Flo%201%20(1).png" alt="Decorative Flo" class="w-40 md:w-64" />
->>>>>>> cbcecba80eaee68660b6c108f4f1ca523aaccec4
     </div>
 
     <div class="max-w-4xl mx-auto mb-10 relative z-10">
