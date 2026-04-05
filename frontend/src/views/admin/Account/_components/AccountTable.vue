@@ -64,6 +64,26 @@ const visiblePages = computed(() => {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
+const visiblePages = computed(() => {
+    const total = totalPages.value
+    const current = currentPage.value
+    const maxVisible = 5
+    
+    if (total <= maxVisible) {
+        return Array.from({ length: total }, (_, i) => i + 1)
+    }
+    
+    let start = Math.max(1, current - Math.floor(maxVisible / 2))
+    let end = start + maxVisible - 1
+    
+    if (end > total) {
+        end = total
+        start = end - maxVisible + 1
+    }
+    
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
 const fetchAccounts = async () => {
     try {
         const response = await api.get('/users')
@@ -382,40 +402,13 @@ const formatImportDate = (dateStr: string) => {
                 />
             </div>
 
-            <div class="flex gap-2 w-full sm:w-auto">
-                <input 
-                    type="file" 
-                    ref="fileInput" 
-                    class="hidden" 
-                    accept=".csv,.txt,.xlsx,.xls"
-                    @change="processFile"
-                />
-                
-                <button 
-                    @click="triggerImport"
-                    :disabled="isImporting"
-                    class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors w-full sm:w-auto justify-center whitespace-nowrap disabled:opacity-50"
-                >
-                    {{ isImporting ? 'Importing...' : 'Import Account' }}
-                    <FileUp class="w-4 h-4" />
-                </button>
-
-                <button 
-                    @click="downloadTemplate"
-                    class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors w-full sm:w-auto justify-center whitespace-nowrap"
-                >
-                    Template
-                    <Download class="w-4 h-4" />
-                </button>
-                
-                <button 
-                    @click="handleCreate"
-                    class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-lg shadow-[#4FD1C5]/20 w-full sm:w-auto justify-center whitespace-nowrap"
-                >
-                    Create Account
-                    <Plus class="w-4 h-4" />
-                </button>
-            </div>
+            <button 
+                @click="handleCreate"
+                class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-lg shadow-[#4FD1C5]/20 w-full sm:w-auto justify-center whitespace-nowrap"
+            >
+                Create Account
+                <Plus class="w-4 h-4" />
+            </button>
         </div>
     </div>
 

@@ -6,7 +6,7 @@
   const faqs = ref([
     {
       question: 'Apa saja program khusus yang ditawarkan di English Everywhere?',
-      answer: 'Kami menawarkan berbagai program mulai dari Phonics untuk pemula, English for Kids, hingga persiapan tes internasional.',
+      answer: 'Kami menawarkan berbagai program mulai dari Phonics untuk pemula, English for Kids, adults, professionals, hingga persiapan tes internasional.',
       isOpen: false
     },
     {
@@ -21,12 +21,7 @@
     },
     {
       question: 'Apakah kelas diadakan secara online atau tatap muka (offline)?',
-      answer: 'Kami menyediakan kedua opsi tersebut. Anda bisa memilih kelas online via Zoom atau kelas offline di center kami.',
-      isOpen: false
-    },
-    {
-      question: 'Bagaimana jika saya berhalangan hadir atau tinggal masuk di salah satu sesi kelas? Apakah ada kelas pengganti?',
-      answer: 'Ya, kami menyediakan sesi make-up class bagi siswa yang berhalangan hadir dengan pemberitahuan sebelumnya.',
+      answer: 'Kami menyediakan kedua opsi tersebut. Anda bisa memilih kelas online via Zoom atau kelas offline di center kami, dan home visit.',
       isOpen: false
     },
     {
@@ -36,7 +31,7 @@
     },
     {
       question: 'Siapa saja yang bisa mengikuti kursus ini? Apakah ada batasan usia?',
-      answer: 'Kursus kami terbuka untuk semua usia, mulai dari anak-anak (usia 4 tahun) hingga dewasa.',
+      answer: 'Kursus kami terbuka untuk semua usia, mulai dari anak-anak (usia 2,5 tahun) hingga usia dewasa.',
       isOpen: false
     },
     {
@@ -56,7 +51,7 @@
     },
     {
       question: 'Media pembelajaran apa saja yang akan saya dapatkan?',
-      answer: 'Anda akan mendapatkan modul pembelajaran, akses ke platform e-learning, dan materi tambahan berupa video/audio.',
+      answer: 'Anda akan mendapatkan modul pembelajaran, interactive whiteboard, dan materi tambahan berupa video/audio.',
       isOpen: false
     },
     {
