@@ -63,7 +63,7 @@ const props = defineProps<{
             rel="noopener noreferrer"
             class="w-full py-3 px-6 rounded-2xl bg-[#4CC9C0] text-white text-sm font-bold shadow-lg shadow-[#4CC9C0]/20 hover:bg-[#3db8af] transition-colors text-center inline-block"
         >
-          Link Absensi
+          Link Absensi & Course Report
         </a>
     </div>
 

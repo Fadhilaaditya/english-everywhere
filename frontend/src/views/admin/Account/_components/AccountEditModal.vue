@@ -29,7 +29,9 @@ const formData = ref({
     photo: '',
     role: 'student',
     specialization: '',
-    programId: null as number | null // Sub-level ID
+    programId: null as number | null, // Sub-level ID
+    fatherName: '',
+    motherName: '',
 })
 
 const showPassword = ref(false)
@@ -45,22 +47,24 @@ const roleOptions = [
     { label: 'Teacher', value: 'teacher' }
 ]
 
+const updateSelectedProgramFromAccount = () => {
+    if (isEditMode.value && props.account?.fullData?.studentProfile?.program && courses.value.length > 0) {
+        const studentProgram = props.account.fullData.studentProfile.program
+        const parent = studentProgram.parent || studentProgram 
+        
+        const foundParent = courses.value.find((p: any) => p.id === parent.id)
+        if (foundParent) {
+            selectedParentProgram.value = foundParent
+            fetchSubPrograms(foundParent.id)
+        }
+    }
+}
+
 const fetchCourses = async () => {
     try {
         const response = await api.get('/programs')
         courses.value = response.data
-        
-        // If in edit mode, try to find and set the parent program
-        if (isEditMode.value && props.account?.fullData?.studentProfile?.program) {
-            const studentProgram = props.account.fullData.studentProfile.program
-            // If it's a child program, its 'parent' property should exist (via association)
-            const parent = studentProgram.parent || studentProgram 
-            
-            selectedParentProgram.value = courses.value.find((p: any) => p.id === parent.id)
-            if (selectedParentProgram.value) {
-                fetchSubPrograms(selectedParentProgram.value.id)
-            }
-        }
+        updateSelectedProgramFromAccount()
     } catch (e) {
         console.error('Failed to fetch courses', e)
     }
@@ -116,9 +120,12 @@ watch(() => props.account, (newVal) => {
             photo: data.photo || '',
             role: data.role || 'student',
             specialization: profile ? profile.specialization : '',
-            programId: profile ? profile.programId : null
+            programId: profile ? profile.programId : null,
+            fatherName: profile ? profile.fatherName : '',
+            motherName: profile ? profile.motherName : ''
         }
         previewUrl.value = '' // Reset preview
+        updateSelectedProgramFromAccount()
     } else {
         // Create mode or Reset
         formData.value = {
@@ -134,9 +141,12 @@ watch(() => props.account, (newVal) => {
             photo: '',
             role: 'student',
             specialization: '',
-            programId: null
+            programId: null,
+            fatherName: '',
+            motherName: ''
         }
         previewUrl.value = ''
+        selectedParentProgram.value = null
     }
 }, { immediate: true })
 
@@ -340,6 +350,32 @@ const processSubmission = async () => {
                          <Edit class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     </div>
                 </div>
+
+                <!-- Parents Info (Student Only) -->
+                <template v-if="formData.role === 'student'">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Nama Ayah</label>
+                        <div class="relative">
+                            <input 
+                                v-model="formData.fatherName"
+                                type="text" 
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
+                            />
+                            <Edit class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">Nama Ibu</label>
+                        <div class="relative">
+                            <input 
+                                v-model="formData.motherName"
+                                type="text" 
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50"
+                            />
+                            <Edit class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        </div>
+                    </div>
+                </template>
 
                  <!-- Course (Student Only) -->
                 <div v-if="formData.role === 'student'" class="space-y-4 md:col-span-2 border-t border-gray-100 pt-6 mt-2">

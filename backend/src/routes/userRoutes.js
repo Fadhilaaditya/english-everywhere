@@ -16,6 +16,9 @@ module.exports = app => {
     // Delete User
     router.delete("/:id", [verifyToken, isAdmin], users.delete);
 
+    // Import Users
+    router.post("/import", [verifyToken, isAdmin], users.importBulk);
+
     // Create User
     router.post("/", [verifyToken, isAdmin], users.create);
 
