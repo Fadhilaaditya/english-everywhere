@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import api from '@/api'
 import AppointmentModal from './AppointmentModal.vue'
 import CreateScheduleModal from './CreateScheduleModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
@@ -16,9 +17,9 @@ const isConfirmOpen = ref(false)
 const isProcessing = ref(false)
 const isModalOpen = ref(false)
 const isCreateModalOpen = ref(false)
-const isDayModalOpen = ref(false)
-const selectedDayDate = ref<Date | string>(new Date())
 const selectedDayEvents = ref<any[]>([])
+const selectedDayDate = ref<Date | string>(new Date())
+const isDayModalOpen = ref(false)
 
 // Confirm Modal State
 const confirmModalState = ref({
@@ -30,7 +31,6 @@ const confirmModalState = ref({
 })
 
 const currentDate = ref(new Date())
-const selectedCourseId = ref<number | null>(null)
 const programs = ref<any[]>([])
 const appointments = ref<any[]>([])
 const selectedAppointment = ref<any>(null)
@@ -54,26 +54,26 @@ const openDayModal = (date: Date, events: any[]) => {
 
 // --- API Actions ---
 const fetchSchedules = async () => {
-    if (!selectedCourseId.value) return
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/${selectedCourseId.value}/schedules?t=${new Date().getTime()}`)
-        if (response.ok) {
-            const data = await response.json()
-            appointments.value = data
-                .filter((item: any) => {
-                    const status = item.status ? item.status.trim().toUpperCase() : ''
-                    return status !== 'ACCEPTED'
-                }) // Hide accepted/completed schedules
-                .map((item: any) => {
-                    let status = item.status.toLowerCase()
-                    if (status === 'pending') status = 'waiting'
-                    return {
-                        ...item,
-                        status: status,
-                        name: item.applicantName || (item.status === 'BOOKED' ? 'Booked User' : undefined),
-                    }
-                })
-        }
+        const response = await api.get('/programs/schedules/global', {
+            params: { t: new Date().getTime() }
+        })
+        const data = response.data
+        appointments.value = data
+            .filter((item: any) => {
+                const status = item.status ? item.status.trim().toUpperCase() : ''
+                return status !== 'ACCEPTED'
+            })
+            .map((item: any) => {
+                const bookedCount = item.bookings ? item.bookings.filter((b: any) => b.status !== 'REJECTED').length : 0
+                const isFull = bookedCount >= item.maxSlots
+                
+                return {
+                    ...item,
+                    status: isFull ? 'booked' : 'available',
+                    name: `${bookedCount}/${item.maxSlots} Slots`,
+                }
+            })
     } catch (e) {
         console.error('Failed to fetch schedules', e)
     }
@@ -81,13 +81,8 @@ const fetchSchedules = async () => {
 
 const fetchPrograms = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/programs')
-        if (response.ok) {
-            programs.value = await response.json()
-            if (programs.value.length > 0 && !selectedCourseId.value) {
-                selectedCourseId.value = programs.value[0].id
-            }
-        }
+        const response = await api.get('/programs')
+        programs.value = response.data
     } catch (e) {
         console.error('Failed to fetch programs', e)
     }
@@ -124,12 +119,9 @@ const handleModalDelete = () => {
 }
 
 const executeDelete = async () => {
-    if (!selectedCourseId.value || !selectedAppointment.value) return
+    if (!selectedAppointment.value) return
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/${selectedCourseId.value}/schedules/${selectedAppointment.value.id}`, {
-            method: 'DELETE'
-        })
-        if (!response.ok) throw new Error('Failed to delete')
+        await api.delete(`/programs/schedules/${selectedAppointment.value.id}`)
 
         showToastNotification('Schedule Deleted Successfully!')
         isModalOpen.value = false
@@ -151,25 +143,9 @@ const handleModalApprove = (data: any) => {
 }
 
 const executeApprove = async (data: any) => {
-    if (!selectedCourseId.value || !selectedAppointment.value) return
+    if (!data.id) return
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/${selectedCourseId.value}/schedules/${selectedAppointment.value.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                status: 'BOOKED',
-                applicantName: data.fullName,
-                applicantGender: data.gender,
-                applicantAddress: data.address,
-                applicantPhone: data.phone,
-                applicantEmail: data.email,
-                applicantBirthDate: data.birthDate,
-                applicantFather: data.fatherName,
-                applicantMother: data.motherName,
-                applicantBirthPlace: data.birthPlace
-            })
-        })
-        if (!response.ok) throw new Error('Failed to approve')
+        await api.put(`/programs/bookings/${data.id}/approve`, data)
 
         showToastNotification('Appointment Approved Successfully!')
         isModalOpen.value = false
@@ -191,14 +167,12 @@ const handleModalUpdate = (data: any) => {
 }
 
 const executeUpdate = async (data: any) => {
-    if (!selectedCourseId.value) return
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/${selectedCourseId.value}/schedules/${data.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ time: data.time, date: data.date })
+        await api.put(`/programs/schedules/${data.id}`, {
+            time: data.time,
+            date: data.date,
+            maxSlots: data.maxSlots
         })
-        if (!response.ok) throw new Error('Failed to update')
         
         showToastNotification('Schedule Updated Successfully!')
         isModalOpen.value = false
@@ -210,8 +184,8 @@ const executeUpdate = async (data: any) => {
 
 const handleModalReject = (id: number) => {
     confirmModalState.value = {
-        title: 'Reject Appointment',
-        message: 'Are you sure you want to reject this appointment? The schedule will become AVAILABLE again.',
+        title: 'Reject Booking',
+        message: 'Are you sure you want to reject this specific booking? The slot quota will be restored.',
         confirmText: 'Reject',
         type: 'danger',
         action: () => executeReject(id)
@@ -221,12 +195,9 @@ const handleModalReject = (id: number) => {
 
 const executeReject = async (id: number) => {
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/schedules/${id}/revert`, {
-            method: 'PUT'
-        })
-        if (!response.ok) throw new Error('Failed to reject application')
+        await api.put(`/programs/bookings/${id}/reject`)
         
-        showToastNotification('Application Rejected Successfully!')
+        showToastNotification('Booking Rejected Successfully!')
         isModalOpen.value = false
         fetchSchedules()
     } catch (e: any) {
@@ -287,15 +258,31 @@ const getAppointmentsForDay = (date: Date) => {
     })
 }
 
+const hasPendingAppointment = (date: Date) => {
+    const apps = getAppointmentsForDay(date)
+    return apps.some(app => 
+        app.bookings && app.bookings.some((b: any) => b.status === 'PENDING')
+    )
+}
+
 const prevMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1) }
 const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1) }
-const goToToday = () => { currentDate.value = new Date() }
+const goToToday = () => { 
+    currentDate.value = new Date() 
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const date = String(today.getDate()).padStart(2, '0')
+    selectedDateForCreation.value = `${year}-${month}-${date}`
+    isCreateModalOpen.value = true
+}
 
 // --- Lifecycle & Watchers ---
 let pollingInterval: any = null
 
 onMounted(() => {
     fetchPrograms()
+    fetchSchedules() // Call once immediately
     // Poll every 3 seconds for real-time updates
     pollingInterval = setInterval(fetchSchedules, 3000)
 })
@@ -303,101 +290,139 @@ onMounted(() => {
 onUnmounted(() => {
     if (pollingInterval) clearInterval(pollingInterval)
 })
-
-watch(selectedCourseId, () => {
-    fetchSchedules()
-})
 </script>
 
 <template>
-  <div class="bg-white p-6 rounded-lg">
-    <div class="flex justify-between items-end mb-8">
-        <div class="flex items-end gap-6">
-            <div class="flex flex-col gap-2">
-                <label class="text-sm text-gray-600 font-medium">Course</label>
-                <div class="relative">
-                     <select 
-                        v-model="selectedCourseId" 
-                        class="appearance-none border border-gray-300 rounded-lg px-4 py-2 w-64 text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#4FD1C5] bg-white cursor-pointer"
-                    >
-                        <option v-for="program in programs" :key="program.id" :value="program.id">
-                            {{ program.title }}
-                        </option>
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none">
-                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                </div>
-            </div>
-            
-            <button @click="goToToday" class="border border-gray-300 rounded-lg px-8 py-2 text-gray-700 font-medium hover:bg-gray-50 transition-colors h-[42px]">
-                Today
-            </button>
-
-            <div class="flex items-center gap-4 ml-4 h-[42px]">
-                <button @click="prevMonth" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                    <ChevronLeft class="w-6 h-6 text-gray-900" />
+  <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-2 md:p-6">
+    <!-- Header -->
+    <div class="flex flex-row items-center justify-between mb-4 md:mb-8 gap-2">
+       <div class="flex items-center gap-2">
+            <div class="flex bg-gray-100 rounded-lg p-1">
+                <button @click="prevMonth" class="p-1 sm:p-2 hover:bg-white rounded-md transition-all shadow-sm">
+                    <ChevronLeft class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                 </button>
-                <button @click="nextMonth" class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                    <ChevronRight class="w-6 h-6 text-gray-900" />
+                <button @click="nextMonth" class="p-1 sm:p-2 hover:bg-white rounded-md transition-all shadow-sm">
+                    <ChevronRight class="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                 </button>
             </div>
+            <h2 class="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 uppercase tracking-wide">{{ currentMonthYear }}</h2>
+       </div>
+      
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 bg-[#0FB728] rounded-full"></div>
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 bg-[#BCC1C9] rounded-full"></div>
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full</span>
+          </div>
         </div>
-        <h2 class="text-2xl font-bold text-gray-900">{{ currentMonthYear }}</h2>
+
+        <button 
+          @click="goToToday"
+          class="hidden md:block px-6 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+        >
+          Today
+        </button>
+      </div>
+       <!-- Mobile Today Button (Icon or smaller) -->
+        <button 
+            @click="goToToday"
+            class="md:hidden px-3 py-1 bg-gray-100 rounded text-xs font-bold text-gray-600"
+        >
+            Today
+        </button>
     </div>
 
     <div class="border border-gray-200 rounded-lg overflow-hidden">
-        <div class="grid grid-cols-7 border-b border-gray-200">
-            <div v-for="day in weekDays" :key="day" class="py-3 px-4 border-r border-gray-200 last:border-r-0 bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
+        <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+            <div v-for="day in weekDays" :key="day" class="py-2 sm:py-3 text-center text-[10px] sm:text-xs font-bold text-gray-500 uppercase border-r border-gray-200 last:border-r-0">
                 {{ day }}
             </div>
         </div>
 
-        <div class="grid grid-cols-7">
+        <div class="grid grid-cols-7 bg-white">
             <div 
                 v-for="(day, index) in calendarDays" 
                 :key="index"
                 @click="handleDayClick(day)"
-                class="min-h-[140px] border-r border-b border-gray-200 last:border-r-0 relative p-2 transition-colors hover:bg-gray-50/30 cursor-pointer"
-                :class="{'!bg-gray-50/50 opacity-50': !day.isCurrentMonth}"
+                class="min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-b border-r border-gray-200 last:border-r-0 relative group transition-colors"
+                :class="{'bg-gray-50/50 opacity-50': !day.isCurrentMonth, 'cursor-pointer hover:bg-[#F0FFF4]': day.isCurrentMonth}"
             >
-                <span class="text-lg font-medium text-gray-900 block mb-2">{{ day.date.getDate() }}</span>
-                <div class="space-y-1.5">
-                    <button 
-                        v-for="app in getAppointmentsForDay(day.date).slice(0, 1)" 
-                        :key="app.id"
-                        @click.stop="handleAppointmentClick(app)"
-                        class="w-full text-left px-2 py-1 rounded text-xs font-medium text-white shadow-sm hover:opacity-80 transition-opacity"
-                        :class="{
-                            'bg-[#BCC1C9]': app.status === 'taken' || app.status === 'booked',
-                            'bg-[#0FB728]': app.status === 'available',
-                            'bg-[#E67E22]': app.status === 'waiting'
-                        }"
-                    >
-                        {{ app.time }} {{ app.name ? `(${app.name})` : '' }}
-                    </button>
-                    <!-- Show +N more if there are additional schedules -->
-                    <div 
-                        v-if="getAppointmentsForDay(day.date).length > 1"
-                        class="text-xs text-gray-500 font-medium px-2 hover:text-gray-700 hover:bg-gray-100 rounded cursor-pointer mt-1"
-                        @click.stop="openDayModal(day.date, getAppointmentsForDay(day.date))"
-                    >
-                        +{{ getAppointmentsForDay(day.date).length - 1 }} more
+                <div class="flex justify-end sm:justify-between items-start mb-1 sm:mb-2">
+                    <div class="relative">
+                        <span 
+                            class="text-xs sm:text-lg font-medium w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full"
+                            :class="{ 'bg-[#52D3C4] text-white': day.date.toDateString() === new Date().toDateString() }"
+                        >
+                            {{ day.date.getDate() }}
+                        </span>
+                        <!-- Notification Dot -->
+                        <div 
+                            v-if="hasPendingAppointment(day.date)" 
+                            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm"
+                        ></div>
+                    </div>
+                </div>
+
+                <!-- Events -->
+                <div class="space-y-1">
+                    <!-- MOBILE VIEW: Condensed -->
+                    <div class="md:hidden flex flex-col items-center">
+                        <template v-if="getAppointmentsForDay(day.date).length > 0">
+                             <!-- Show first event time only -->
+                             <div 
+                                class="text-[10px] px-1 py-0.5 rounded text-white font-bold w-full text-center truncate mb-0.5"
+                                :class="{
+                                    'bg-[#0FB728]': getAppointmentsForDay(day.date)[0]?.status === 'available',
+                                    'bg-[#BCC1C9]': getAppointmentsForDay(day.date)[0]?.status === 'booked'
+                                }"
+                                @click.stop="handleAppointmentClick(getAppointmentsForDay(day.date)[0])"
+                             >
+                                {{ getAppointmentsForDay(day.date)[0]?.time }}
+                             </div>
+                             <!-- Count (+N) -->
+                             <span v-if="getAppointmentsForDay(day.date).length > 1" class="text-[10px] text-gray-500 font-bold">
+                                +{{ getAppointmentsForDay(day.date).length - 1 }}
+                             </span>
+                        </template>
+                    </div>
+
+                    <!-- DESKTOP VIEW: Detailed list -->
+                    <div class="hidden md:block space-y-1">
+                        <div 
+                            v-for="(app, eIndex) in getAppointmentsForDay(day.date).slice(0, 2)" 
+                            :key="eIndex"
+                            @click.stop="handleAppointmentClick(app)"
+                            class="text-[10px] px-2 py-1 rounded-md font-medium text-white shadow-sm transition-opacity truncate"
+                            :class="{
+                                'bg-[#0FB728] hover:opacity-90 cursor-pointer': app.status === 'available',
+                                'bg-[#BCC1C9] hover:opacity-90 cursor-pointer': app.status === 'booked'
+                            }"
+                        >
+                            {{ app.time }} 
+                            <span v-if="app.name">({{ app.name }})</span>
+                            <span v-else>({{ app.status === 'available' ? 'Avl' : 'Bkd' }})</span>
+                        </div>
+                         <!-- Show +N more if there are additional events -->
+                        <div 
+                            v-if="getAppointmentsForDay(day.date).length > 2"
+                            class="text-xs text-gray-500 font-medium px-1 hover:text-gray-700 hover:bg-gray-100 rounded cursor-pointer mt-1 text-center"
+                            @click.stop="openDayModal(day.date, getAppointmentsForDay(day.date))"
+                        >
+                            +{{ getAppointmentsForDay(day.date).length - 2 }} more
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="flex items-center gap-8 mt-6">
-        <div class="flex items-center gap-3"><div class="w-12 h-4 bg-[#E67E22] rounded"></div><span class="text-sm text-gray-600">Waiting</span></div>
-        <div class="flex items-center gap-3"><div class="w-12 h-4 bg-[#0FB728] rounded"></div><span class="text-sm text-gray-600">Available</span></div>
-        <div class="flex items-center gap-3"><div class="w-12 h-4 bg-[#BCC1C9] rounded"></div><span class="text-sm text-gray-600">Taken</span></div>
-    </div>
-
     <AppointmentModal 
         :is-open="isModalOpen"
-        :program-name="programs.find(p => p.id === selectedCourseId)?.title"
+        :program-name="'Global Schedule'"
         :appointment="selectedAppointment"
         @close="isModalOpen = false"
         @approve="handleModalApprove"
@@ -408,8 +433,8 @@ watch(selectedCourseId, () => {
 
     <CreateScheduleModal 
         :is-open="isCreateModalOpen"
-        :program-id="selectedCourseId"
-        :program-name="programs.find(p => p.id === selectedCourseId)?.title || ''"
+        :program-id="null"
+        :program-name="'Global Schedule'"
         :initial-date="selectedDateForCreation"
         @close="isCreateModalOpen = false"
         @submit="handleScheduleCreated"

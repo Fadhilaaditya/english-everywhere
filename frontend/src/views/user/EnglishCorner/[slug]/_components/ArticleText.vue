@@ -7,13 +7,13 @@ const router = useRouter()
 const route = useRoute()
 
 const article = ref<any>(null)
+import api from '@/api'
 
 const fetchArticle = async () => {
   try {
     const slug = route.params.slug
-    const response = await fetch(`http://localhost:3001/api/articles/${slug}`)
-    if (!response.ok) throw new Error('Failed to fetch article')
-    const data = await response.json()
+    const response = await api.get(`/articles/${slug}`)
+    const data = response.data
     
     // Ensure JSON fields are parsed (handling potential stringified data from DB)
     article.value = {

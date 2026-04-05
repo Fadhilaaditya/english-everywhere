@@ -38,11 +38,14 @@ db.ProgramSchedule = require("./programScheduleModel.js")(
   sequelize,
   Sequelize,
 );
-db.Payment = require("./payment.model.js")(sequelize, Sequelize);
-db.PaymentInstallment = require("./payment_installment.model.js")(
+db.AppointmentBooking = require("./appointmentBookingModel.js")(
   sequelize,
   Sequelize,
 );
+
+// Payment models
+db.Payment = require("./paymentModel.js")(sequelize, Sequelize);
+db.PaymentInstallment = require("./paymentInstallmentModel.js")(sequelize, Sequelize);
 
 // ==============================
 // 2. DEFINE ASSOCIATIONS
@@ -87,32 +90,6 @@ db.Program.hasMany(db.ProgramSchedule, {
 db.ProgramSchedule.belongsTo(db.Program, {
   foreignKey: "programId",
   as: "program",
-});
-
-// Payment Associations
-db.Payment.belongsTo(db.Student, {
-  foreignKey: "studentId",
-  as: "student"
-});
-db.Student.hasMany(db.Payment, {
-  as: "payments"
-});
-
-db.Payment.belongsTo(db.Program, {
-  foreignKey: "programId",
-  as: "program"
-});
-db.Program.hasMany(db.Payment, {
-  as: "payments"
-});
-
-db.Payment.hasMany(db.PaymentInstallment, {
-  as: "installments",
-  foreignKey: "paymentId"
-});
-db.PaymentInstallment.belongsTo(db.Payment, {
-  as: "payment",
-  foreignKey: "paymentId"
 });
 
 module.exports = db;

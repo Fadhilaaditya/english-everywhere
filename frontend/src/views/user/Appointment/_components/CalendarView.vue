@@ -4,23 +4,26 @@ import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 import FormAppointmentModal from './FormAppointmentModal.vue'
 import DayDetailsModal from './DayDetailsModal.vue'
+import InfoModal from './InfoModal.vue'
 import Toast from '@/components/Toast.vue'
 
 const route = useRoute()
-const programId = computed(() => route.query.programId)
 
 const currentDate = ref(new Date())
 const isModalOpen = ref(false)
 const selectedSchedule = ref<any>(null)
 const isDayModalOpen = ref(false)
+const isInfoModalOpen = ref(false)
+const infoModalData = ref({ title: '', message: '' })
 const selectedDayDate = ref<string>('')
 const selectedDayEvents = ref<any[]>([])
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 // Toast state
 const showToast = ref(false)
 const toastMessage = ref('')
-const toastType = ref<'success' | 'error'>('success')
-const showToastNotification = (message: string, type: 'success' | 'error' = 'success') => {
+const toastType = ref<'success' | 'error' | 'info'>('success')
+const showToastNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     toastMessage.value = message
     toastType.value = type
     showToast.value = true
@@ -29,39 +32,41 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
 // Events state
 const events = ref<Record<string, { id: number, type: 'AVAILABLE' | 'PENDING' | 'BOOKED', time: string, name?: string }[]>>({})
 
+import api from '@/api'
+
 const fetchSchedules = async () => {
-  if (!programId.value) return;
-
   try {
-    const response = await fetch(`http://localhost:3001/api/programs/${programId.value}/schedules?t=${new Date().getTime()}`)
-    if (!response.ok) throw new Error('Failed to fetch schedules')
-    const data = await response.json()
-    
-    const newEvents: any = {}
-    data.forEach((schedule: any) => {
-      const status = schedule.status ? schedule.status.trim().toUpperCase() : ''
-      if (status === 'ACCEPTED') return
-
-      if (!newEvents[schedule.date]) {
-        newEvents[schedule.date] = []
-      }
-      newEvents[schedule.date].push({
-        id: schedule.id,
-        type: schedule.status, 
-        time: schedule.time,
-        name: schedule.applicantName,
-        applicantName: schedule.applicantName,
-        applicantGender: schedule.applicantGender,
-        applicantAddress: schedule.applicantAddress,
-        applicantFather: schedule.applicantFather,
-        applicantMother: schedule.applicantMother,
-        applicantBirthPlace: schedule.applicantBirthPlace,
-        applicantBirthDate: schedule.applicantBirthDate,
-        applicantPhone: schedule.applicantPhone,
-        applicantEmail: schedule.applicantEmail
-      })
+    const response = await api.get(`/programs/schedules/global`, {
+        params: { t: new Date().getTime() }
     })
-    events.value = newEvents
+    const data = response.data
+    
+    // Get today's date in YYYY-MM-DD format for comparison
+    const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
+    
+    events.value = data.reduce((acc: any, item: any) => {
+      const bookedCount = item.bookings ? item.bookings.filter((b: any) => b.status !== 'REJECTED').length : 0
+      const slotsLeft = item.maxSlots - bookedCount
+      
+      // An appointment is 'full' if slotsLeft <= 0 OR if it's in the past
+      const isPast = item.date < today
+      const isFull = slotsLeft <= 0 || isPast
+      
+      const type = isFull ? 'BOOKED' : 'AVAILABLE'
+      const label = isPast ? 'Closed' : (isFull ? 'Full' : `${slotsLeft}/${item.maxSlots} Slots`)
+      
+      if (!acc[item.date]) acc[item.date] = []
+      acc[item.date].push({
+        id: item.id,
+        time: item.time,
+        type: type,
+        name: label,
+        maxSlots: item.maxSlots,
+        bookedCount: bookedCount,
+        isPast: isPast
+      })
+      return acc
+    }, {})
   } catch (error) {
     console.error('Error fetching schedules:', error)
   }
@@ -119,7 +124,7 @@ const calendarDays = computed(() => {
          days.push({
             date: i,
             isCurrentMonth: false,
-             fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, i)
+            fullDate: getFullDate(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, i)
         })
     }
     return days
@@ -138,12 +143,26 @@ const nextMonth = () => { currentDate.value = new Date(currentDate.value.getFull
 const goToToday = () => { currentDate.value = new Date() }
 
 const openDayModal = (date: string, events: any[]) => {
+    if (events.length === 0) {
+        infoModalData.value = {
+            title: 'No Appointments Found',
+            message: 'Please pick a date that has a colored indicator. Green means there are available slots for you to book!'
+        }
+        isInfoModalOpen.value = true
+        return
+    }
     selectedDayDate.value = date
     selectedDayEvents.value = events
     isDayModalOpen.value = true
 }
 
 const handleEventClick = (date: string, time: string, type: string, id: number, eventData?: any) => {
+    // If it's a past appointment, don't allow booking
+    if (eventData?.isPast) {
+        showToastNotification('Information: This appointment date has already passed.', 'info')
+        return
+    }
+
     if (type === 'AVAILABLE' || type === 'BOOKED' || type === 'PENDING') {
         selectedSchedule.value = { 
             id, 
@@ -158,22 +177,15 @@ const handleEventClick = (date: string, time: string, type: string, id: number, 
 }
 
 const handleModalSubmit = async (payload: any) => {
-    if (!programId.value || !selectedSchedule.value) return
+    if (!selectedSchedule.value) return
     try {
-        const response = await fetch(`http://localhost:3001/api/programs/${programId.value}/schedules/${selectedSchedule.value.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        if (!response.ok) {
-            const err = await response.json()
-            throw new Error(err.message || 'Failed to book')
-        }
+        await api.post(`/programs/schedules/${selectedSchedule.value.id}/book`, payload)
         showToastNotification('Registration successful! Waiting for admin approval.')
         isModalOpen.value = false
         fetchSchedules()
     } catch (e: any) {
-        showToastNotification(e.message, 'error')
+        const errorMsg = e.response?.data?.message || e.message || 'Something went wrong'
+        showToastNotification(errorMsg, 'error')
     }
 }
 </script>
@@ -194,12 +206,25 @@ const handleModalSubmit = async (payload: any) => {
             <h2 class="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 uppercase tracking-wide">{{ currentMonth }} {{ currentYear }}</h2>
        </div>
       
-      <button 
-        @click="goToToday"
-        class="hidden md:block px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-      >
-        Today
-      </button>
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 bg-[#0FB728] rounded-full"></div>
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 bg-[#BCC1C9] rounded-full"></div>
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full</span>
+          </div>
+        </div>
+
+        <button 
+          @click="goToToday"
+          class="hidden md:block px-6 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+        >
+          Today
+        </button>
+      </div>
        <!-- Mobile Today Button (Icon or smaller) -->
         <button 
             @click="goToToday"
@@ -222,8 +247,13 @@ const handleModalSubmit = async (payload: any) => {
             <div 
                 v-for="(day, index) in calendarDays" 
                 :key="index"
-                class="min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-b border-r border-gray-200 last:border-r-0 relative group hover:bg-gray-50 transition-colors"
-                :class="{ 'text-gray-900': day.isCurrentMonth, 'text-gray-400 bg-gray-50/50': !day.isCurrentMonth }"
+                class="min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border-b border-r border-gray-200 last:border-r-0 relative group transition-colors"
+                :class="[
+                    day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400 bg-gray-50/50',
+                    (events[day.fullDate] || []).length > 0 
+                        ? 'cursor-pointer hover:bg-[#F0FFF4]' 
+                        : 'cursor-default opacity-80'
+                ]"
                 @click="openDayModal(day.fullDate, events[day.fullDate] || [])"
             >
                 <div class="flex justify-end sm:justify-between items-start mb-1 sm:mb-2">
@@ -244,8 +274,7 @@ const handleModalSubmit = async (payload: any) => {
                              <div 
                                 class="text-[10px] px-1 py-0.5 rounded text-white font-bold w-full text-center truncate mb-0.5"
                                 :class="{
-                                    'bg-[#00B027]': (events[day.fullDate] || [])[0]?.type === 'AVAILABLE',
-                                    'bg-[#EB7A52]': (events[day.fullDate] || [])[0]?.type === 'PENDING',
+                                    'bg-[#0FB728]': (events[day.fullDate] || [])[0]?.type === 'AVAILABLE',
                                     'bg-[#BCC1C9]': (events[day.fullDate] || [])[0]?.type === 'BOOKED'
                                 }"
                                 @click.stop="handleEventClick(day.fullDate, (events[day.fullDate] || [])[0]?.time || '', (events[day.fullDate] || [])[0]?.type || '', (events[day.fullDate] || [])[0]?.id || 0, (events[day.fullDate] || [])[0])"
@@ -267,14 +296,13 @@ const handleModalSubmit = async (payload: any) => {
                             @click.stop="handleEventClick(day.fullDate, event.time, event.type, event.id, event)"
                             class="text-[10px] px-2 py-1 rounded-md font-medium text-white shadow-sm transition-opacity truncate"
                             :class="{
-                                'bg-[#00B027] hover:opacity-90 cursor-pointer': event.type === 'AVAILABLE',
-                                'bg-[#EB7A52] hover:opacity-90 cursor-pointer': event.type === 'PENDING',
+                                'bg-[#0FB728] hover:opacity-90 cursor-pointer': event.type === 'AVAILABLE',
                                 'bg-[#BCC1C9] hover:opacity-90 cursor-pointer': event.type === 'BOOKED'
                             }"
                         >
                             {{ event.time }} 
                             <span v-if="event.name">({{ event.name }})</span>
-                            <span v-else>({{ event.type === 'AVAILABLE' ? 'Avl' : event.type === 'PENDING' ? 'Wait' : 'Bkd' }})</span>
+                            <span v-else>({{ event.type === 'AVAILABLE' ? 'Avl' : 'Bkd' }})</span>
                         </div>
                          <!-- Show +N more if there are additional events -->
                         <div 
@@ -297,12 +325,20 @@ const handleModalSubmit = async (payload: any) => {
         @submit="handleModalSubmit"
     />
 
-    <DayDetailsModal
+    <InfoModal
+        :is-open="isInfoModalOpen"
+        :title="infoModalData.title"
+        :message="infoModalData.message"
+        @close="isInfoModalOpen = false"
+    />
+
+    <DayDetailsModal 
+        v-if="isDayModalOpen"
         :is-open="isDayModalOpen"
         :date="selectedDayDate"
         :events="selectedDayEvents"
         @close="isDayModalOpen = false"
-        @click-event="(e) => { isDayModalOpen = false; handleEventClick(selectedDayDate, e.time, e.type, e.id) }"
+        @click-event="handleEventClick(selectedDayDate, $event.time, $event.type, $event.id, $event)"
     />
 
     <Toast :show="showToast" :message="toastMessage" :type="toastType" @close="showToast = false" />

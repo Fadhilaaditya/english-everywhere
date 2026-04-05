@@ -10,6 +10,7 @@ const props = defineProps<{
     subject: string
     room: string
     attendanceLink?: string
+    link?: string
     status: string
   }
 }>()
@@ -62,7 +63,19 @@ const props = defineProps<{
             rel="noopener noreferrer"
             class="w-full py-3 px-6 rounded-2xl bg-[#4CC9C0] text-white text-sm font-bold shadow-lg shadow-[#4CC9C0]/20 hover:bg-[#3db8af] transition-colors text-center inline-block"
         >
-           Absensi
+          Link Absensi & Course Report
+        </a>
+    </div>
+
+    <!-- Meeting Link (If available) -->
+    <div v-if="item.link" class="pt-3">
+        <a 
+            :href="item.link"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="w-full py-3 px-6 rounded-2xl bg-white border-2 border-[#4CC9C0] text-[#4CC9C0] text-sm font-bold hover:bg-[#f0fbfb] transition-colors text-center block"
+        >
+            Link Report Card
         </a>
     </div>
   </div>

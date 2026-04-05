@@ -78,11 +78,21 @@ exports.login = async (req, res) => {
             expiresIn: 86400 // 24 hours (disarankan lebih lama dari 1 jam untuk UX yang baik)
         });
 
+        // Cari studentId jika dia murid
+        let studentId = null;
+        if (user.role === 'student' || user.role === 'user') {
+            const studentProfile = await Student.findOne({ where: { userId: user.id } });
+            if (studentProfile) {
+                studentId = studentProfile.id;
+            }
+        }
+
         res.status(200).json({
             id: user.id,
             username: user.username,
             fullName: user.fullName,
             role: user.role,
+            studentId: studentId, // Menambahkan ID Student untuk frontend
             accessToken: token
         });
     } catch (error) {

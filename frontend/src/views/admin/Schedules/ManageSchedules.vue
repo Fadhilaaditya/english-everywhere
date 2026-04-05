@@ -6,7 +6,7 @@ import Toast from '@/components/Toast.vue'
 import ScheduleCalendar from './_components/ScheduleCalendar.vue'
 import ScheduleModal from './_components/ScheduleModal.vue'
 import ConfirmModal from './_components/ConfirmModal.vue'
-import axios from 'axios'
+import api from '@/api'
 
 // --- State ---
 const schedules = ref<any[]>([])
@@ -14,6 +14,7 @@ const programs = ref<any[]>([])
 const teachers = ref<any[]>([])
 const classrooms = ref<any[]>([])
 const selectedCourseId = ref<number | null>(null)
+const selectedTeacherId = ref<number | null>(null)
 const currentDate = ref(new Date())
 const isSidebarOpen = ref(false)
 
@@ -37,19 +38,13 @@ const form = ref({
   className: '',
   classroom: '',
   attendanceLink: '',
+  link: '',
   startTime: '08:00',
   endTime: '09:00',
   date: '',
 })
 
-const API_BASE_URL = 'http://localhost:3001/api'
-
 // --- Utils ---
-const getHeaders = () => ({
-  'Content-Type': 'application/json',
-  'x-access-token': localStorage.getItem('token') || '',
-})
-
 const triggerToast = (message: string, type: 'success' | 'error' = 'success') => {
   toastMessage.value = message
   toastType.value = type
@@ -63,29 +58,25 @@ const triggerToast = (message: string, type: 'success' | 'error' = 'success') =>
 const fetchData = async () => {
   try {
     const [resP, resT, resC] = await Promise.all([
-      axios.get(`${API_BASE_URL}/programs`, { headers: getHeaders() }),
-      axios.get(`${API_BASE_URL}/teachers`, { headers: getHeaders() }),
-      axios.get(`${API_BASE_URL}/classrooms`, { headers: getHeaders() }),
+      api.get('/programs'),
+      api.get('/teachers'),
+      api.get('/classrooms'),
     ])
     programs.value = Array.isArray(resP.data) ? resP.data : resP.data.data || []
     teachers.value = Array.isArray(resT.data) ? resT.data : resT.data.data || []
     classrooms.value = Array.isArray(resC.data) ? resC.data : resC.data.data || []
-
-    if (programs.value.length > 0 && !selectedCourseId.value) {
-      selectedCourseId.value = programs.value[0].id
-    }
   } catch (e) {
     triggerToast('Gagal mengambil data guru/program/kelas', 'error')
   }
 }
 
 const fetchSchedules = async () => {
-  if (!selectedCourseId.value) return
   try {
-    const res = await axios.get(
-      `${API_BASE_URL}/teacher-schedules?programId=${selectedCourseId.value}`,
-      { headers: getHeaders() },
-    )
+    const params: any = {}
+    if (selectedCourseId.value) params.programId = selectedCourseId.value
+    if (selectedTeacherId.value) params.teacherId = selectedTeacherId.value
+
+    const res = await api.get('/teacher-schedules', { params })
     schedules.value = res.data
   } catch (e) {
     console.error('Error fetching schedules:', e)
@@ -110,6 +101,7 @@ const handleDayClick = (dayData: any) => {
     className: currentProgram?.title || currentProgram?.name || '',
     classroom: '',
     attendanceLink: '',
+    link: '',
     startTime: '08:00',
     endTime: '09:00',
     date: dateStr,
@@ -128,6 +120,7 @@ const handleEventClick = (event: any) => {
     className: event.className || '',
     classroom: event.classroom || '',
     attendanceLink: event.attendanceLink || '',
+    link: event.link || '',
   }
   showModal.value = true
 }
@@ -139,10 +132,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   try {
     const isEdit = !!selectedAppointment.value
-    const url = isEdit
-      ? `${API_BASE_URL}/teacher-schedules/${selectedAppointment.value.id}`
-      : `${API_BASE_URL}/teacher-schedules`
-
+    
     // Pastikan ID dikirim sebagai angka jika Backend mewajibkan Integer
     const payload = {
       ...form.value,
@@ -150,8 +140,11 @@ const handleSubmit = async () => {
       teacherId: parseInt(form.value.teacherId),
     }
 
-    const method = isEdit ? axios.put : axios.post
-    await method(url, payload, { headers: getHeaders() })
+    if (isEdit) {
+      await api.put(`/teacher-schedules/${selectedAppointment.value.id}`, payload)
+    } else {
+      await api.post('/teacher-schedules', payload)
+    }
 
     triggerToast(isEdit ? 'Jadwal diperbarui' : 'Jadwal disimpan ke database')
     showModal.value = false
@@ -172,7 +165,7 @@ const handleDelete = (id: number) => {
 const confirmDelete = async () => {
   if (!scheduleToDelete.value) return
   try {
-    await axios.delete(`${API_BASE_URL}/teacher-schedules/${scheduleToDelete.value}`, { headers: getHeaders() })
+    await api.delete(`/teacher-schedules/${scheduleToDelete.value}`)
     triggerToast('Jadwal dihapus')
     showModal.value = false
     showConfirmModal.value = false
@@ -193,7 +186,7 @@ onMounted(async () => {
 onUnmounted(() => {
   if (pollingInterval) clearInterval(pollingInterval)
 })
-watch(selectedCourseId, () => {
+watch([selectedCourseId, selectedTeacherId], () => {
   fetchSchedules()
 })
 </script>
@@ -205,7 +198,7 @@ watch(selectedCourseId, () => {
     <div class="transition-all duration-300 lg:pl-64">
       <Header @toggle-sidebar="isSidebarOpen = !isSidebarOpen" />
       
-      <main class="p-4 lg:p-8">
+      <main class="p-4 md:p-8">
         <Toast 
           :show="showToast" 
           :message="toastMessage" 
@@ -213,16 +206,18 @@ watch(selectedCourseId, () => {
           @close="showToast = false"
         />
 
-        <h1 class="text-2xl font-bold text-gray-900 mb-8">Schedules</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">Schedules</h1>
 
         <ScheduleCalendar
           v-model:current-date="currentDate"
           v-model:selected-course-id="selectedCourseId"
+          v-model:selected-teacher-id="selectedTeacherId"
           :schedules="schedules"
           :is-loading="false"
           :programs="programs"
           :teachers="teachers"
           @day-click="handleDayClick"
+          @today-click="handleDayClick"
           @event-click="handleEventClick"
           @delete="handleDelete"
         />
@@ -245,13 +240,14 @@ watch(selectedCourseId, () => {
     />
 
     <ConfirmModal
-      :show="showConfirmModal"
-      title="Hapus Jadwal?"
-      message="Apakah Anda yakin ingin menghapus jadwal ini? Tindakan ini tidak dapat dibatalkan."
-      confirm-text="Ya, Hapus"
-      cancel-text="Batal"
+      :is-open="showConfirmModal"
+      title="Delete Schedule?"
+      message="Are you sure you want to delete this schedule? This action cannot be undone."
+      confirm-text="Delete"
+      cancel-text="Cancel"
+      type="danger"
       @confirm="confirmDelete"
-      @cancel="showConfirmModal = false"
+      @close="showConfirmModal = false"
     />
   </div>
 </template>

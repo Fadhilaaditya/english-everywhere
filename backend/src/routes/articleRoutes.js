@@ -1,10 +1,11 @@
 module.exports = app => {
     const articles = require("../controllers/articleController.js");
+    const { verifyToken, isAdmin } = require("../middleware/authJwt");
 
     var router = require("express").Router();
 
     // Create a new Article
-    router.post("/", articles.create);
+    router.post("/", [verifyToken, isAdmin], articles.create);
 
     // Retrieve all Articles
     router.get("/", articles.findAll);
@@ -13,10 +14,10 @@ module.exports = app => {
     router.get("/:id", articles.findOne);
 
     // Update a Article with id
-    router.put("/:id", articles.update);
+    router.put("/:id", [verifyToken, isAdmin], articles.update);
 
     // Delete a Article with id
-    router.delete("/:id", articles.delete);
+    router.delete("/:id", [verifyToken, isAdmin], articles.delete);
 
     app.use('/api/articles', router);
 };

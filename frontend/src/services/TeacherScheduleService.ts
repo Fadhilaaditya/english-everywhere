@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3001/api';
+import api from '@/api';
 
 export interface TeacherProfile {
     id: number;
@@ -27,19 +25,9 @@ export interface Schedule {
 }
 
 class TeacherScheduleService {
-    private getHeaders() {
-        const token = localStorage.getItem('token');
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
-        };
-    }
-
     async getTeacherProfile(): Promise<TeacherProfile> {
         try {
-            const response = await axios.get(`${API_URL}/teacher/profile`, {
-                headers: this.getHeaders()
-            });
+            const response = await api.get('/teacher/profile');
             return response.data;
         } catch (error) {
             console.error("Error fetching teacher profile:", error);
@@ -49,9 +37,7 @@ class TeacherScheduleService {
 
     async getMySchedules(): Promise<Schedule[]> {
         try {
-            const response = await axios.get(`${API_URL}/teacher-schedules/my-schedules`, {
-                headers: this.getHeaders()
-            });
+            const response = await api.get('/teacher-schedules/my-schedules');
             return response.data;
         } catch (error) {
             console.error("Error fetching my schedules:", error);
@@ -61,8 +47,7 @@ class TeacherScheduleService {
 
     async getSchedules(teacherId: number): Promise<Schedule[]> {
         try {
-            const response = await axios.get(`${API_URL}/teacher-schedules`, {
-                headers: this.getHeaders(),
+            const response = await api.get('/teacher-schedules', {
                 params: { teacherId }
             });
             return response.data;
@@ -74,9 +59,7 @@ class TeacherScheduleService {
 
     async createSchedule(data: Partial<Schedule>): Promise<Schedule> {
         try {
-            const response = await axios.post(`${API_URL}/teacher-schedules`, data, {
-                headers: this.getHeaders()
-            });
+            const response = await api.post('/teacher-schedules', data);
             return response.data;
         } catch (error) {
             console.error("Error creating schedule:", error);
@@ -86,9 +69,7 @@ class TeacherScheduleService {
 
     async updateSchedule(id: number, data: Partial<Schedule>): Promise<Schedule> {
         try {
-            const response = await axios.put(`${API_URL}/teacher-schedules/${id}`, data, {
-                headers: this.getHeaders()
-            });
+            const response = await api.put(`/teacher-schedules/${id}`, data);
             return response.data;
         } catch (error) {
             console.error("Error updating schedule:", error);
@@ -98,9 +79,7 @@ class TeacherScheduleService {
 
     async deleteSchedule(id: number): Promise<{ message: string }> {
         try {
-            const response = await axios.delete(`${API_URL}/teacher-schedules/${id}`, {
-                headers: this.getHeaders()
-            });
+            const response = await api.delete(`/teacher-schedules/${id}`);
             return response.data;
         } catch (error) {
             console.error("Error deleting schedule:", error);

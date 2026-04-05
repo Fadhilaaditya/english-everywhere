@@ -94,6 +94,7 @@ exports.create = async (req, res) => {
       className: req.body.className, // Nama denormalisasi dari Program.title
       classroom: req.body.classroom,
       attendanceLink: req.body.attendanceLink,
+      link: req.body.link,
     };
 
     const data = await TeacherSchedule.create(payload);
@@ -114,7 +115,7 @@ exports.update = async (req, res) => {
     if (!id) return res.status(400).send({ message: "ID Jadwal diperlukan." });
 
     // Filter hanya field yang valid sesuai skema database
-    const validFields = ['date', 'startTime', 'endTime', 'teacherId', 'programId', 'teacherName', 'className', 'classroom', 'attendanceLink'];
+    const validFields = ['date', 'startTime', 'endTime', 'teacherId', 'programId', 'teacherName', 'className', 'classroom', 'attendanceLink', 'link'];
     const updateData = {};
 
     validFields.forEach(field => {

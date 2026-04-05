@@ -21,7 +21,7 @@ const isSidebarOpen = ref(false)
         <h1 class="text-2xl font-bold text-gray-900 mb-8">Applicant Data</h1>
 
         <!-- Summary -->
-        <ApplicantSummary />
+        <ApplicantSummary class="mb-6 md:mb-8 text-center sm:text-left" />
 
         <!-- Table -->
         <ApplicantTable />

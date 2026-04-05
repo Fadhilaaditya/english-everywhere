@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+    scroll-behavior: smooth;
+}
+
 @theme {
     --font-poppins: 'Poppins', sans-serif;
     --font-quicksand: 'Quicksand', sans-serif;

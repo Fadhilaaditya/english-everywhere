@@ -20,6 +20,14 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.ENUM('REGULAR', 'INTENSIVE', 'OTHERS'),
             allowNull: false,
             defaultValue: 'REGULAR'
+        },
+        parentId: {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'programs',
+                key: 'id'
+            }
         }
     });
 

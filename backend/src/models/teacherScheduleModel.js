@@ -31,6 +31,10 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      link: { // Generic link field requested by user
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
       // Definisi Foreign Key (Opsional tapi membantu integritas)
       teacherId: {
         type: Sequelize.INTEGER,

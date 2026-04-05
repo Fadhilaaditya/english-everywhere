@@ -34,7 +34,8 @@ exports.createAccount = async (req, res) => {
             username: req.body.username,
             password: password,
             fullName: req.body.fullName,
-            role: 'student'
+            role: 'student',
+            photo: req.body.photo // Add photo field
         });
 
         // Create Student linked to User
@@ -48,13 +49,15 @@ exports.createAccount = async (req, res) => {
             birthDate: req.body.birthDate,
             phoneNumber: req.body.phone,
             email: req.body.email,
+            course: req.body.level, // Store the label
+            programId: req.body.programId, // Store the actual sub-program ID
             userId: user.id
         });
 
-        // Update Schedule Status if scheduleId is provided
+        // Update Booking Status if bookingId (passed as scheduleId) is provided
         if (req.body.scheduleId) {
-            await ProgramSchedule.update(
-                { status: 'ACCEPTED' },
+            await db.AppointmentBooking.update(
+                { status: 'SUCCESS' },
                 { where: { id: req.body.scheduleId } }
             );
         }
@@ -100,7 +103,9 @@ exports.update = async (req, res) => {
             address: req.body.address,
             phoneNumber: req.body.phone,
             email: req.body.email,
-            birthDate: req.body.birthDate
+            birthDate: req.body.birthDate,
+            course: req.body.level, // Label
+            programId: req.body.programId // Sub-program ID
             // Add other fields as necessary
         });
 

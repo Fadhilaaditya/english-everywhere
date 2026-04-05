@@ -2,6 +2,23 @@ const db = require('../models');
 const Event = db.Event;
 const Op = db.Sequelize.Op;
 
+const parseImages = (data) => {
+    if (Array.isArray(data)) {
+        return data.map(item => parseImages(item));
+    }
+    const eventObj = data.get ? data.get({ plain: true }) : data;
+    if (eventObj.images) {
+        try {
+            eventObj.images = JSON.parse(eventObj.images);
+        } catch (e) {
+            eventObj.images = [];
+        }
+    } else {
+        eventObj.images = [];
+    }
+    return eventObj;
+};
+
 // Create and Save a new Event
 exports.create = (req, res) => {
     // Validate request
@@ -20,6 +37,7 @@ exports.create = (req, res) => {
         price: req.body.price,
         desc: req.body.desc,
         image: req.body.image,
+        images: req.body.images ? JSON.stringify(req.body.images) : null,
         category: req.body.category,
         location: req.body.location
     };
@@ -40,7 +58,20 @@ exports.create = (req, res) => {
 exports.findAll = (req, res) => {
     Event.findAll()
         .then(data => {
-            res.send(data);
+            const parsedData = data.map(event => {
+                const eventObj = event.get({ plain: true });
+                if (eventObj.images) {
+                    try {
+                        eventObj.images = JSON.parse(eventObj.images);
+                    } catch (e) {
+                        eventObj.images = [];
+                    }
+                } else {
+                    eventObj.images = [];
+                }
+                return eventObj;
+            });
+            res.send(parsedData);
         })
         .catch(err => {
             res.status(500).send({
@@ -62,7 +93,7 @@ exports.findUpcoming = (req, res) => {
         order: [['date', 'ASC']]
     })
         .then(data => {
-            res.send(data);
+            res.send(parseImages(data));
         })
         .catch(err => {
             res.status(500).send({
@@ -84,7 +115,7 @@ exports.findPast = (req, res) => {
         order: [['date', 'DESC']]
     })
         .then(data => {
-            res.send(data);
+            res.send(parseImages(data));
         })
         .catch(err => {
             res.status(500).send({
@@ -128,7 +159,17 @@ exports.findOne = (req, res) => {
     Event.findByPk(id)
         .then(data => {
             if (data) {
-                res.send(data);
+                const eventObj = data.get({ plain: true });
+                if (eventObj.images) {
+                    try {
+                        eventObj.images = JSON.parse(eventObj.images);
+                    } catch (e) {
+                        eventObj.images = [];
+                    }
+                } else {
+                    eventObj.images = [];
+                }
+                res.send(eventObj);
             } else {
                 res.status(404).send({
                     message: `Cannot find Event with id=${id}.`
@@ -146,7 +187,12 @@ exports.findOne = (req, res) => {
 exports.update = (req, res) => {
     const id = req.params.id;
 
-    Event.update(req.body, {
+    const updateData = { ...req.body };
+    if (updateData.images && Array.isArray(updateData.images)) {
+        updateData.images = JSON.stringify(updateData.images);
+    }
+
+    Event.update(updateData, {
         where: { id: id }
     })
         .then(num => {

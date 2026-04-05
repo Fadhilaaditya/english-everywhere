@@ -8,20 +8,16 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
             allowNull: false
         },
+        maxSlots: {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            defaultValue: 1
+        },
         status: {
             type: Sequelize.ENUM('AVAILABLE', 'PENDING', 'BOOKED', 'ACCEPTED'),
             allowNull: false,
             defaultValue: 'AVAILABLE'
-        },
-        applicantName: { type: Sequelize.STRING },
-        applicantGender: { type: Sequelize.STRING },
-        applicantAddress: { type: Sequelize.TEXT },
-        applicantFather: { type: Sequelize.STRING },
-        applicantMother: { type: Sequelize.STRING },
-        applicantBirthPlace: { type: Sequelize.STRING },
-        applicantBirthDate: { type: Sequelize.DATEONLY },
-        applicantPhone: { type: Sequelize.STRING },
-        applicantEmail: { type: Sequelize.STRING }
+        }
     });
 
     return ProgramSchedule;
