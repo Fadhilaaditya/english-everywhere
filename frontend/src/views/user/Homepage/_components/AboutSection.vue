@@ -4,7 +4,6 @@
 
 <template>
   <section id="about-us" class="py-16 px-6 md:px-12 bg-white relative overflow-hidden">
-    <!-- Decorative Icons (z-0 to stay behind text) -->
     <img 
       src="/Kupu%20Kupu%201.png" 
       alt="Decoration Kupu Kupu" 

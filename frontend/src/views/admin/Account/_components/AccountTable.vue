@@ -20,8 +20,9 @@ const filteredAccounts = computed(() => {
     if (!searchQuery.value) return accounts.value
     const query = searchQuery.value.toLowerCase()
     return accounts.value.filter(acc => 
-        acc.name.toLowerCase().includes(query) || 
-        acc.username.toLowerCase().includes(query)
+        (acc.name && acc.name.toLowerCase().includes(query)) || 
+        (acc.username && acc.username.toLowerCase().includes(query)) ||
+        (acc.status && acc.status.toLowerCase().includes(query))
     )
 })
 
@@ -72,6 +73,7 @@ const fetchAccounts = async () => {
                 username: item.username,
                 dob: profile && profile.birthDate ? formatDate(profile.birthDate) : '-',
                 role: capitalize(item.role),
+                status: isStudent && profile && profile.status ? profile.status : '-',
                 fullData: item 
             }
         })
@@ -161,7 +163,7 @@ const processDelete = async () => {
                 <input 
                     v-model="searchQuery"
                     type="text" 
-                    placeholder="Search by name or username..."
+                    placeholder="Search by name, username or status..."
                     class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm"
                 />
             </div>
@@ -197,6 +199,11 @@ const processDelete = async () => {
                         Date of Birth <ArrowUpDown class="w-3 h-3" />
                     </div>
                 </th>
+                <th class="py-4 px-6 text-center text-sm font-semibold text-gray-900">
+                    <div class="flex items-center justify-center gap-1 cursor-pointer hover:text-gray-600">
+                        Status <ArrowUpDown class="w-3 h-3" />
+                    </div>
+                </th>
                  <th class="py-4 px-6 text-center text-sm font-semibold text-gray-900">
                     <div class="flex items-center justify-center gap-1 cursor-pointer hover:text-gray-600">
                         Role <ArrowUpDown class="w-3 h-3" />
@@ -214,6 +221,21 @@ const processDelete = async () => {
                 <td class="py-4 px-6 text-sm font-bold text-gray-700">{{ account.name }}</td>
                 <td class="py-4 px-6 text-sm text-gray-600">{{ account.username }}</td>
                 <td class="py-4 px-6 text-sm text-gray-600">{{ account.dob }}</td>
+                <td class="py-4 px-6 text-center">
+                    <span 
+                        v-if="account.status !== '-'"
+                        class="px-2.5 py-1.5 rounded-md text-xs font-semibold capitalize"
+                        :class="{
+                            'bg-green-100 text-green-700': account.status === 'active',
+                            'bg-yellow-100 text-yellow-700': account.status === 'waiting list',
+                            'bg-gray-100 text-gray-700': account.status === 'non active',
+                            'bg-red-100 text-red-700': account.status === 'postponed'
+                        }"
+                    >
+                        {{ account.status }}
+                    </span>
+                    <span v-else class="text-sm text-gray-400">-</span>
+                </td>
                 <td class="py-4 px-6">
                     <div class="flex justify-center">
                         <span 

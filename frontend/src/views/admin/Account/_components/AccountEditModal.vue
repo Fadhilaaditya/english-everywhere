@@ -32,6 +32,7 @@ const formData = ref({
     programId: null as number | null, // Sub-level ID
     fatherName: '',
     motherName: '',
+    status: 'waiting list',
 })
 
 const showPassword = ref(false)
@@ -46,6 +47,7 @@ const roleOptions = [
     { label: 'Student', value: 'student' },
     { label: 'Teacher', value: 'teacher' }
 ]
+const statusOptions = ['waiting list', 'active', 'non active', 'postponed']
 
 const updateSelectedProgramFromAccount = () => {
     if (isEditMode.value && props.account?.fullData?.studentProfile?.program && courses.value.length > 0) {
@@ -122,7 +124,8 @@ watch(() => props.account, (newVal) => {
             specialization: profile ? profile.specialization : '',
             programId: profile ? profile.programId : null,
             fatherName: profile ? profile.fatherName : '',
-            motherName: profile ? profile.motherName : ''
+            motherName: profile ? profile.motherName : '',
+            status: profile && profile.status ? profile.status : 'waiting list'
         }
         previewUrl.value = '' // Reset preview
         updateSelectedProgramFromAccount()
@@ -143,7 +146,8 @@ watch(() => props.account, (newVal) => {
             specialization: '',
             programId: null,
             fatherName: '',
-            motherName: ''
+            motherName: '',
+            status: 'waiting list'
         }
         previewUrl.value = ''
         selectedParentProgram.value = null
@@ -376,6 +380,16 @@ const processSubmission = async () => {
                         </div>
                     </div>
                 </template>
+
+                <!-- Status (Student Only) -->
+                <div v-if="formData.role === 'student'" class="md:col-span-2 space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Status</label>
+                    <CustomDropdown 
+                        v-model="formData.status"
+                        :options="statusOptions"
+                        placeholder="Select Status"
+                    />
+                </div>
 
                  <!-- Course (Student Only) -->
                 <div v-if="formData.role === 'student'" class="space-y-4 md:col-span-2 border-t border-gray-100 pt-6 mt-2">
