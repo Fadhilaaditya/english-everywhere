@@ -58,6 +58,11 @@ module.exports = (sequelize, Sequelize) => {
                 model: "users",
                 key: "id",
             },
+        },
+        status: {
+            type: Sequelize.ENUM('waiting list', 'active', 'non active', 'postponed'),
+            allowNull: false,
+            defaultValue: 'waiting list'
         }
     });
 

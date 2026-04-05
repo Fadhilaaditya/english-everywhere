@@ -134,7 +134,8 @@ exports.create = async (req, res) => {
                 fatherName: profileData.fatherName || '',
                 motherName: profileData.motherName || '',
                 course: profileData.course,
-                programId: profileData.programId
+                programId: profileData.programId,
+                status: profileData.status || 'waiting list'
             }, { transaction });
         } else if (role === 'teacher') {
             await db.Teacher.create({
@@ -247,7 +248,8 @@ exports.update = async (req, res) => {
                 fatherName: profileData.fatherName,
                 motherName: profileData.motherName,
                 course: profileData.course,
-                programId: profileData.programId
+                programId: profileData.programId,
+                status: profileData.status || user.studentProfile.status
             }, { transaction });
         } else if (user.role === 'teacher' && user.teacherProfile) {
             await user.teacherProfile.update({
@@ -389,6 +391,7 @@ exports.importBulk = async (req, res) => {
                     motherName: (profileData.motherName || '').toString(),
                     course: (profileData.course || '').toString(),
                     programId: programId || null,
+                    status: profileData.status || 'waiting list',
                     userId: user.id
                 };
 
