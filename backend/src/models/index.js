@@ -92,4 +92,57 @@ db.ProgramSchedule.belongsTo(db.Program, {
   as: "program",
 });
 
+// --- Self-Referential Program Levels ---
+db.Program.hasMany(db.Program, { as: 'levels', foreignKey: 'parentId' });
+db.Program.belongsTo(db.Program, { as: 'parent', foreignKey: 'parentId' });
+
+// --- Relasi ProgramSchedule <-> AppointmentBooking ---
+db.ProgramSchedule.hasMany(db.AppointmentBooking, {
+  foreignKey: "scheduleId",
+  as: "bookings",
+});
+db.AppointmentBooking.belongsTo(db.ProgramSchedule, {
+  foreignKey: "scheduleId",
+  as: "schedule",
+});
+
+// --- Relasi Payment <-> PaymentInstallment ---
+db.Payment.hasMany(db.PaymentInstallment, {
+  foreignKey: "paymentId",
+  as: "installments",
+});
+db.PaymentInstallment.belongsTo(db.Payment, {
+  foreignKey: "paymentId",
+  as: "payment",
+});
+
+// --- Relasi Payment <-> Student ---
+db.Student.hasMany(db.Payment, {
+  foreignKey: "studentId",
+  as: "payments",
+});
+db.Payment.belongsTo(db.Student, {
+  foreignKey: "studentId",
+  as: "student",
+});
+
+// --- Relasi Payment <-> Program ---
+db.Program.hasMany(db.Payment, {
+  foreignKey: "programId",
+  as: "payments",
+});
+db.Payment.belongsTo(db.Program, {
+  foreignKey: "programId",
+  as: "program",
+});
+
+db.Program.hasMany(db.Student, {
+  foreignKey: "programId",
+  as: "students",
+});
+db.Student.belongsTo(db.Program, {
+  foreignKey: "programId",
+  as: "program",
+});
+
 module.exports = db;

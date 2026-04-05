@@ -6,13 +6,7 @@ import PaymentService from '@/services/PaymentService'
 
 const emit = defineEmits(['update-stats'])
 
-const isModalOpen = ref(false)
-
-const handleSuccess = (message: string) => {
-    isModalOpen.value = false
-    // In a real app, we would re-fetch the payment list here
-    alert(message)
-}
+const isCreateModalOpen = ref(false)
 
 // Real Payments Data from backend
 const payments = ref<any[]>([])

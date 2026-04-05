@@ -3,15 +3,6 @@ import HomeView from '../views/user/Homepage/HomeView.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
-    scrollBehavior(to, from, savedPosition) {
-        if (to.hash) {
-            return {
-                el: to.hash,
-                behavior: 'smooth',
-            }
-        }
-        return savedPosition || { top: 0 }
-    },
     routes: [
         // ==============================
         // PUBLIC / USER ROUTES
