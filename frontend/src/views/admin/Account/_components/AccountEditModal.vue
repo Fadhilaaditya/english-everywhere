@@ -32,7 +32,7 @@ const formData = ref({
     programId: null as number | null, // Sub-level ID
     fatherName: '',
     motherName: '',
-    status: 'waiting list',
+    status: 'Waiting List',
 })
 
 const showPassword = ref(false)
@@ -47,7 +47,7 @@ const roleOptions = [
     { label: 'Student', value: 'student' },
     { label: 'Teacher', value: 'teacher' }
 ]
-const statusOptions = ['waiting list', 'active', 'non active', 'postponed']
+const statusOptions = ['Waiting List', 'Active', 'Non Active', 'Postponed']
 
 const updateSelectedProgramFromAccount = () => {
     if (isEditMode.value && props.account?.fullData?.studentProfile?.program && courses.value.length > 0) {
@@ -125,7 +125,7 @@ watch(() => props.account, (newVal) => {
             programId: profile ? profile.programId : null,
             fatherName: profile ? profile.fatherName : '',
             motherName: profile ? profile.motherName : '',
-            status: profile && profile.status ? profile.status : 'waiting list'
+            status: profile && profile.status ? profile.status : 'Waiting List'
         }
         previewUrl.value = '' // Reset preview
         updateSelectedProgramFromAccount()
@@ -147,7 +147,7 @@ watch(() => props.account, (newVal) => {
             programId: null,
             fatherName: '',
             motherName: '',
-            status: 'waiting list'
+            status: 'Waiting List'
         }
         previewUrl.value = ''
         selectedParentProgram.value = null
