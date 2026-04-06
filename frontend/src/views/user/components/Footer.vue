@@ -37,20 +37,22 @@ import { Youtube, Instagram, ShoppingBag, Phone } from 'lucide-vue-next'
         <div class="space-y-4 text-sm text-gray-600 font-poppins">
           <div>
             <p class="font-medium text-text-dark">Address:</p>
-            <p>Cendana Residence Blok H7 No 5,</p>
+            <p>Cendana Residence Blok H8 No 6,</p>
             <p>South Tangerang 15416</p>
+            <p>Jl. Utama No.44</p>
+            <p>Purwokerto</p>
           </div>
           <div>
             <p class="font-medium text-text-dark">Phone number:</p>
-            <p>+62 812 8888 340</p>
+            <p>+628997626888</p>
           </div>
           <div>
             <p class="font-medium text-text-dark mb-2">Social Media:</p>
             <div class="flex gap-4">
               <a href="#" class="text-text-dark hover:text-primary transition-colors"><Youtube class="w-5 h-5" /></a>
-              <a href="#" class="text-text-dark hover:text-primary transition-colors"><Instagram class="w-5 h-5" /></a>
+              <a href="https://www.instagram.com/english_everywhere.id/" class="text-text-dark hover:text-primary transition-colors"><Instagram class="w-5 h-5" /></a>
               <a href="#" class="text-text-dark hover:text-primary transition-colors"><ShoppingBag class="w-5 h-5" /></a>
-              <a href="#" class="text-text-dark hover:text-primary transition-colors"><Phone class="w-5 h-5" /></a>
+              <a href="https://wa.me/628997626888" class="text-text-dark hover:text-primary transition-colors"><Phone class="w-5 h-5" /></a>
             </div>
           </div>
         </div>

@@ -1,28 +1,105 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { SquarePen, Trash2, ArrowUpDown, Plus } from 'lucide-vue-next'
+import { SquarePen, Trash2, ArrowUpDown, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ref, onMounted, computed, watch } from 'vue'
 import AccountEditModal from './AccountEditModal.vue'
 import Toast from '@/components/Toast.vue'
 import ConfirmationModal from './ConfirmationModal.vue'
+
+import api from '@/api'
 
 const accounts = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedAccount = ref<any>(null)
 
+const searchQuery = ref('')
+const selectedStatus = ref('')
+const selectedRole = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+const statusOptions = ['Waiting List', 'Active', 'Non Active', 'Postponed']
+const roleOptions = [
+    { label: 'Student', value: 'Student' },
+    { label: 'Teacher', value: 'Teacher' }
+]
+
+const filteredAccounts = computed(() => {
+    let result = accounts.value
+
+    // Search filter
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(acc => 
+            (acc.name && acc.name.toLowerCase().includes(query)) || 
+            (acc.username && acc.username.toLowerCase().includes(query)) ||
+            (acc.status && acc.status.toLowerCase().includes(query))
+        )
+    }
+
+    // Status filter
+    if (selectedStatus.value) {
+        result = result.filter(acc => acc.status === selectedStatus.value)
+    }
+
+    // Role filter
+    if (selectedRole.value) {
+        result = result.filter(acc => acc.role === selectedRole.value)
+    }
+
+    return result
+})
+
+const totalPages = computed(() => Math.ceil(filteredAccounts.value.length / itemsPerPage))
+
+const paginatedAccounts = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return filteredAccounts.value.slice(start, end)
+})
+
+// Reset to first page when searching or filtering
+watch([searchQuery, selectedStatus, selectedRole], () => {
+    currentPage.value = 1
+})
+
+const visiblePages = computed(() => {
+    const total = totalPages.value
+    const current = currentPage.value
+    const maxVisible = 5
+    
+    if (total <= maxVisible) {
+        return Array.from({ length: total }, (_, i) => i + 1)
+    }
+    
+    let start = Math.max(1, current - Math.floor(maxVisible / 2))
+    let end = start + maxVisible - 1
+    
+    if (end > total) {
+        end = total
+        start = end - maxVisible + 1
+    }
+    
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
 const fetchAccounts = async () => {
     try {
-        const response = await fetch('http://localhost:3001/api/students')
-        if (response.ok) {
-            const data = await response.json()
-            accounts.value = data.map((item: any) => ({
+        const response = await api.get('/users')
+        const data = response.data
+        accounts.value = data.map((item: any) => {
+            const isStudent = item.role === 'student'
+            const profile = isStudent ? item.studentProfile : item.teacherProfile
+            
+            return {
                 id: item.id,
-                name: item.name,
-                username: item.user ? item.user.username : '-',
-                dob: formatDate(item.birthDate),
-                role: item.user ? capitalize(item.user.role) : 'Student',
+                name: item.fullName || (profile ? profile.name : '-'),
+                username: item.username,
+                dob: profile && profile.birthDate ? formatDate(profile.birthDate) : '-',
+                role: capitalize(item.role),
+                status: isStudent && profile && profile.status ? profile.status : '-',
                 fullData: item 
-            }))
-        }
+            }
+        })
     } catch (e) {
         console.error('Failed to fetch accounts', e)
     }
@@ -86,16 +163,10 @@ const processDelete = async () => {
     isDeleteConfirmOpen.value = false
     try {
         // Implement delete API call
-         const response = await fetch(`http://localhost:3001/api/students/${accountToDelete.value}`, {
-            method: 'DELETE'
-        })
+         await api.delete(`/users/${accountToDelete.value}`)
         
-        if (response.ok) {
-            showToastNotification('Account deleted successfully')
-            fetchAccounts()
-        } else {
-            throw new Error('Failed to delete')
-        }
+        showToastNotification('Account deleted successfully')
+        fetchAccounts()
     } catch (e) {
         console.error('Failed to delete account', e)
         showToastNotification('Failed to delete account', 'error')
@@ -105,16 +176,59 @@ const processDelete = async () => {
 
 <template>
   <div class="mt-8">
-    <!-- Header with Create Button -->
-    <div class="flex justify-between items-center mb-6">
+    <!-- Header: Title, Search, and Create Button -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h3 class="text-xl font-bold text-gray-900">List Account's</h3>
-        <button 
-            @click="handleCreate"
-            class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-lg shadow-[#4FD1C5]/20"
-        >
-            Create Account
-            <Plus class="w-4 h-4" />
-        </button>
+        
+        <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            <div class="relative w-full sm:w-80">
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input 
+                    v-model="searchQuery"
+                    type="text" 
+                    placeholder="Search by name, username or status..."
+                    class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm"
+                />
+            </div>
+
+            <div class="relative w-full sm:w-48">
+                <select 
+                    v-model="selectedStatus"
+                    class="w-full pl-3 pr-8 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm appearance-none bg-white font-medium text-gray-700"
+                >
+                    <option value="">All Status</option>
+                    <option v-for="status in statusOptions" :key="status" :value="status">
+                        {{ status }}
+                    </option>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <ArrowUpDown class="w-3 h-3" />
+                </div>
+            </div>
+
+            <div class="relative w-full sm:w-40">
+                <select 
+                    v-model="selectedRole"
+                    class="w-full pl-3 pr-8 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm appearance-none bg-white font-medium text-gray-700"
+                >
+                    <option value="">All Role</option>
+                    <option v-for="role in roleOptions" :key="role.value" :value="role.value">
+                        {{ role.label }}
+                    </option>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <ArrowUpDown class="w-3 h-3" />
+                </div>
+            </div>
+
+            <button 
+                @click="handleCreate"
+                class="bg-[#4FD1C5] hover:bg-[#3dbdb0] text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-lg shadow-[#4FD1C5]/20 w-full sm:w-auto justify-center whitespace-nowrap"
+            >
+                Create Account
+                <Plus class="w-4 h-4" />
+            </button>
+        </div>
     </div>
 
     <!-- Table -->
@@ -138,6 +252,11 @@ const processDelete = async () => {
                         Date of Birth <ArrowUpDown class="w-3 h-3" />
                     </div>
                 </th>
+                <th class="py-4 px-6 text-center text-sm font-semibold text-gray-900">
+                    <div class="flex items-center justify-center gap-1 cursor-pointer hover:text-gray-600">
+                        Status <ArrowUpDown class="w-3 h-3" />
+                    </div>
+                </th>
                  <th class="py-4 px-6 text-center text-sm font-semibold text-gray-900">
                     <div class="flex items-center justify-center gap-1 cursor-pointer hover:text-gray-600">
                         Role <ArrowUpDown class="w-3 h-3" />
@@ -151,10 +270,25 @@ const processDelete = async () => {
             </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-            <tr v-for="account in accounts" :key="account.id" class="hover:bg-gray-50/50">
+            <tr v-for="account in paginatedAccounts" :key="account.id" class="hover:bg-gray-50/50">
                 <td class="py-4 px-6 text-sm font-bold text-gray-700">{{ account.name }}</td>
                 <td class="py-4 px-6 text-sm text-gray-600">{{ account.username }}</td>
                 <td class="py-4 px-6 text-sm text-gray-600">{{ account.dob }}</td>
+                <td class="py-4 px-6 text-center">
+                    <span 
+                        v-if="account.status !== '-'"
+                        class="px-2.5 py-1.5 rounded-md text-xs font-semibold capitalize"
+                        :class="{
+                            'bg-green-100 text-green-700': account.status === 'active',
+                            'bg-yellow-100 text-yellow-700': account.status === 'waiting list',
+                            'bg-gray-100 text-gray-700': account.status === 'non active',
+                            'bg-red-100 text-red-700': account.status === 'postponed'
+                        }"
+                    >
+                        {{ account.status }}
+                    </span>
+                    <span v-else class="text-sm text-gray-400">-</span>
+                </td>
                 <td class="py-4 px-6">
                     <div class="flex justify-center">
                         <span 
@@ -184,6 +318,45 @@ const processDelete = async () => {
             </tr>
             </tbody>
         </table>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+            <p class="text-sm text-gray-500">
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredAccounts.length) }} of {{ filteredAccounts.length }} results
+            </p>
+            <div class="flex items-center gap-2">
+                <button 
+                    @click="currentPage > 1 && currentPage--"
+                    :disabled="currentPage === 1"
+                    class="p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <ChevronLeft class="w-4 h-4" />
+                </button>
+                <div class="flex items-center gap-1">
+                    <button 
+                        v-for="page in visiblePages" 
+                        :key="page"
+                        @click="typeof page === 'number' && (currentPage = page)"
+                        class="px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                        :class="currentPage === page ? 'bg-[#4FD1C5] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'"
+                    >
+                        {{ page }}
+                    </button>
+                </div>
+                <button 
+                    @click="currentPage < totalPages && currentPage++"
+                    :disabled="currentPage === totalPages"
+                    class="p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <ChevronRight class="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+
+        <!-- No Results -->
+        <div v-if="filteredAccounts.length === 0" class="py-12 text-center text-gray-500 italic">
+            No accounts found matching "{{ searchQuery }}"
         </div>
     </div>
 

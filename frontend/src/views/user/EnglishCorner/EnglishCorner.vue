@@ -4,19 +4,20 @@ import { ref } from 'vue'
 import ArticleCard from './_components/ArticleCard.vue'
 
 // Dummy Data
+import api from '@/api'
+import { onMounted } from 'vue'
+
+// Dummy Data
 const articles = ref<any[]>([])
 
 const fetchArticles = async () => {
   try {
-    const response = await fetch('http://localhost:3001/api/articles')
-    if (!response.ok) throw new Error('Failed to fetch articles')
-    articles.value = await response.json()
+    const response = await api.get('/articles')
+    articles.value = response.data
   } catch (error) {
     console.error('Error fetching articles:', error)
   }
 }
-
-import { onMounted } from 'vue'
 
 onMounted(() => {
   fetchArticles()

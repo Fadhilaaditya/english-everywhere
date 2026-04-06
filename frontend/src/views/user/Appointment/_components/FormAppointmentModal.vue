@@ -12,6 +12,14 @@ const props = defineProps<{
     programName?: string
     status?: string
     applicantName?: string
+    applicantGender?: string
+    applicantAddress?: string
+    applicantFather?: string
+    applicantMother?: string
+    applicantBirthPlace?: string
+    applicantBirthDate?: string
+    applicantPhone?: string
+    applicantEmail?: string
   }
 }>()
 
@@ -107,17 +115,17 @@ const processSubmission = () => {
 
 // Reset form when modal opens with new schedule
 watch(() => props.schedule, (newVal) => {
-    if (newVal?.applicantName) {
+    if (newVal) {
         formData.value = {
-            fullName: newVal.applicantName,
-            gender: 'Male',
-            address: '',
-            fatherName: '',
-            motherName: '',
-            birthPlace: '',
-            birthDate: '',
-            phone: '',
-            email: ''
+            fullName: newVal.applicantName || '',
+            gender: newVal.applicantGender || 'Male',
+            address: newVal.applicantAddress || '',
+            fatherName: newVal.applicantFather || '',
+            motherName: newVal.applicantMother || '',
+            birthPlace: newVal.applicantBirthPlace || '',
+            birthDate: newVal.applicantBirthDate || '',
+            phone: newVal.applicantPhone || '',
+            email: newVal.applicantEmail || ''
         }
     } else {
         formData.value = {
@@ -132,7 +140,7 @@ watch(() => props.schedule, (newVal) => {
             email: ''
         }
     }
-})
+}, { immediate: true })
 </script>
 
 <template>
@@ -141,16 +149,20 @@ watch(() => props.schedule, (newVal) => {
     <div class="absolute inset-0 bg-black/50" @click="$emit('close')"></div>
 
     <!-- Modal Content -->
-    <div class="relative bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-xl p-8">
-        <!-- Close Button -->
-        <button 
-            @click="$emit('close')"
-            class="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-            <X class="w-6 h-6" />
-        </button>
+    <div class="relative bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+        <!-- Sticky Header -->
+        <div class="sticky top-0 bg-white z-20 px-8 py-6 flex justify-between items-center border-b border-gray-100/50">
+            <h2 class="text-2xl font-bold text-gray-900 mx-auto pl-8">Appointment Form</h2>
+            <button 
+                @click="$emit('close')"
+                class="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+                <X class="w-6 h-6" />
+            </button>
+        </div>
 
-        <h2 class="text-2xl font-bold text-gray-900 text-center mb-8">Appointment Form</h2>
+        <!-- Scrollable Content -->
+        <div class="overflow-y-auto p-8 pt-4">
 
         <!-- Read-Only Schedule Info -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -280,7 +292,7 @@ watch(() => props.schedule, (newVal) => {
                     <label class="block text-sm font-medium text-gray-700">No Telp</label>
                     <input 
                         v-model="formData.phone"
-                        type="number"
+                        type="text"
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all disabled:bg-gray-100 disabled:text-gray-500"
                         :class="{ 'border-red-500 focus:ring-red-200': errors.phone }"
                         :disabled="isReadOnly"
@@ -311,6 +323,7 @@ watch(() => props.schedule, (newVal) => {
             </button>
         </div>
     </div>
+    </div>
     
     <ConfirmationModal 
         :is-open="isConfirmOpen" 
@@ -320,17 +333,3 @@ watch(() => props.schedule, (newVal) => {
   </div>
 </template>
 
-<style scoped>
-/* Chrome, Safari, Edge, Opera */
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* Firefox */
-input[type=number] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-</style>
