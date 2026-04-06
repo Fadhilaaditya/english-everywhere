@@ -60,9 +60,9 @@ module.exports = (sequelize, Sequelize) => {
             },
         },
         status: {
-            type: Sequelize.ENUM('waiting list', 'active', 'non active', 'postponed'),
+            type: Sequelize.ENUM('Waiting List', 'Active', 'Non Active', 'Postponed'),
             allowNull: false,
-            defaultValue: 'waiting list'
+            defaultValue: 'Waiting List'
         }
     });
 
