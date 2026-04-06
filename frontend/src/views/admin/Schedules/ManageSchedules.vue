@@ -113,7 +113,7 @@ const handleEventClick = (event: any) => {
   selectedAppointment.value = event
   form.value = {
     ...event,
-    programId: event.programId.toString(),
+    programId: event.programId ? event.programId.toString() : '',
     teacherId: event.teacherId.toString(),
     // Pastikan field string terbawa
     teacherName: event.teacherName || '',
@@ -136,7 +136,7 @@ const handleSubmit = async () => {
     // Pastikan ID dikirim sebagai angka jika Backend mewajibkan Integer
     const payload = {
       ...form.value,
-      programId: parseInt(form.value.programId),
+      programId: form.value.programId ? parseInt(form.value.programId) : null,
       teacherId: parseInt(form.value.teacherId),
     }
 

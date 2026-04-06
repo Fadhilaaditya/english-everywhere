@@ -78,7 +78,7 @@ exports.findMySchedules = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     // Validasi sederhana sebelum simpan
-    if (!req.body.teacherId || !req.body.programId || !req.body.date) {
+    if (!req.body.teacherId || (!req.body.programId && req.body.className !== 'Appointment') || !req.body.date) {
       return res
         .status(400)
         .send({ message: "ID Guru, ID Program, dan Tanggal wajib diisi!" });
@@ -89,7 +89,7 @@ exports.create = async (req, res) => {
       startTime: req.body.startTime,
       endTime: req.body.endTime,
       teacherId: Number(req.body.teacherId),
-      programId: Number(req.body.programId),
+      programId: req.body.programId ? Number(req.body.programId) : null,
       teacherName: req.body.teacherName, // Nama denormalisasi untuk pencarian cepat
       className: req.body.className, // Nama denormalisasi dari Program.title
       classroom: req.body.classroom,

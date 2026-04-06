@@ -20,9 +20,11 @@ const emit = defineEmits(['close', 'submit', 'delete'])
 const subPrograms = ref<any[]>([])
 const selectedParentProgramId = ref<number | null>(null)
 
-const programOptions = computed(() => 
-  props.programs.map(p => ({ id: p.id, title: p.title || p.name }))
-)
+const programOptions = computed(() => {
+  const options = props.programs.map(p => ({ id: p.id, title: p.title || p.name }))
+  options.push({ id: 'appointment', title: 'Appointment' })
+  return options
+})
 
 const teacherOptions = computed(() => 
   props.teachers.map(t => ({ id: t.id, fullName: t.user?.fullName || `Teacher ${t.id}` }))
@@ -54,7 +56,11 @@ const fetchSubPrograms = async (parentId: number) => {
 }
 
 watch(selectedParentProgramId, (newParentId) => {
-  if (newParentId) {
+  if (newParentId === 'appointment') {
+    subPrograms.value = []
+    props.form.programId = null
+    props.form.className = 'Appointment'
+  } else if (newParentId) {
     fetchSubPrograms(newParentId)
   } else {
     subPrograms.value = []
@@ -64,15 +70,19 @@ watch(selectedParentProgramId, (newParentId) => {
 
 // Initialize form logic
 const initializeHierarchy = async () => {
-  if (props.isEdit && props.form.programId) {
-    try {
-      const resp = await api.get(`/programs/${props.form.programId}`)
-      const prog = resp.data
-      const parentId = prog.parentId || prog.id
-      selectedParentProgramId.value = parentId
-      await fetchSubPrograms(parentId)
-    } catch (e) {
-      console.error('Failed to initialize hierarchy', e)
+  if (props.isEdit) {
+    if (props.form.className === 'Appointment' || (!props.form.programId && props.form.className === 'Appointment')) {
+      selectedParentProgramId.value = 'appointment'
+    } else if (props.form.programId) {
+      try {
+        const resp = await api.get(`/programs/${props.form.programId}`)
+        const prog = resp.data
+        const parentId = prog.parentId || prog.id
+        selectedParentProgramId.value = parentId
+        await fetchSubPrograms(parentId)
+      } catch (e) {
+        console.error('Failed to initialize hierarchy', e)
+      }
     }
   } else if (props.selectedProgramFromCalendar) {
       selectedParentProgramId.value = Number(props.selectedProgramFromCalendar)
@@ -104,10 +114,13 @@ watch(
   },
 )
 
-// Watcher untuk programId agar className sinkron
 watch(
   () => props.form.programId,
   (newId) => {
+    if (selectedParentProgramId.value === 'appointment') {
+      props.form.className = 'Appointment'
+      return
+    }
     const selectedProg = subPrograms.value.find((p) => p.id == newId) || props.programs.find(p => p.id == newId)
     if (selectedProg) {
       props.form.className = selectedProg.title || selectedProg.name
@@ -177,7 +190,7 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
                 labelKey="title"
                 valueKey="id"
                 placeholder="Select Level..."
-                :disabled="!selectedParentProgramId"
+                :disabled="!selectedParentProgramId || selectedParentProgramId === 'appointment'"
               />
             </div>
 
