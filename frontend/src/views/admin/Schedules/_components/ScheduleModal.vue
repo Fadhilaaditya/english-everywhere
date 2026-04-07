@@ -18,7 +18,7 @@ const props = defineProps<{
 const emit = defineEmits(['close', 'submit', 'delete'])
 
 const subPrograms = ref<any[]>([])
-const selectedParentProgramId = ref<number | null>(null)
+const selectedParentProgramId = ref<number | string | null>(null)
 
 const programOptions = computed(() => {
   const options = props.programs.map(p => ({ id: p.id, title: p.title || p.name }))
@@ -60,7 +60,7 @@ watch(selectedParentProgramId, (newParentId) => {
     subPrograms.value = []
     props.form.programId = null
     props.form.className = 'Appointment'
-  } else if (newParentId) {
+  } else if (newParentId && typeof newParentId === 'number') {
     fetchSubPrograms(newParentId)
   } else {
     subPrograms.value = []
@@ -79,13 +79,17 @@ const initializeHierarchy = async () => {
         const prog = resp.data
         const parentId = prog.parentId || prog.id
         selectedParentProgramId.value = parentId
-        await fetchSubPrograms(parentId)
+        if (typeof parentId === 'number') {
+           await fetchSubPrograms(parentId)
+        }
       } catch (e) {
         console.error('Failed to initialize hierarchy', e)
       }
     }
   } else if (props.selectedProgramFromCalendar) {
-      selectedParentProgramId.value = Number(props.selectedProgramFromCalendar)
+      selectedParentProgramId.value = props.selectedProgramFromCalendar === 'appointment' 
+        ? 'appointment' 
+        : Number(props.selectedProgramFromCalendar)
   }
 }
 
@@ -93,7 +97,9 @@ const initializeHierarchy = async () => {
 const syncFields = () => {
   if (!props.isEdit) {
     if (props.selectedProgramFromCalendar) {
-      selectedParentProgramId.value = Number(props.selectedProgramFromCalendar)
+      selectedParentProgramId.value = props.selectedProgramFromCalendar === 'appointment'
+        ? 'appointment'
+        : Number(props.selectedProgramFromCalendar)
     }
   }
 }
@@ -190,7 +196,7 @@ watch(() => props.selectedProgramFromCalendar, syncFields)
                 labelKey="title"
                 valueKey="id"
                 placeholder="Select Level..."
-                :disabled="!selectedParentProgramId || selectedParentProgramId === 'appointment'"
+                :disabled="!selectedParentProgramId || (selectedParentProgramId as any) === 'appointment'"
               />
             </div>
 
