@@ -11,19 +11,42 @@ const accounts = ref<any[]>([])
 const isModalOpen = ref(false)
 const selectedAccount = ref<any>(null)
 
-// Search and Pagination State
 const searchQuery = ref('')
+const selectedStatus = ref('')
+const selectedRole = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
 
+const statusOptions = ['Waiting List', 'Active', 'Non Active', 'Postponed']
+const roleOptions = [
+    { label: 'Student', value: 'Student' },
+    { label: 'Teacher', value: 'Teacher' }
+]
+
 const filteredAccounts = computed(() => {
-    if (!searchQuery.value) return accounts.value
-    const query = searchQuery.value.toLowerCase()
-    return accounts.value.filter(acc => 
-        (acc.name && acc.name.toLowerCase().includes(query)) || 
-        (acc.username && acc.username.toLowerCase().includes(query)) ||
-        (acc.status && acc.status.toLowerCase().includes(query))
-    )
+    let result = accounts.value
+
+    // Search filter
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(acc => 
+            (acc.name && acc.name.toLowerCase().includes(query)) || 
+            (acc.username && acc.username.toLowerCase().includes(query)) ||
+            (acc.status && acc.status.toLowerCase().includes(query))
+        )
+    }
+
+    // Status filter
+    if (selectedStatus.value) {
+        result = result.filter(acc => acc.status === selectedStatus.value)
+    }
+
+    // Role filter
+    if (selectedRole.value) {
+        result = result.filter(acc => acc.role === selectedRole.value)
+    }
+
+    return result
 })
 
 const totalPages = computed(() => Math.ceil(filteredAccounts.value.length / itemsPerPage))
@@ -34,8 +57,8 @@ const paginatedAccounts = computed(() => {
     return filteredAccounts.value.slice(start, end)
 })
 
-// Reset to first page when searching
-watch(searchQuery, () => {
+// Reset to first page when searching or filtering
+watch([searchQuery, selectedStatus, selectedRole], () => {
     currentPage.value = 1
 })
 
@@ -167,6 +190,36 @@ const processDelete = async () => {
                     placeholder="Search by name, username or status..."
                     class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm"
                 />
+            </div>
+
+            <div class="relative w-full sm:w-48">
+                <select 
+                    v-model="selectedStatus"
+                    class="w-full pl-3 pr-8 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm appearance-none bg-white font-medium text-gray-700"
+                >
+                    <option value="">All Status</option>
+                    <option v-for="status in statusOptions" :key="status" :value="status">
+                        {{ status }}
+                    </option>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <ArrowUpDown class="w-3 h-3" />
+                </div>
+            </div>
+
+            <div class="relative w-full sm:w-40">
+                <select 
+                    v-model="selectedRole"
+                    class="w-full pl-3 pr-8 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm appearance-none bg-white font-medium text-gray-700"
+                >
+                    <option value="">All Role</option>
+                    <option v-for="role in roleOptions" :key="role.value" :value="role.value">
+                        {{ role.label }}
+                    </option>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <ArrowUpDown class="w-3 h-3" />
+                </div>
             </div>
 
             <button 
