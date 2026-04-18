@@ -81,11 +81,12 @@ onMounted(() => {
             @click="$router.push({ path: '/appointment' })"
             class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full cursor-pointer transform hover:-translate-y-1 duration-300 h-full flex flex-col"
         >
-          <img :src="program.image" :alt="program.title" class="h-[198px] w-full object-cover flex-shrink-0" />
+          <div class="h-[198px] w-full flex items-center justify-center bg-white overflow-hidden">
+            <img :src="program.image" :alt="program.title" class="max-h-full max-w-full object-contain flex-shrink-0 scale-173 transition-transform duration-500 hover:scale-160" />
+          </div>
           
           <div class="p-6 flex flex-col flex-grow">
             <h3 class="font-bold text-lg text-text-dark mb-1 h-[50px] flex items-center leading-tight">{{ program.title }}</h3>
-            <p class="text-xs text-gray-500 mb-3">{{ program.price }}</p>
             <p class="text-sm text-text-dark font-poppins flex-grow">{{ program.desc }}</p>
           </div>
         </div>

@@ -221,6 +221,7 @@ const handleSubmit = async () => {
                             label-key="name"
                             value-key="id"
                             placeholder="Select Student"
+                            searchable
                             @change="handleStudentChange"
                         />
                     </div>
@@ -232,6 +233,7 @@ const handleSubmit = async () => {
                             label-key="title"
                             value-key="id"
                             placeholder="Select Level"
+                            searchable
                         />
                     </div>
                 </div>
