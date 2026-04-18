@@ -43,10 +43,19 @@ const subPrograms = ref<any[]>([])
 const selectedParentProgram = ref<any>(null)
 
 const genderOptions = ['Male', 'Female']
-const roleOptions = [
-    { label: 'Student', value: 'student' },
-    { label: 'Teacher', value: 'teacher' }
-]
+const userRole = localStorage.getItem('role')
+const isSuperAdmin = userRole === 'superadmin'
+
+const roleOptions = computed(() => {
+    const options = [
+        { label: 'Student', value: 'student' },
+        { label: 'Teacher', value: 'teacher' }
+    ]
+    if (isSuperAdmin) {
+        options.push({ label: 'Admin', value: 'admin' })
+    }
+    return options
+})
 const statusOptions = ['Waiting List', 'Active', 'Non Active', 'Postponed']
 
 const updateSelectedProgramFromAccount = () => {

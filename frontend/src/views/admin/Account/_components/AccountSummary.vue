@@ -8,8 +8,11 @@ const stats = ref([
   { label: 'Total Teacher', value: '0' },
 ])
 
+const errorMsg = ref('')
+
 const fetchStats = async () => {
     try {
+        errorMsg.value = ''
         const response = await api.get('/users/stats')
         const data = response.data
         stats.value = [
@@ -17,8 +20,9 @@ const fetchStats = async () => {
             { label: 'Total Student', value: String(data.totalStudents || 0) },
             { label: 'Total Teacher', value: String(data.totalTeachers || 0) },
         ]
-    } catch (e) {
+    } catch (e: any) {
         console.error('Failed to fetch stats', e)
+        errorMsg.value = e.response?.data?.message || e.message
     }
 }
 
@@ -36,10 +40,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden flex divide-x divide-gray-200 w-fit shadow-sm">
-    <div v-for="(stat, index) in stats" :key="index" class="p-6 w-64">
-      <h3 class="text-gray-500 text-sm font-medium mb-2">{{ stat.label }}</h3>
-      <p class="text-3xl font-bold text-gray-900">{{ stat.value }}</p>
+  <div class="flex flex-col gap-2">
+    <div v-if="errorMsg" class="text-red-500 text-xs font-medium px-2">
+        ⚠️ {{ errorMsg }}
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden flex divide-x divide-gray-200 w-fit shadow-sm">
+        <div v-for="(stat, index) in stats" :key="index" class="p-6 w-64">
+        <h3 class="text-gray-500 text-sm font-medium mb-2">{{ stat.label }}</h3>
+        <p class="text-3xl font-bold text-gray-900">{{ stat.value }}</p>
+        </div>
     </div>
   </div>
 </template>

@@ -18,10 +18,23 @@ const currentPage = ref(1)
 const itemsPerPage = 10
 
 const statusOptions = ['Waiting List', 'Active', 'Non Active', 'Postponed']
-const roleOptions = [
-    { label: 'Student', value: 'Student' },
-    { label: 'Teacher', value: 'Teacher' }
-]
+
+const userRole = localStorage.getItem('role')
+const isSuperAdmin = userRole === 'superadmin'
+
+const roleOptions = computed(() => {
+    const options = [
+        { label: 'Student', value: 'Student' },
+        { label: 'Teacher', value: 'Teacher' }
+    ]
+    if (isSuperAdmin) {
+        options.push(
+            { label: 'Admin', value: 'Admin' },
+            { label: 'Superadmin', value: 'Superadmin' }
+        )
+    }
+    return options
+})
 
 const filteredAccounts = computed(() => {
     let result = accounts.value
@@ -82,8 +95,11 @@ const visiblePages = computed(() => {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
+const tableError = ref('')
+
 const fetchAccounts = async () => {
     try {
+        tableError.value = ''
         const response = await api.get('/users')
         const data = response.data
         accounts.value = data.map((item: any) => {
@@ -100,8 +116,9 @@ const fetchAccounts = async () => {
                 fullData: item 
             }
         })
-    } catch (e) {
+    } catch (e: any) {
         console.error('Failed to fetch accounts', e)
+        tableError.value = e.response?.data?.message || e.message
     }
 }
 
@@ -178,7 +195,12 @@ const processDelete = async () => {
   <div class="mt-8">
     <!-- Header: Title, Search, and Create Button -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h3 class="text-xl font-bold text-gray-900">List Account's</h3>
+        <div class="flex flex-col gap-1">
+            <h3 class="text-xl font-bold text-gray-900">List Account's</h3>
+            <div v-if="tableError" class="text-red-500 text-xs font-medium">
+                ⚠️ {{ tableError }}
+            </div>
+        </div>
         
         <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
             <div class="relative w-full sm:w-80">
@@ -289,11 +311,16 @@ const processDelete = async () => {
                     </span>
                     <span v-else class="text-sm text-gray-400">-</span>
                 </td>
-                <td class="py-4 px-6">
+                <td class="py-4 px-6 text-center">
                     <div class="flex justify-center">
                         <span 
-                            class="px-8 py-1.5 rounded-md text-sm font-medium w-32 text-center"
-                            :class="account.role === 'Teacher' ? 'bg-[#FFE2CC] text-gray-800' : 'bg-[#EFF2FC] text-gray-800'"
+                            class="inline-flex items-center justify-center px-4 py-1.5 rounded-md text-sm font-medium min-w-[110px] text-center capitalize"
+                            :class="{
+                                'bg-[#FFE2CC] text-gray-800': account.role === 'Teacher',
+                                'bg-[#EFF2FC] text-gray-800': account.role === 'Student',
+                                'bg-purple-100 text-purple-800': account.role === 'Admin',
+                                'bg-red-100 text-red-800': account.role === 'Superadmin'
+                            }"
                         >
                             {{ account.role }}
                         </span>

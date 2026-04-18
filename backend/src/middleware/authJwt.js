@@ -14,24 +14,32 @@ const verifyToken = (req, res, next) => {
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
+      console.log(`[AUTH] Token Verification Failed: ${err.message}`);
       return res.status(401).send({ message: "Unauthorized!" });
     }
-    req.userId = decoded.id; // Simpan id user ke request agar bisa dipakai di controller
-    req.userRole = decoded.role;
+    req.userId = decoded.id; 
+    let role = decoded.role ? String(decoded.role).toLowerCase().trim() : '';
+    req.userRole = role;
+    console.log(`[AUTH] UserID: ${req.userId}, Role: "${req.userRole}"`);
     next();
   });
 };
 
 const isAdmin = (req, res, next) => {
-  if (req.userRole === "admin") {
+  const role = String(req.userRole || '').toLowerCase().trim();
+  console.log(`[AUTH] isAdmin Check role: "${role}"`);
+  
+  if (role === "admin" || role === "superadmin" || role.includes("admin")) {
+    console.log(`[AUTH] isAdmin Check PASSED`);
     next();
     return;
   }
+  console.log(`[AUTH] isAdmin Check FAILED`);
   return res.status(403).send({ message: "Require Admin Role!" });
 };
 
 const isTeacher = (req, res, next) => {
-  if (req.userRole === "teacher" || req.userRole === "admin") {
+  if (req.userRole === "teacher" || req.userRole === "admin" || req.userRole === "superadmin") {
     next();
     return;
   }
@@ -39,14 +47,13 @@ const isTeacher = (req, res, next) => {
 };
 
 const isOwnerOrAdmin = (req, res, next) => {
-  // Jika admin, izinkan langsung
-  if (req.userRole === "admin") {
+  // Jika admin atau superadmin, izinkan langsung
+  if (req.userRole === "admin" || req.userRole === "superadmin") {
     next();
     return;
   }
 
   // Jika id di params sama dengan id di token, izinkan
-  // ParseInt digunakan karena req.params.id adalah string sedangkan req.userId adalah number
   if (req.params.id && parseInt(req.params.id) === req.userId) {
     next();
     return;

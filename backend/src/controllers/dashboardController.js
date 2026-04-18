@@ -15,10 +15,15 @@ exports.getDashboardData = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         // 1. Stats
+        const rolesToCount = ['student', 'teacher'];
+        if (req.userRole === 'superadmin') {
+            rolesToCount.push('admin', 'superadmin');
+        }
+
         const totalAccounts = await User.count({
             where: {
                 role: {
-                    [Op.or]: ['student', 'teacher']
+                    [Op.or]: rolesToCount
                 }
             }
         });

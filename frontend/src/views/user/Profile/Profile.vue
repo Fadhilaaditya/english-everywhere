@@ -64,11 +64,24 @@ onMounted(() => {
                 <div class="flex-1 text-center sm:text-left">
                     <h1 class="text-2xl font-bold text-gray-900">{{ profileData.fullName }}</h1>
                     <p class="text-gray-500 font-medium">@{{ profileData.username }}</p>
+                    <div v-if="profileData.role === 'admin' || profileData.role === 'superadmin'" class="mt-4">
+                        <button 
+                            @click="router.push('/admin')"
+                            class="bg-[#4FD1C5] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#3dbdb0] transition-colors shadow-md"
+                        >
+                            Go to Admin Dashboard
+                        </button>
+                    </div>
                 </div>
                 <div class="mt-4 sm:mt-0">
                     <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider"
-                          :class="profileData.role === 'teacher' ? 'bg-[#FFE2CC] text-[#E06C00]' : 'bg-[#E3F2FD] text-[#1976D2]'">
-                        {{ profileData.role === 'user' ? 'Student' : profileData.role }}
+                          :class="{
+                              'bg-[#FFE2CC] text-[#E06C00]': profileData.role === 'teacher',
+                              'bg-[#E3F2FD] text-[#1976D2]': profileData.role === 'user' || profileData.role === 'student',
+                              'bg-purple-100 text-purple-700': profileData.role === 'admin',
+                              'bg-red-100 text-red-700': profileData.role === 'superadmin'
+                          }">
+                        {{ profileData.role === 'user' ? 'Student' : (profileData.role === 'superadmin' ? 'Superadmin' : profileData.role) }}
                     </span>
                 </div>
             </div>

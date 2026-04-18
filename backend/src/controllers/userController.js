@@ -6,11 +6,16 @@ const Student = db.Student;
 
 exports.findAll = async (req, res) => {
     try {
+        const rolesToShow = ['student', 'teacher'];
+        
+        // Superadmin also sees admin and other superadmin accounts
+        if (req.userRole === 'superadmin') {
+            rolesToShow.push('admin', 'superadmin');
+        }
+
         const users = await User.findAll({
             where: {
-                role: {
-                    [Op.or]: ['student', 'teacher']
-                }
+                role: rolesToShow
             },
             include: [
                 {
@@ -73,11 +78,14 @@ exports.findOne = async (req, res) => {
 
 exports.getStats = async (req, res) => {
     try {
+        const rolesToCount = ['student', 'teacher'];
+        if (req.userRole === 'superadmin') {
+            rolesToCount.push('admin', 'superadmin');
+        }
+
         const totalAccounts = await User.count({
             where: {
-                role: {
-                    [Op.or]: ['student', 'teacher']
-                }
+                role: rolesToCount
             }
         });
         const totalStudents = await Student.count();

@@ -49,7 +49,7 @@ const handleLogin = async () => {
         }))
         
         // 4. Logika Redirect yang Sudah Diperbarui
-        if (normalizedRole === 'admin') {
+        if (normalizedRole === 'admin' || normalizedRole === 'superadmin') {
             router.push('/admin')
         } else if (normalizedRole === 'teacher') {
             router.push('/teacher') 

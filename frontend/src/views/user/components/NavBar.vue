@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
 
 const router = useRouter()
 const isMenuOpen = ref(false)
 const user = ref<any>(null)
+
+const isAdminOrSuperAdmin = computed(() => {
+    return user.value?.role === 'admin' || user.value?.role === 'superadmin'
+})
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -30,6 +34,11 @@ const handleLogout = () => {
 const getLinkPath = (path: string) => {
     if (user.value?.role === 'teacher') {
         return path === '/' ? '/teacher' : `/teacher${path}`
+    }
+    if (isAdminOrSuperAdmin.value) {
+        // Jika di root (/) dan dia admin, tetap biarkan dia di root
+        // tapi arahkan Dashboard link ke /admin
+        return path
     }
     return path
 }
@@ -60,6 +69,14 @@ onMounted(() => {
         active-class="font-bold text-lg text-gray-900"
       >
         Payment
+      </router-link>
+
+      <router-link 
+        v-if="isAdminOrSuperAdmin" 
+        to="/admin" 
+        class="bg-[#4FD1C5] text-white px-4 py-1.5 rounded-lg hover:bg-[#3dbdb0] transition-colors" 
+      >
+        Dashboard
       </router-link>
 
       <template v-if="user?.role === 'teacher'">
@@ -118,6 +135,10 @@ onMounted(() => {
 
       <template v-if="user?.role === 'teacher'">
         <router-link to="/teacher/schedule" class="text-[#00B4D8] font-bold text-lg" @click="toggleMenu">Jadwal</router-link>
+      </template>
+
+      <template v-if="isAdminOrSuperAdmin">
+        <router-link to="/admin" class="text-[#4FD1C5] font-bold text-lg" @click="toggleMenu">Dashboard</router-link>
       </template>
       
       <router-link v-if="user" :to="getLinkPath('/profile')" class="text-[#00B4D8] font-bold text-lg" @click="toggleMenu">Profile</router-link>

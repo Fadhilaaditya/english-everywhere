@@ -268,8 +268,8 @@ router.beforeEach((to, from, next) => {
             // Normalisasi userRole untuk perbandingan
             const normalizedUserRole = userRole === 'user' ? 'student' : userRole
 
-            if (normalizedUserRole === 'admin') {
-                // Admin can access everything
+            if (normalizedUserRole === 'admin' || normalizedUserRole === 'superadmin') {
+                // Admin/Superadmin can access everything
                 return next()
             }
 
