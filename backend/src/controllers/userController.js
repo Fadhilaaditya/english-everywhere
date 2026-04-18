@@ -67,6 +67,8 @@ exports.findAll = async (req, res) => {
             distinct: true
         });
 
+        console.log(`[DEBUG] User.findAll - Total Found: ${count}, Page Size: ${rows.length}, limit: ${limitNum}, offset: ${offset}`);
+
         res.send({
             totalItems: count,
             users: rows,

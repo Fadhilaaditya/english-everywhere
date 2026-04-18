@@ -57,6 +57,11 @@ const fetchAccounts = async () => {
         })
         
         const data = response.data
+        console.log('[DEBUG] Account API Data:', {
+            totalItems: data.totalItems,
+            totalPages: data.totalPages,
+            usersCount: data.users ? data.users.length : (Array.isArray(data) ? data.length : 'N/A')
+        })
         let userList = []
         
         if (data && data.users) {
