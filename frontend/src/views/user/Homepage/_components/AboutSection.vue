@@ -8,10 +8,11 @@
       src="/Kupu%20Kupu%201.png" 
       alt="Decoration Kupu Kupu" 
       class="absolute bottom-10 -right-4 w-36 md:w-64 md:top-5 md:right-0 md:bottom-auto pointer-events-none opacity-40 md:opacity-90 z-0" 
+      loading="lazy"
     />
 
     <div class="absolute -bottom-8 -left-8 md:bottom-0 md:left-0 text-primary pointer-events-none opacity-40 md:opacity-100 z-0">
-       <img src="/6.%20EEV%20Lebaran%20-%20Flo%201%20(1).png" alt="Decorative Flo" class="w-40 md:w-64" />
+       <img src="/6.%20EEV%20Lebaran%20-%20Flo%201%20(1).png" alt="Decorative Flo" class="w-40 md:w-64" loading="lazy" />
     </div>
 
     <div class="max-w-4xl mx-auto mb-10 relative z-10">

@@ -56,22 +56,32 @@ exports.create = (req, res) => {
 
 // Retrieve all Events from the database.
 exports.findAll = (req, res) => {
-    Event.findAll()
+    const { page = 1, limit = 10, search = '' } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+
+    let condition = search ? { 
+        [Op.or]: [
+            { title: { [Op.like]: `%${search}%` } },
+            { location: { [Op.like]: `%${search}%` } }
+        ]
+    } : null;
+
+    Event.findAndCountAll({
+        where: condition,
+        attributes: { exclude: ['images', 'desc'] },
+        limit: limitNum,
+        offset: offset,
+        order: [['date', 'DESC']]
+    })
         .then(data => {
-            const parsedData = data.map(event => {
-                const eventObj = event.get({ plain: true });
-                if (eventObj.images) {
-                    try {
-                        eventObj.images = JSON.parse(eventObj.images);
-                    } catch (e) {
-                        eventObj.images = [];
-                    }
-                } else {
-                    eventObj.images = [];
-                }
-                return eventObj;
+            res.send({
+                totalItems: data.count,
+                events: data.rows,
+                totalPages: Math.ceil(data.count / limitNum),
+                currentPage: pageNum
             });
-            res.send(parsedData);
         })
         .catch(err => {
             res.status(500).send({
@@ -83,17 +93,28 @@ exports.findAll = (req, res) => {
 // Retrieve Upcoming Events (date >= today)
 exports.findUpcoming = (req, res) => {
     const today = new Date().toISOString().split('T')[0];
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
 
-    Event.findAll({
+    Event.findAndCountAll({
         where: {
             date: {
                 [Op.gte]: today
             }
         },
+        attributes: { exclude: ['images', 'desc'] },
+        limit: limit,
+        offset: offset,
         order: [['date', 'ASC']]
     })
         .then(data => {
-            res.send(parseImages(data));
+            res.send({
+                totalItems: data.count,
+                events: data.rows,
+                totalPages: Math.ceil(data.count / limit),
+                currentPage: page
+            });
         })
         .catch(err => {
             res.status(500).send({
@@ -105,17 +126,28 @@ exports.findUpcoming = (req, res) => {
 // Retrieve Past Events (date < today)
 exports.findPast = (req, res) => {
     const today = new Date().toISOString().split('T')[0];
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
 
-    Event.findAll({
+    Event.findAndCountAll({
         where: {
             date: {
                 [Op.lt]: today
             }
         },
+        attributes: { exclude: ['images', 'desc'] },
+        limit: limit,
+        offset: offset,
         order: [['date', 'DESC']]
     })
         .then(data => {
-            res.send(parseImages(data));
+            res.send({
+                totalItems: data.count,
+                events: data.rows,
+                totalPages: Math.ceil(data.count / limit),
+                currentPage: page
+            });
         })
         .catch(err => {
             res.status(500).send({

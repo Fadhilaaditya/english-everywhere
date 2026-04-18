@@ -11,14 +11,32 @@ const isCreateModalOpen = ref(false)
 // Real Payments Data from backend
 const payments = ref<any[]>([])
 const loading = ref(true)
+const totalItems = ref(0)
+const totalPages = ref(1)
 
 const fetchPayments = async () => {
     loading.value = true
     try {
-        const result = await PaymentService.getAllPayments();
-        const rawData = result.data;
-        payments.value = buildTableData(rawData);
-        calculateStats(rawData);
+        const result = await PaymentService.getAllPayments({
+            page: currentPage.value,
+            limit: itemsPerPage,
+            search: searchQuery.value
+        });
+        
+        // Handle both new paginated response and legacy array
+        if (result.payments) {
+            payments.value = buildTableData(result.payments);
+            totalItems.value = result.totalItems;
+            totalPages.value = result.totalPages;
+        } else {
+            const rawData = result.data;
+            payments.value = buildTableData(rawData);
+            totalItems.value = rawData.length;
+            totalPages.value = Math.ceil(rawData.length / itemsPerPage);
+        }
+        
+        // Fetch stats separately for better performance
+        fetchStats();
     } catch (error) {
         console.error("Failed to load payments", error)
     } finally {
@@ -26,54 +44,13 @@ const fetchPayments = async () => {
     }
 }
 
-const calculateStats = (rawPayments: any[]) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    let totalTransactions = rawPayments.length
-    let transactionsToday = 0
-    let jatuhTempoCount = 0
-    let tertundaCount = 0
-
-    rawPayments.forEach(p => {
-        const createdAt = new Date(p.createdAt)
-        createdAt.setHours(0, 0, 0, 0)
-        if (createdAt.getTime() === today.getTime()) {
-            transactionsToday++
-        }
-
-        if (p.status?.toLowerCase() === 'pending') {
-            const deadlineDate = new Date(p.deadline)
-            deadlineDate.setHours(0, 0, 0, 0)
-            
-            let isOverdue = deadlineDate < today
-
-            // Check installments for overdue items
-            if (!isOverdue && p.installments && p.installments.length > 0) {
-                isOverdue = p.installments.some((inst: any) => {
-                    if (inst.status?.toLowerCase() === 'pending') {
-                        const instDueDate = new Date(inst.dueDate)
-                        instDueDate.setHours(0, 0, 0, 0)
-                        return instDueDate < today
-                    }
-                    return false
-                })
-            }
-
-            if (isOverdue) {
-                jatuhTempoCount++
-            } else {
-                tertundaCount++
-            }
-        }
-    })
-
-    emit('update-stats', {
-        totalTransactions,
-        transactionsToday,
-        jatuhTempoCount,
-        tertundaCount
-    })
+const fetchStats = async () => {
+    try {
+        const stats = await PaymentService.getPaymentStats();
+        emit('update-stats', stats);
+    } catch (error) {
+        console.error("Failed to fetch payment stats", error);
+    }
 }
 
 onMounted(() => {
@@ -145,27 +122,14 @@ const searchQuery = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
 
-const filteredPayments = computed(() => {
-    let result = payments.value
-    if (searchQuery.value) {
-        result = result.filter(p => 
-            p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            p.id.toLowerCase().includes(searchQuery.value.toLowerCase())
-        )
-    }
-    return result
-})
-
-const totalPages = computed(() => Math.ceil(filteredPayments.value.length / itemsPerPage))
-
-const paginatedPayments = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage
-    const end = start + itemsPerPage
-    return filteredPayments.value.slice(start, end)
-})
-
+// Re-fetch when search or page changes
 watch(searchQuery, () => {
     currentPage.value = 1
+    fetchPayments()
+})
+
+watch(currentPage, () => {
+    fetchPayments()
 })
 
 const toggleRow = (id: string) => {
@@ -344,8 +308,13 @@ const handleCreateBill = async (data: any) => {
                     <th class="py-4 md:py-5 px-4 md:px-6 font-semibold text-xs md:text-sm text-center">Action</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
-                <template v-for="payment in paginatedPayments" :key="payment.id + payment.name">
+            <tbody class="divide-y divide-gray-100 italic" v-if="loading">
+                <tr>
+                    <td colspan="8" class="py-12 text-center text-gray-500">Loading payments...</td>
+                </tr>
+            </tbody>
+            <tbody class="divide-y divide-gray-50" v-else>
+                <template v-for="payment in payments" :key="payment.id + payment.name">
                     <tr 
                         class="hover:bg-gray-50/30 transition-colors"
                         :class="{'bg-gray-50': expandedRows.has(payment.id + payment.name)}"
@@ -441,21 +410,27 @@ const handleCreateBill = async (data: any) => {
                         </td>
                     </tr>
                 </template>
+                <!-- No Results -->
+                <tr v-if="payments.length === 0">
+                    <td colspan="8" class="py-12 text-center text-gray-500 italic">
+                        No payments found matching "{{ searchQuery }}"
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
 
     <!-- Pagination -->
-    <div class="flex flex-col sm:flex-row items-center justify-between mt-6 md:mt-8 border-t border-gray-50 pt-6 gap-4">
+    <div v-if="totalPages > 1" class="flex flex-col sm:flex-row items-center justify-between mt-6 md:mt-8 border-t border-gray-50 pt-6 gap-4">
         <div class="text-xs md:text-sm text-gray-500 order-2 sm:order-1">
             Showing <span class="font-bold text-gray-900">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to 
-            <span class="font-bold text-gray-900">{{ Math.min(currentPage * itemsPerPage, filteredPayments.length) }}</span> of 
-            <span class="font-bold text-gray-900">{{ filteredPayments.length }}</span> results
+            <span class="font-bold text-gray-900">{{ Math.min(currentPage * itemsPerPage, totalItems) }}</span> of 
+            <span class="font-bold text-gray-900">{{ totalItems }}</span> results
         </div>
         <div class="flex items-center gap-2 order-1 sm:order-2">
             <button 
                 @click="currentPage--"
-                :disabled="currentPage === 1"
+                :disabled="currentPage === 1 || loading"
                 class="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
                 <ChevronLeft class="w-4 h-4 md:w-5 md:h-5" />
@@ -465,7 +440,8 @@ const handleCreateBill = async (data: any) => {
                     v-for="page in totalPages" 
                     :key="page"
                     @click="currentPage = page"
-                    class="w-8 h-8 md:w-10 md:h-10 rounded-xl text-xs md:text-sm font-bold transition-all"
+                    :disabled="loading"
+                    class="w-8 h-8 md:w-10 md:h-10 rounded-xl text-xs md:text-sm font-bold transition-all disabled:opacity-50"
                     :class="currentPage === page ? 'bg-[#4FD1C5] text-white shadow-lg shadow-[#4FD1C5]/20' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'"
                 >
                     {{ page }}
@@ -473,7 +449,7 @@ const handleCreateBill = async (data: any) => {
             </div>
             <button 
                 @click="currentPage++"
-                :disabled="currentPage === totalPages"
+                :disabled="currentPage === totalPages || loading"
                 class="p-2 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
                 <ChevronRight class="w-4 h-4 md:w-5 md:h-5" />

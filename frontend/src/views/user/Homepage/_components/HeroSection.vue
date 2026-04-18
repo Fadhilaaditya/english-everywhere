@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { cloudinaryOptimize } from '@/utils/imageUtils'
+
 const contactWhatsApp = () => {
   window.open('https://wa.me/62895322721820', '_blank')
 }
@@ -32,14 +34,22 @@ const contactWhatsApp = () => {
     <div class="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto flex justify-between items-end px-4 md:px-0 pointer-events-none z-0">
       
       <div class="w-1/2 flex justify-start pl-0 md:pl-6">
-        <img src="https://res.cloudinary.com/dosfggbxu/image/upload/v1773216524/Eng_Ever_Design_Image_40_vcridr.png" alt="Boy raising hand" class="w-32 sm:w-48 md:w-[450px] h-auto object-contain" />
+        <img 
+          :src="cloudinaryOptimize('https://res.cloudinary.com/dosfggbxu/image/upload/v1773216524/Eng_Ever_Design_Image_40_vcridr.png', { width: 450 })" 
+          alt="Boy raising hand" 
+          class="w-32 sm:w-48 md:w-[450px] h-auto object-contain" 
+        />
       </div>
 
       <div class="w-1/2 flex justify-end pr-0 md:pr-6 relative">
         <div class="absolute -top-30 right-60 text-secondary opacity-60 hidden md:block">
             <img src="/iconhero1.svg" alt="Decorative Icon" class="w-30 h-30" />
         </div>
-        <img src="https://res.cloudinary.com/dosfggbxu/image/upload/v1773216524/Eng_Ever_Design_Image_41_dqzuzy.png" alt="Boy reading" class="w-28 sm:w-44 md:w-[450px] h-auto object-contain" />
+        <img 
+          :src="cloudinaryOptimize('https://res.cloudinary.com/dosfggbxu/image/upload/v1773216524/Eng_Ever_Design_Image_41_dqzuzy.png', { width: 450 })" 
+          alt="Boy reading" 
+          class="w-28 sm:w-44 md:w-[450px] h-auto object-contain" 
+        />
       </div>
     </div>
   </section>

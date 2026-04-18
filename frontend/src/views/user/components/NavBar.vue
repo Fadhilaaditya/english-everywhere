@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Menu, X } from 'lucide-vue-next'
+import { cloudinaryOptimize } from '@/utils/imageUtils'
 
 const router = useRouter()
 const isMenuOpen = ref(false)
@@ -52,7 +53,11 @@ onMounted(() => {
 <template>
   <nav class="bg-white py-3 px-6 md:px-12 flex items-center justify-between sticky top-0 z-50 shadow-sm">
     <div class="flex items-center cursor-pointer" @click="router.push(getLinkPath('/'))">
-      <img src="https://res.cloudinary.com/dosfggbxu/image/upload/v1773366117/Logo_m3sqpz.png" alt="English Everywhere Logo" class="h-16 w-auto" /> 
+      <img 
+        :src="cloudinaryOptimize('https://res.cloudinary.com/dosfggbxu/image/upload/v1773366117/Logo_m3sqpz.png', { height: 64 })" 
+        alt="English Everywhere Logo" 
+        class="h-16 w-auto" 
+      /> 
     </div>
 
     <div class="hidden md:flex items-center gap-8 lg:gap-16 font-poppins text-base font-semibold text-gray-800 whitespace-nowrap">

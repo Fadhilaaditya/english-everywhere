@@ -13,28 +13,9 @@ const selectedEvent = ref(null)
 const searchQuery = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
-
-const filteredEvents = computed(() => {
-  if (!searchQuery.value) return events.value
-  const query = searchQuery.value.toLowerCase()
-  return events.value.filter(event => 
-    (event.title?.toLowerCase() || '').includes(query) || 
-    (event.location?.toLowerCase() || '').includes(query)
-  )
-})
-
-const totalPages = computed(() => Math.ceil(filteredEvents.value.length / itemsPerPage))
-
-const paginatedEvents = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
-  return filteredEvents.value.slice(start, end)
-})
-
-// Reset to first page when searching
-watch(searchQuery, () => {
-    currentPage.value = 1
-})
+const totalItems = ref(0)
+const totalPages = ref(1)
+const isLoading = ref(false)
 
 // Toast State
 const showToast = ref(false)
@@ -49,12 +30,43 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
 
 const fetchEvents = async () => {
   try {
-    const response = await api.get('/events')
-    events.value = response.data
+    isLoading.value = true
+    const response = await api.get('/events', {
+      params: {
+        page: currentPage.value,
+        limit: itemsPerPage,
+        search: searchQuery.value
+      }
+    })
+    const data = response.data
+    if (data && data.events) {
+      events.value = data.events
+      totalItems.value = data.totalItems
+      totalPages.value = data.totalPages
+    } else if (Array.isArray(data)) {
+      events.value = data
+      totalItems.value = data.length
+      totalPages.value = Math.ceil(data.length / itemsPerPage)
+    } else {
+      console.warn('Unexpected API response for /events:', data)
+      events.value = []
+    }
   } catch (error) {
     console.error('Error fetching events:', error)
+  } finally {
+    isLoading.value = false
   }
 }
+
+// Re-fetch when search or page changes
+watch(searchQuery, () => {
+    currentPage.value = 1
+    fetchEvents()
+})
+
+watch(currentPage, () => {
+    fetchEvents()
+})
 
 const handleCreate = () => {
     selectedEvent.value = null
@@ -156,9 +168,14 @@ onMounted(() => {
                     <th class="pb-4 px-4 font-bold text-gray-400 text-[10px] uppercase tracking-wider text-center">Action</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="divide-y divide-gray-50 italic" v-if="isLoading">
+                <tr>
+                    <td colspan="5" class="py-12 text-center text-gray-500">Loading events...</td>
+                </tr>
+            </tbody>
+            <tbody class="divide-y divide-gray-50" v-else>
                 <tr 
-                    v-for="event in paginatedEvents" 
+                    v-for="event in events" 
                     :key="event.id"
                     class="group hover:bg-gray-50/50 transition-colors"
                 >
@@ -192,12 +209,12 @@ onMounted(() => {
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-50 pt-6">
         <p class="text-sm text-gray-500 font-medium">
-            Showing <span class="text-gray-900">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to <span class="text-gray-900">{{ Math.min(currentPage * itemsPerPage, filteredEvents.length) }}</span> of <span class="text-gray-900">{{ filteredEvents.length }}</span> events
+            Showing <span class="text-gray-900">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to <span class="text-gray-900">{{ Math.min(currentPage * itemsPerPage, totalItems) }}</span> of <span class="text-gray-900">{{ totalItems }}</span> events
         </p>
         <div class="flex items-center gap-2">
             <button 
                 @click="currentPage > 1 && currentPage--"
-                :disabled="currentPage === 1"
+                :disabled="currentPage === 1 || isLoading"
                 class="p-2 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-gray-900 hover:border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
                 <ChevronLeft class="w-5 h-5" />
@@ -207,7 +224,8 @@ onMounted(() => {
                     v-for="page in totalPages" 
                     :key="page"
                     @click="currentPage = page"
-                    class="min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all"
+                    :disabled="isLoading"
+                    class="min-w-[40px] h-10 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
                     :class="currentPage === page ? 'bg-[#4FD1C5] text-white shadow-lg shadow-[#4FD1C5]/20' : 'text-gray-500 hover:bg-gray-50'"
                 >
                     {{ page }}
@@ -215,7 +233,7 @@ onMounted(() => {
             </div>
             <button 
                 @click="currentPage < totalPages && currentPage++"
-                :disabled="currentPage === totalPages"
+                :disabled="currentPage === totalPages || isLoading"
                 class="p-2 rounded-xl border border-gray-100 bg-white text-gray-400 hover:text-gray-900 hover:border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
                 <ChevronRight class="w-5 h-5" />
@@ -224,7 +242,7 @@ onMounted(() => {
     </div>
 
     <!-- No Results -->
-    <div v-if="filteredEvents.length === 0" class="py-12 text-center text-gray-400 italic font-medium">
+    <div v-if="events.length === 0 && !isLoading" class="py-12 text-center text-gray-400 italic font-medium">
         No events found matching "{{ searchQuery }}"
     </div>
 

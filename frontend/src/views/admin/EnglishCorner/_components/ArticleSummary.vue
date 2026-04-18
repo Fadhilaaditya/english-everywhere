@@ -7,10 +7,10 @@ const publishedArticles = ref(0)
 
 const fetchArticleCount = async () => {
     try {
-        const response = await api.get('/articles')
-        const data = response.data
-        totalArticles.value = data.length
-        publishedArticles.value = data.filter((a: any) => a.status === 'published' || !a.status).length
+        const response = await api.get('/articles/summary')
+        const { total, published } = response.data
+        totalArticles.value = total || 0
+        publishedArticles.value = published || 0
     } catch (error) {
         console.error('Error fetching article count:', error)
     }

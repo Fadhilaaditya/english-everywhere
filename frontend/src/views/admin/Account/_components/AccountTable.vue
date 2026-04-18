@@ -16,6 +16,8 @@ const selectedStatus = ref('')
 const selectedRole = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
+const totalItems = ref(0)
+const totalPages = ref(1)
 
 const statusOptions = ['Waiting List', 'Active', 'Non Active', 'Postponed']
 
@@ -36,43 +38,72 @@ const roleOptions = computed(() => {
     return options
 })
 
-const filteredAccounts = computed(() => {
-    let result = accounts.value
+const tableError = ref('')
+const isLoading = ref(false)
 
-    // Search filter
-    if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
-        result = result.filter(acc => 
-            (acc.name && acc.name.toLowerCase().includes(query)) || 
-            (acc.username && acc.username.toLowerCase().includes(query)) ||
-            (acc.status && acc.status.toLowerCase().includes(query))
-        )
+const fetchAccounts = async () => {
+    try {
+        isLoading.value = true
+        tableError.value = ''
+        
+        const response = await api.get('/users', {
+            params: {
+                page: currentPage.value,
+                limit: itemsPerPage,
+                search: searchQuery.value,
+                role: selectedRole.value,
+                status: selectedStatus.value
+            }
+        })
+        
+        const data = response.data
+        let userList = []
+        
+        if (data && data.users) {
+            // New paginated structure
+            userList = data.users
+            totalItems.value = data.totalItems || 0
+            totalPages.value = data.totalPages || 1
+        } else if (Array.isArray(data)) {
+            // Legacy array structure
+            userList = data
+            totalItems.value = data.length
+            totalPages.value = Math.ceil(data.length / itemsPerPage)
+        } else {
+            console.warn('Unexpected API response structure for /users:', data)
+            userList = []
+        }
+        
+        accounts.value = userList.map((item: any) => {
+            const isStudent = item.role === 'student'
+            const profile = isStudent ? item.studentProfile : item.teacherProfile
+            
+            return {
+                id: item.id,
+                name: item.fullName || (profile ? profile.name : '-'),
+                username: item.username,
+                dob: profile && profile.birthDate ? formatDate(profile.birthDate) : '-',
+                role: capitalize(item.role),
+                status: isStudent && profile && profile.status ? profile.status : '-',
+                fullData: item 
+            }
+        })
+    } catch (e: any) {
+        console.error('Failed to fetch accounts', e)
+        tableError.value = e.response?.data?.message || e.message
+    } finally {
+        isLoading.value = false
     }
+}
 
-    // Status filter
-    if (selectedStatus.value) {
-        result = result.filter(acc => acc.status === selectedStatus.value)
-    }
-
-    // Role filter
-    if (selectedRole.value) {
-        result = result.filter(acc => acc.role === selectedRole.value)
-    }
-
-    return result
-})
-
-const totalPages = computed(() => Math.ceil(filteredAccounts.value.length / itemsPerPage))
-
-const paginatedAccounts = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage
-    const end = start + itemsPerPage
-    return filteredAccounts.value.slice(start, end)
-})
-
-// Reset to first page when searching or filtering
+// Re-fetch when page or filters change
 watch([searchQuery, selectedStatus, selectedRole], () => {
     currentPage.value = 1
+    fetchAccounts()
+})
+
+watch(currentPage, () => {
+    fetchAccounts()
 })
 
 const visiblePages = computed(() => {
@@ -95,37 +126,9 @@ const visiblePages = computed(() => {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
-const tableError = ref('')
-
-const fetchAccounts = async () => {
-    try {
-        tableError.value = ''
-        const response = await api.get('/users')
-        const data = response.data
-        accounts.value = data.map((item: any) => {
-            const isStudent = item.role === 'student'
-            const profile = isStudent ? item.studentProfile : item.teacherProfile
-            
-            return {
-                id: item.id,
-                name: item.fullName || (profile ? profile.name : '-'),
-                username: item.username,
-                dob: profile && profile.birthDate ? formatDate(profile.birthDate) : '-',
-                role: capitalize(item.role),
-                status: isStudent && profile && profile.status ? profile.status : '-',
-                fullData: item 
-            }
-        })
-    } catch (e: any) {
-        console.error('Failed to fetch accounts', e)
-        tableError.value = e.response?.data?.message || e.message
-    }
-}
-
 const formatDate = (dateString: string) => {
     if (!dateString) return '-'
     const date = new Date(dateString)
-    // Format DD/MM/YYYY
     return date.toLocaleDateString('en-GB')
 }
 
@@ -291,8 +294,13 @@ const processDelete = async () => {
                 </th>
             </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-            <tr v-for="account in paginatedAccounts" :key="account.id" class="hover:bg-gray-50/50">
+            <tbody class="divide-y divide-gray-100 italic" v-if="isLoading">
+                <tr>
+                    <td colspan="6" class="py-12 text-center text-gray-500">Loading accounts...</td>
+                </tr>
+            </tbody>
+            <tbody class="divide-y divide-gray-100" v-else>
+            <tr v-for="account in accounts" :key="account.id" class="hover:bg-gray-50/50">
                 <td class="py-4 px-6 text-sm font-bold text-gray-700">{{ account.name }}</td>
                 <td class="py-4 px-6 text-sm text-gray-600">{{ account.username }}</td>
                 <td class="py-4 px-6 text-sm text-gray-600">{{ account.dob }}</td>
@@ -350,12 +358,12 @@ const processDelete = async () => {
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
             <p class="text-sm text-gray-500">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredAccounts.length) }} of {{ filteredAccounts.length }} results
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, totalItems) }} of {{ totalItems }} results
             </p>
             <div class="flex items-center gap-2">
                 <button 
                     @click="currentPage > 1 && currentPage--"
-                    :disabled="currentPage === 1"
+                    :disabled="currentPage === 1 || isLoading"
                     class="p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     <ChevronLeft class="w-4 h-4" />
@@ -365,7 +373,8 @@ const processDelete = async () => {
                         v-for="page in visiblePages" 
                         :key="page"
                         @click="typeof page === 'number' && (currentPage = page)"
-                        class="px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                        :disabled="isLoading"
+                        class="px-3 py-1 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
                         :class="currentPage === page ? 'bg-[#4FD1C5] text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'"
                     >
                         {{ page }}
@@ -373,7 +382,7 @@ const processDelete = async () => {
                 </div>
                 <button 
                     @click="currentPage < totalPages && currentPage++"
-                    :disabled="currentPage === totalPages"
+                    :disabled="currentPage === totalPages || isLoading"
                     class="p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     <ChevronRight class="w-4 h-4" />
@@ -382,7 +391,7 @@ const processDelete = async () => {
         </div>
 
         <!-- No Results -->
-        <div v-if="filteredAccounts.length === 0" class="py-12 text-center text-gray-500 italic">
+        <div v-if="accounts.length === 0 && !isLoading" class="py-12 text-center text-gray-500 italic">
             No accounts found matching "{{ searchQuery }}"
         </div>
     </div>

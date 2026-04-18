@@ -13,7 +13,8 @@ const articles = ref<any[]>([])
 const fetchArticles = async () => {
   try {
     const response = await api.get('/articles')
-    articles.value = response.data
+    const data = response.data
+    articles.value = data.articles || data
   } catch (error) {
     console.error('Error fetching articles:', error)
   }

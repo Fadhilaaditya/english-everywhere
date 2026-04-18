@@ -6,21 +6,51 @@ const Student = db.Student;
 
 exports.findAll = async (req, res) => {
     try {
+        const { page = 1, limit = 10, search = '', role = '', status = '' } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const offset = (pageNum - 1) * limitNum;
+
         const rolesToShow = ['student', 'teacher'];
-        
-        // Superadmin also sees admin and other superadmin accounts
         if (req.userRole === 'superadmin') {
             rolesToShow.push('admin', 'superadmin');
         }
 
-        const users = await User.findAll({
-            where: {
-                role: rolesToShow
-            },
+        let whereClause = {
+            role: rolesToShow
+        };
+
+        // Filter by specific role if provided
+        if (role) {
+            const requestedRole = role.toLowerCase();
+            if (rolesToShow.includes(requestedRole)) {
+                whereClause.role = requestedRole;
+            }
+        }
+
+        // Search by username or full name
+        if (search) {
+            whereClause[Op.or] = [
+                { username: { [Op.like]: `%${search}%` } },
+                { fullName: { [Op.like]: `%${search}%` } }
+            ];
+        }
+
+        // Filter by student status if provided (requires join logic in findAndCountAll)
+        let studentWhere = {};
+        if (status) {
+            studentWhere.status = status;
+        }
+
+        const { count, rows } = await User.findAndCountAll({
+            where: whereClause,
+            attributes: { exclude: ['password'] },
             include: [
                 {
                     model: db.Student,
                     as: 'studentProfile',
+                    where: Object.keys(studentWhere).length > 0 ? studentWhere : undefined,
+                    required: Object.keys(studentWhere).length > 0, // Inner join if status filter is active
                     include: [
                         {
                             model: db.Program,
@@ -30,9 +60,19 @@ exports.findAll = async (req, res) => {
                     ]
                 },
                 { model: db.Teacher, as: 'teacherProfile' }
-            ]
+            ],
+            limit: limitNum,
+            offset: offset,
+            order: [['fullName', 'ASC']],
+            distinct: true
         });
-        res.send(users);
+
+        res.send({
+            totalItems: count,
+            users: rows,
+            totalPages: Math.ceil(count / limitNum),
+            currentPage: pageNum
+        });
     } catch (err) {
         res.status(500).send({
             message: err.message || "Some error occurred while retrieving users."

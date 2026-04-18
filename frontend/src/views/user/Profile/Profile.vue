@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Mail, Phone, MapPin, Calendar, BookOpen, GraduationCap, Briefcase, FileText } from 'lucide-vue-next'
 import api from '@/api'
+import { cloudinaryOptimize } from '@/utils/imageUtils'
 
 const router = useRouter()
 const isLoading = ref(true)
@@ -59,7 +60,12 @@ onMounted(() => {
             <div class="h-32 bg-gradient-to-r from-[#4FD1C5] to-[#4FD1C5]/70"></div>
             <div class="px-8 pb-8 flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-12 relative z-10">
                 <div class="w-24 h-24 rounded-full border-4 border-white bg-[#EFF2FC] flex items-center justify-center shadow-md overflow-hidden shrink-0">
-                    <img v-if="profileData.photo" :src="profileData.photo" alt="Profile" class="w-full h-full object-cover" />
+                    <img 
+                        v-if="profileData.photo" 
+                        :src="cloudinaryOptimize(profileData.photo, { width: 200, height: 200, crop: 'fill' })" 
+                        alt="Profile" 
+                        class="w-full h-full object-cover" 
+                    />
                     <User v-else class="w-12 h-12 text-[#4FD1C5]" />
                 </div>
                 <div class="flex-1 text-center sm:text-left">

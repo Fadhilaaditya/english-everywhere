@@ -8,6 +8,7 @@ module.exports = (app) => {
   // Admin Routes
   router.post("/", [verifyToken, isAdmin], paymentController.createPayment);
   router.get("/", [verifyToken, isAdmin], paymentController.getAllPayments);
+  router.get("/admin/stats", [verifyToken, isAdmin], paymentController.getPaymentStats);
   router.put("/:id/approve", [verifyToken, isAdmin], paymentController.approvePayment);
   router.delete("/:id", [verifyToken, isAdmin], paymentController.deletePayment);
 

@@ -3,9 +3,15 @@ import api from '@/api';
 export default {
   // === Admin Endpoints ===
 
-  // Get all payments for admin table
-  async getAllPayments() {
-    const response = await api.get('/payments');
+  // Get all payments for admin table with optional pagination and search
+  async getAllPayments(params?: any) {
+    const response = await api.get('/payments', { params });
+    return response.data;
+  },
+
+  // Get payment global stats
+  async getPaymentStats() {
+    const response = await api.get('/payments/admin/stats');
     return response.data;
   },
 

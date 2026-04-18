@@ -7,7 +7,9 @@ try {
   currentBranch = process.env.NODE_ENV === 'production' ? 'production' : 'development';
 }
 
-const envFile = currentBranch === 'production' ? '.env.production' : '.env.development';
+// If NODE_ENV is production, use .env.production. Otherwise default to .env.development
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+console.log(`[CONFIG] Loading environment from ${envFile}`);
 require('dotenv').config({ path: envFile, override: true });
 require('dotenv').config(); // Fallback to .env
 

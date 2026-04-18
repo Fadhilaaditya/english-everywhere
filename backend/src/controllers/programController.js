@@ -85,7 +85,19 @@ exports.findOne = (req, res) => {
 // 2.1 Ambil semua jadwal (Global) dengan jumlah booking
 exports.findAllGlobal = async (req, res) => {
   try {
-    const data = await ProgramSchedule.findAll({
+    const { page, limit, startDate, endDate } = req.query;
+    
+    let whereClause = {};
+    if (startDate && endDate) {
+      whereClause.date = { [Op.between]: [startDate, endDate] };
+    } else if (startDate) {
+      whereClause.date = { [Op.gte]: startDate };
+    } else if (endDate) {
+      whereClause.date = { [Op.lte]: endDate };
+    }
+
+    const queryOptions = {
+      where: whereClause,
       include: [
         {
           model: db.AppointmentBooking,
@@ -97,11 +109,39 @@ exports.findAllGlobal = async (req, res) => {
         ["date", "ASC"],
         ["time", "ASC"],
       ],
-    });
-    res.send(data);
+      distinct: true
+    };
+
+    if (page && limit) {
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
+      const offset = (pageNum - 1) * limitNum;
+      
+      const { count, rows } = await ProgramSchedule.findAndCountAll({
+        ...queryOptions,
+        limit: limitNum,
+        offset: offset,
+      });
+
+      res.send({
+        totalItems: count,
+        schedules: rows,
+        totalPages: Math.ceil(count / limitNum),
+        currentPage: pageNum
+      });
+    } else {
+      // Backward compatibility: return array if no pagination
+      // BUT still limit to a reasonable number to prevent crashes (e.g., 500)
+      const rows = await ProgramSchedule.findAll({
+        ...queryOptions,
+        limit: queryOptions.where.date ? undefined : 500
+      });
+      res.send(rows);
+    }
   } catch (err) {
-    console.error("Error in findAllGlobal:", err);
-    res.status(500).send({ message: "Gagal mengambil semua jadwal." });
+    res.status(500).send({
+      message: err.message || "Some error occurred while retrieving schedules."
+    });
   }
 };
 
@@ -283,21 +323,28 @@ exports.getBookingsBySchedule = async (req, res) => {
   }
 };
 
-// 11. Ambil semua booking secara global (Admin)
+// 11. Ambil semua booking (Admin) - with pagination and search
 exports.getAllBookings = async (req, res) => {
-  const status = req.query.status;
-  let whereClause = {};
-
-  if (status) {
-    if (status.includes(',')) {
-      whereClause.status = { [Op.in]: status.split(',') };
-    } else {
-      whereClause.status = status;
-    }
-  }
-
   try {
-    const data = await db.AppointmentBooking.findAll({
+    const { status, page, limit, search } = req.query;
+    let whereClause = {};
+
+    if (status) {
+      if (status.includes(',')) {
+        whereClause.status = { [Op.in]: status.split(',') };
+      } else {
+        whereClause.status = status;
+      }
+    }
+
+    if (search) {
+      whereClause[Op.or] = [
+        { applicantName: { [Op.like]: `%${search}%` } },
+        { applicantPhone: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const queryOptions = {
       where: whereClause,
       include: [
         {
@@ -307,10 +354,35 @@ exports.getAllBookings = async (req, res) => {
         },
       ],
       order: [["createdAt", "DESC"]],
-    });
-    res.send(data);
+      distinct: true
+    };
+
+    if (page && limit) {
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
+      const offset = (pageNum - 1) * limitNum;
+
+      const { count, rows } = await db.AppointmentBooking.findAndCountAll({
+        ...queryOptions,
+        limit: limitNum,
+        offset: offset,
+      });
+
+      res.send({
+        totalItems: count,
+        bookings: rows,
+        totalPages: Math.ceil(count / limitNum),
+        currentPage: pageNum
+      });
+    } else {
+      // Backward compatibility: return array
+      const rows = await db.AppointmentBooking.findAll(queryOptions);
+      res.send(rows);
+    }
   } catch (err) {
-    res.status(500).send({ message: "Gagal mengambil semua data booking." });
+    res.status(500).send({
+      message: err.message || "Some error occurred while retrieving bookings."
+    });
   }
 };
 

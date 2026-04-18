@@ -14,28 +14,9 @@ const selectedApplicant = ref<any>(null)
 const searchQuery = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
-
-const filteredApplicants = computed(() => {
-    if (!searchQuery.value) return applicants.value
-    const query = searchQuery.value.toLowerCase()
-    return applicants.value.filter(app => 
-        app.name.toLowerCase().includes(query) || 
-        app.phone.toLowerCase().includes(query)
-    )
-})
-
-const totalPages = computed(() => Math.ceil(filteredApplicants.value.length / itemsPerPage))
-
-const paginatedApplicants = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage
-    const end = start + itemsPerPage
-    return filteredApplicants.value.slice(start, end)
-})
-
-// Reset to first page when searching
-watch(searchQuery, () => {
-    currentPage.value = 1
-})
+const totalItems = ref(0)
+const totalPages = ref(1)
+const isLoading = ref(false)
 
 // Delete Modal State
 const isDeleteModalOpen = ref(false)
@@ -53,11 +34,34 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
     showToast.value = true
 }
 
-const fetchApplicants = async () => {
+const fetchApplicants = async (isSilent = false) => {
     try {
-        const response = await api.get('/programs/bookings/all?status=ACCEPTED,BOOKED')
+        if (!isSilent) isLoading.value = true
+        const response = await api.get('/programs/bookings/all', {
+            params: {
+                status: 'ACCEPTED,BOOKED',
+                page: currentPage.value,
+                limit: itemsPerPage,
+                search: searchQuery.value
+            }
+        })
         const data = response.data
-        applicants.value = data.map((item: any) => ({
+        let bookingList = []
+        
+        if (data && data.bookings) {
+            bookingList = data.bookings
+            totalItems.value = data.totalItems || 0
+            totalPages.value = data.totalPages || 1
+        } else if (Array.isArray(data)) {
+            bookingList = data
+            totalItems.value = data.length
+            totalPages.value = Math.ceil(data.length / itemsPerPage)
+        } else {
+            console.warn('Unexpected API response for /bookings/all:', data)
+            bookingList = []
+        }
+        
+        applicants.value = bookingList.map((item: any) => ({
             id: item.id,
             name: item.applicantName,
             gender: item.applicantGender,
@@ -68,8 +72,20 @@ const fetchApplicants = async () => {
         }))
     } catch (e) {
         console.error('Failed to fetch applicants', e)
+    } finally {
+        if (!isSilent) isLoading.value = false
     }
 }
+
+// Re-fetch when search or page changes
+watch(searchQuery, () => {
+    currentPage.value = 1
+    fetchApplicants()
+})
+
+watch(currentPage, () => {
+    fetchApplicants()
+})
 
 const formatDate = (dateString: string) => {
     if (!dateString) return ''
@@ -90,8 +106,8 @@ const markAsRead = async () => {
 onMounted(() => {
     fetchApplicants()
     markAsRead()
-    // Poll every 3 seconds for real-time updates
-    pollingInterval = setInterval(fetchApplicants, 3000)
+    // Poll every 3 seconds for real-time updates (silently)
+    pollingInterval = setInterval(() => fetchApplicants(true), 3000)
 })
 
 onUnmounted(() => {
@@ -179,8 +195,13 @@ const confirmDelete = async () => {
                 <th class="py-4 px-6 text-left text-sm font-semibold text-gray-900">Action</th>
             </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-            <tr v-for="applicant in paginatedApplicants" :key="applicant.id" class="hover:bg-gray-50/50">
+            <tbody class="divide-y divide-gray-100 italic" v-if="isLoading">
+                <tr>
+                    <td colspan="5" class="py-12 text-center text-gray-500">Loading applicants...</td>
+                </tr>
+            </tbody>
+            <tbody class="divide-y divide-gray-100" v-else>
+            <tr v-for="applicant in applicants" :key="applicant.id" class="hover:bg-gray-50/50">
                 <td class="py-6 px-6 text-sm font-medium text-gray-900">{{ applicant.name }}</td>
                 <td class="py-6 px-6 text-sm text-gray-900">{{ applicant.gender }}</td>
                 <td class="py-6 px-6 text-sm text-gray-900 text-left">{{ applicant.phone }}</td>
@@ -217,12 +238,12 @@ const confirmDelete = async () => {
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-50 pt-6">
             <p class="text-sm text-gray-500">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredApplicants.length) }} of {{ filteredApplicants.length }} applicants
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, totalItems) }} of {{ totalItems }} applicants
             </p>
             <div class="flex items-center gap-2">
                 <button 
                     @click="currentPage > 1 && currentPage--"
-                    :disabled="currentPage === 1"
+                    :disabled="currentPage === 1 || isLoading"
                     class="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
                     <ChevronLeft class="w-4 h-4" />
@@ -232,7 +253,8 @@ const confirmDelete = async () => {
                         v-for="page in totalPages" 
                         :key="page"
                         @click="currentPage = page"
-                        class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all"
+                        :disabled="isLoading"
+                        class="px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50"
                         :class="currentPage === page ? 'bg-gray-900 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'"
                     >
                         {{ page }}
@@ -240,7 +262,7 @@ const confirmDelete = async () => {
                 </div>
                 <button 
                     @click="currentPage < totalPages && currentPage++"
-                    :disabled="currentPage === totalPages"
+                    :disabled="currentPage === totalPages || isLoading"
                     class="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
                     <ChevronRight class="w-4 h-4" />
@@ -249,7 +271,7 @@ const confirmDelete = async () => {
         </div>
 
         <!-- No Results -->
-        <div v-if="filteredApplicants.length === 0" class="py-12 text-center text-gray-500 italic">
+        <div v-if="applicants.length === 0 && !isLoading" class="py-12 text-center text-gray-500 italic">
             No applicants found matching "{{ searchQuery }}"
         </div>
     </div>

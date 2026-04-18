@@ -22,6 +22,11 @@ exports.uploadImage = async (req, res) => {
 
         const result = await cloudinary.uploader.upload(fileBase64, {
             folder: 'english-everywhere/thumbnails',
+            transformation: [
+                { width: 1200, height: 1200, crop: 'limit' },
+                { quality: 'auto' },
+                { fetch_format: 'auto' }
+            ]
         });
 
         res.status(200).send({

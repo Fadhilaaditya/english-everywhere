@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api'
 import { Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-vue-next'
+import { cloudinaryOptimize } from '@/utils/imageUtils'
 
 const router = useRouter()
 const username = ref('')
@@ -70,7 +71,11 @@ const handleLogin = async () => {
 <template>
   <div class="flex h-screen w-full bg-white overflow-hidden">
     <div class="hidden md:flex w-1/2 bg-white relative items-center justify-center overflow-hidden">
-      <img src="https://res.cloudinary.com/dosfggbxu/image/upload/v1773216099/Eng_Ever_Design_Mask_Group_erchyw.png" alt="Login Illustration" class="w-full h-full object-cover" />
+      <img 
+        :src="cloudinaryOptimize('https://res.cloudinary.com/dosfggbxu/image/upload/v1773216099/Eng_Ever_Design_Mask_Group_erchyw.png', { width: 800 })" 
+        alt="Login Illustration" 
+        class="w-full h-full object-cover" 
+      />
     </div>
 
     <div class="w-full md:w-1/2 flex flex-col items-center justify-center px-8 md:px-24 bg-white relative">

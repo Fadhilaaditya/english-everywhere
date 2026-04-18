@@ -2,6 +2,7 @@
 import { ChevronLeft } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
 import { computed, ref, onMounted } from 'vue'
+import { cloudinaryOptimize } from '@/utils/imageUtils'
 
 const router = useRouter()
 const route = useRoute()
@@ -53,7 +54,11 @@ const goBack = () => {
 
       <!-- Featured Image -->
       <div class="w-full aspect-[16/9] rounded-3xl overflow-hidden shadow-lg mb-12">
-        <img :src="article?.image" alt="Article Image" class="w-full h-full object-cover" />
+        <img 
+          :src="cloudinaryOptimize(article?.image, { width: 1000 })" 
+          alt="Article Image" 
+          class="w-full h-full object-cover" 
+        />
       </div>
 
       <!-- Main Text Content -->

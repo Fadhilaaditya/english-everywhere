@@ -31,7 +31,8 @@ const openModal = (event: any) => {
 const fetchEvents = async () => {
     try {
         const response = await api.get('/events/upcoming');
-        events.value = response.data;
+        const data = response.data;
+        events.value = data.events || data;
     } catch (error) {
         console.error('Error fetching events:', error);
     }

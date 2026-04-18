@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Calendar, Clock, X, MapPin, Image as ImageIcon } from 'lucide-vue-next'
 import { onUnmounted, watch, computed } from 'vue'
+import { cloudinaryOptimize } from '@/utils/imageUtils'
 
 // Swiper imports
 import { Swiper, SwiperSlide } from 'swiper/vue'
@@ -70,7 +71,11 @@ onUnmounted(() => {
                 class="w-full h-full rounded-3xl shadow-md aspect-[5/6] overflow-hidden"
            >
                 <swiper-slide v-for="(img, index) in eventImages" :key="index">
-                    <img :src="img" :alt="event?.title" class="w-full h-full object-cover" />
+                    <img 
+                      :src="cloudinaryOptimize(img, { width: 600, height: 720, crop: 'fill' })" 
+                      :alt="event?.title" 
+                      class="w-full h-full object-cover" 
+                    />
                 </swiper-slide>
            </swiper>
            <div v-else class="w-full h-full bg-gray-100 rounded-3xl flex items-center justify-center aspect-[5/6]">

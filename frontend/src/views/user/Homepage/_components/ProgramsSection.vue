@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { cloudinaryOptimize } from '@/utils/imageUtils'
 
 interface Program {
   id: number
@@ -82,7 +83,12 @@ onMounted(() => {
             class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full cursor-pointer transform hover:-translate-y-1 duration-300 h-full flex flex-col"
         >
           <div class="h-[198px] w-full flex items-center justify-center bg-white overflow-hidden">
-            <img :src="program.image" :alt="program.title" class="max-h-full max-w-full object-contain flex-shrink-0 scale-173 transition-transform duration-500 hover:scale-160" />
+            <img 
+              :src="cloudinaryOptimize(program.image, { width: 350, height: 200, crop: 'contain' })" 
+              :alt="program.title" 
+              class="max-h-full max-w-full object-contain flex-shrink-0 scale-173 transition-transform duration-500 hover:scale-160" 
+              loading="lazy"
+            />
           </div>
           
           <div class="p-6 flex flex-col flex-grow">

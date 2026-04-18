@@ -10,6 +10,9 @@ module.exports = app => {
     // Retrieve all Articles
     router.get("/", articles.findAll);
 
+    // Retrieve Article Summary
+    router.get("/summary", articles.getSummary);
+
     // Retrieve a single Article with id
     router.get("/:id", articles.findOne);
 

@@ -36,12 +36,34 @@ exports.create = (req, res) => {
 
 // Retrieve all Articles from the database.
 exports.findAll = (req, res) => {
-    const title = req.query.title;
-    var condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
+    const { title = '', search = '', page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
 
-    Article.findAll({ where: condition })
+    // Use search query if provided, fallback to title for backward compatibility
+    const query = search || title;
+    var condition = query ? { 
+        [Op.or]: [
+            { title: { [Op.like]: `%${query}%` } },
+            { description: { [Op.like]: `%${query}%` } }
+        ]
+    } : null;
+
+    Article.findAndCountAll({ 
+        where: condition,
+        attributes: { exclude: ['sections'] },
+        limit: limitNum,
+        offset: offset,
+        order: [['createdAt', 'DESC']]
+    })
         .then(data => {
-            res.send(data);
+            res.send({
+                totalItems: data.count,
+                articles: data.rows,
+                totalPages: Math.ceil(data.count / limitNum),
+                currentPage: pageNum
+            });
         })
         .catch(err => {
             res.status(500).send({
@@ -120,4 +142,22 @@ exports.delete = (req, res) => {
                 message: "Could not delete Article with id=" + id
             });
         });
+};
+
+// Retrieve Article Summary Stats
+exports.getSummary = async (req, res) => {
+    try {
+        const total = await Article.count();
+        // For now, since there is no status column, interpret all as published
+        const published = total;
+
+        res.send({
+            total,
+            published
+        });
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "Some error occurred while retrieving article summary."
+        });
+    }
 };

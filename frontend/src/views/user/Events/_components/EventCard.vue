@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Calendar, Clock, MapPin } from 'lucide-vue-next'
+import { cloudinaryOptimize } from '@/utils/imageUtils'
 
 defineProps<{
   event: any
@@ -18,7 +19,12 @@ defineProps<{
   >
     <!-- Event Image -->
     <div class="w-32 h-40 flex-shrink-0 bg-gray-200 rounded-lg overflow-hidden">
-      <img :src="event.image" :alt="event.title" class="w-full h-full object-cover" />
+      <img 
+        :src="cloudinaryOptimize(event.image, { width: 200, height: 250, crop: 'fill' })" 
+        :alt="event.title" 
+        class="w-full h-full object-cover" 
+        loading="lazy"
+      />
     </div>
 
     <!-- Content -->
