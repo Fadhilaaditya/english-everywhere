@@ -283,8 +283,11 @@ router.beforeEach((to, from, next) => {
 
     // 3. Prevent logged-in users from accessing login page
     if (to.path === '/login' && token) {
-        if (userRole === 'admin') return next({ name: 'admin-dashboard' })
-        if (userRole === 'teacher') return next({ name: 'teacher-home' })
+        const normalizedUserRole = userRole ? String(userRole).toLowerCase() : ''
+        if (normalizedUserRole === 'admin' || normalizedUserRole === 'superadmin') {
+            return next({ name: 'admin-dashboard' })
+        }
+        if (normalizedUserRole === 'teacher') return next({ name: 'teacher-home' })
         return next({ name: 'home' })
     }
 

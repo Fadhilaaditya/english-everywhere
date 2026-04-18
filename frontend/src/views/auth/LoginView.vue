@@ -35,8 +35,9 @@ const handleLogin = async () => {
         localStorage.setItem('token', data.accessToken)
         
         // 2. Simpan Role (PENTING untuk Navbar!)
-        // Normalisasi role 'user' menjadi 'student' jika diperlukan
-        const normalizedRole = data.role === 'user' ? 'student' : data.role
+        // Normalisasi role 'user' menjadi 'student' jika diperlukan dan pastikan lowercase
+        const roleFromDb = data.role ? String(data.role).toLowerCase() : ''
+        const normalizedRole = roleFromDb === 'user' ? 'student' : roleFromDb
         localStorage.setItem('role', normalizedRole) 
 
         // 3. Simpan User Data

@@ -8,7 +8,8 @@ const isMenuOpen = ref(false)
 const user = ref<any>(null)
 
 const isAdminOrSuperAdmin = computed(() => {
-    return user.value?.role === 'admin' || user.value?.role === 'superadmin'
+    const role = user.value?.role ? String(user.value.role).toLowerCase() : ''
+    return role === 'admin' || role === 'superadmin'
 })
 
 const toggleMenu = () => {
