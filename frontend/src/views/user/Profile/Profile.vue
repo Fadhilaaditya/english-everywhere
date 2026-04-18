@@ -23,6 +23,7 @@ const fetchProfile = async () => {
         const response = await api.get(`/users/${currentUser.id}`)
         
         profileData.value = response.data
+        console.log('[DEBUG] Profile Role:', profileData.value.role);
     } catch (err: any) {
         console.error('Failed to fetch profile', err)
         errorMsg.value = err.response?.data?.message || 'Failed to load profile data.'
@@ -64,7 +65,7 @@ onMounted(() => {
                 <div class="flex-1 text-center sm:text-left">
                     <h1 class="text-2xl font-bold text-gray-900">{{ profileData.fullName }}</h1>
                     <p class="text-gray-500 font-medium">@{{ profileData.username }}</p>
-                    <div v-if="profileData && (profileData.role?.toLowerCase() === 'admin' || profileData.role?.toLowerCase() === 'superadmin')" class="mt-4">
+                    <div v-if="profileData && (['admin', 'superadmin'].includes(String(profileData.role || '').toLowerCase().trim()))" class="mt-4">
                         <button 
                             @click="router.push('/admin')"
                             class="bg-[#4FD1C5] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#3dbdb0] transition-colors shadow-md"
@@ -76,12 +77,12 @@ onMounted(() => {
                 <div class="mt-4 sm:mt-0">
                     <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider"
                           :class="{
-                              'bg-[#FFE2CC] text-[#E06C00]': profileData.role?.toLowerCase() === 'teacher',
-                              'bg-[#E3F2FD] text-[#1976D2]': profileData.role?.toLowerCase() === 'user' || profileData.role?.toLowerCase() === 'student',
-                              'bg-purple-100 text-purple-700': profileData.role?.toLowerCase() === 'admin',
-                              'bg-red-100 text-red-700': profileData.role?.toLowerCase() === 'superadmin'
+                              'bg-[#FFE2CC] text-[#E06C00]': String(profileData.role || '').toLowerCase().trim() === 'teacher',
+                              'bg-[#E3F2FD] text-[#1976D2]': ['user', 'student'].includes(String(profileData.role || '').toLowerCase().trim()),
+                              'bg-purple-100 text-purple-700': String(profileData.role || '').toLowerCase().trim() === 'admin',
+                              'bg-red-100 text-red-700': String(profileData.role || '').toLowerCase().trim() === 'superadmin'
                           }">
-                        {{ profileData.role?.toLowerCase() === 'user' ? 'Student' : (profileData.role?.toLowerCase() === 'superadmin' ? 'Superadmin' : profileData.role) }}
+                        {{ String(profileData.role || '').toLowerCase().trim() === 'user' || String(profileData.role || '').toLowerCase().trim() === 'student' ? 'Student' : (String(profileData.role || '').toLowerCase().trim() === 'superadmin' ? 'Superadmin' : profileData.role) }}
                     </span>
                 </div>
             </div>
