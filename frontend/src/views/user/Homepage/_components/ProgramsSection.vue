@@ -84,7 +84,7 @@ onMounted(() => {
         >
           <div class="h-[198px] w-full flex items-center justify-center bg-white overflow-hidden">
             <img 
-              :src="cloudinaryOptimize(program.image, { width: 350, height: 200, crop: 'contain' })" 
+              :src="cloudinaryOptimize(program.image)" 
               :alt="program.title" 
               class="max-h-full max-w-full object-contain flex-shrink-0 scale-173 transition-transform duration-500 hover:scale-160" 
               loading="lazy"
