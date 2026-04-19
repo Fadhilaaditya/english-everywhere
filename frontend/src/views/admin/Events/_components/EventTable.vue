@@ -44,7 +44,9 @@ const fetchEvents = async () => {
       totalItems.value = data.totalItems
       totalPages.value = data.totalPages
     } else if (Array.isArray(data)) {
-      events.value = data
+      const startIndex = (currentPage.value - 1) * itemsPerPage
+      const endIndex = startIndex + itemsPerPage
+      events.value = data.slice(startIndex, endIndex)
       totalItems.value = data.length
       totalPages.value = Math.ceil(data.length / itemsPerPage)
     } else {

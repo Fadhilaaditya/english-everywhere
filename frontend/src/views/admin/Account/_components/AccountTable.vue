@@ -71,7 +71,9 @@ const fetchAccounts = async () => {
             totalPages.value = data.totalPages || 1
         } else if (Array.isArray(data)) {
             // Legacy array structure
-            userList = data
+            const startIndex = (currentPage.value - 1) * itemsPerPage
+            const endIndex = startIndex + itemsPerPage
+            userList = data.slice(startIndex, endIndex)
             totalItems.value = data.length
             totalPages.value = Math.ceil(data.length / itemsPerPage)
         } else {

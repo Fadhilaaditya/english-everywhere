@@ -7,8 +7,8 @@ const Student = db.Student;
 exports.findAll = async (req, res) => {
     try {
         const { page = 1, limit = 10, search = '', role = '', status = '' } = req.query;
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.max(1, parseInt(limit) || 10);
         const offset = (pageNum - 1) * limitNum;
 
         const rolesToShow = ['student', 'teacher'];
