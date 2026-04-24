@@ -59,7 +59,8 @@ exports.findAll = async (req, res) => {
                         }
                     ]
                 },
-                { model: db.Teacher, as: 'teacherProfile' }
+                { model: db.Teacher, as: 'teacherProfile' },
+                { model: db.Admin, as: 'adminProfile' }
             ],
             limit: limitNum,
             offset: offset,
@@ -100,7 +101,8 @@ exports.findOne = async (req, res) => {
                         }
                     ]
                 },
-                { model: db.Teacher, as: 'teacherProfile' }
+                { model: db.Teacher, as: 'teacherProfile' },
+                { model: db.Admin, as: 'adminProfile' }
             ]
         });
 
@@ -199,6 +201,16 @@ exports.create = async (req, res) => {
                 specialization: profileData.specialization || '',
                 bio: profileData.bio || ''
             }, { transaction });
+        } else if (role === 'admin' || role === 'superadmin') {
+            await db.Admin.create({
+                userId: user.id,
+                name: fullName,
+                gender: profileData.gender || 'Male',
+                address: profileData.address,
+                phoneNumber: profileData.phone || '0',
+                email: profileData.email || `${username}@example.com`,
+                birthDate: profileData.birthDate
+            }, { transaction });
         }
 
         await transaction.commit();
@@ -231,6 +243,8 @@ exports.delete = async (req, res) => {
         } else if (role === 'teacher') {
             // Check if there are schedules or other dependent data if necessary
             await db.Teacher.destroy({ where: { userId: id }, transaction });
+        } else if (role === 'admin' || role === 'superadmin') {
+            await db.Admin.destroy({ where: { userId: id }, transaction });
         }
 
         // Finally delete the user
@@ -311,6 +325,15 @@ exports.update = async (req, res) => {
                 birthDate: profileData.birthDate || user.teacherProfile.birthDate,
                 specialization: profileData.specialization || user.teacherProfile.specialization,
                 bio: profileData.bio || user.teacherProfile.bio
+            }, { transaction });
+        } else if ((user.role === 'admin' || user.role === 'superadmin') && user.adminProfile) {
+            await user.adminProfile.update({
+                name: fullName || user.adminProfile.name,
+                gender: profileData.gender || user.adminProfile.gender,
+                address: profileData.address || user.adminProfile.address,
+                phoneNumber: profileData.phone || user.adminProfile.phoneNumber,
+                email: profileData.email || user.adminProfile.email,
+                birthDate: profileData.birthDate || user.adminProfile.birthDate
             }, { transaction });
         }
 

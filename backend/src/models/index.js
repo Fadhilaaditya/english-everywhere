@@ -28,6 +28,7 @@ db.Program = require("./programModel.js")(sequelize, Sequelize);
 db.Event = require("./eventModel.js")(sequelize, Sequelize);
 db.Article = require("./articleModel.js")(sequelize, Sequelize);
 db.Classroom = require("./classroomModel.js")(sequelize, Sequelize);
+db.Admin = require("./adminModel.js")(sequelize, Sequelize);
 
 // Memisahkan TeacherSchedule dan ProgramSchedule karena tabelnya berbeda
 db.TeacherSchedule = require("./teacherScheduleModel.js")(
@@ -58,6 +59,10 @@ db.Teacher.belongsTo(db.User, { foreignKey: "userId", as: "user" });
 // --- Relasi User <-> Student ---
 db.User.hasOne(db.Student, { foreignKey: "userId", as: "studentProfile" });
 db.Student.belongsTo(db.User, { foreignKey: "userId", as: "user" });
+
+// --- Relasi User <-> Admin ---
+db.User.hasOne(db.Admin, { foreignKey: "userId", as: "adminProfile" });
+db.Admin.belongsTo(db.User, { foreignKey: "userId", as: "user" });
 
 // --- Relasi Teacher <-> TeacherSchedule ---
 // Guru memiliki banyak jadwal mengajar di tabel teacher_schedules

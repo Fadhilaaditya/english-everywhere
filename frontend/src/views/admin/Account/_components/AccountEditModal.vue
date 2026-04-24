@@ -116,7 +116,8 @@ watch(() => props.account, (newVal) => {
         // Edit mode - Fill data from DB
         const data = newVal.fullData
         const isStudent = data.role === 'student'
-        const profile = isStudent ? data.studentProfile : data.teacherProfile
+        const isAdmin = data.role === 'admin' || data.role === 'superadmin'
+        const profile = isStudent ? data.studentProfile : (isAdmin ? data.adminProfile : data.teacherProfile)
         
         formData.value = {
             fullName: data.fullName || (profile ? profile.name : ''),
@@ -230,16 +231,16 @@ const processSubmission = async () => {
     <div class="absolute inset-0 bg-black/50" @click="$emit('close')"></div>
 
     <!-- Modal Content -->
-    <div class="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+    <div class="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
         <!-- Close Button (X) -->
         <button 
             @click="$emit('close')"
-            class="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-600 transition-colors z-10"
+            class="absolute right-4 top-4 p-2 text-gray-400 hover:text-gray-600 transition-colors z-50 bg-white/80 backdrop-blur-sm rounded-full shadow-sm"
         >
             <X class="w-6 h-6" />
         </button>
 
-        <div class="p-8">
+        <div class="overflow-y-auto p-8">
             <h2 class="text-2xl font-bold text-center text-gray-900 mb-8">{{ title }}</h2>
 
             <!-- Photo Upload -->

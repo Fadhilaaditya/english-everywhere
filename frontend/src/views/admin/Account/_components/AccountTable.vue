@@ -83,7 +83,8 @@ const fetchAccounts = async () => {
         
         accounts.value = userList.map((item: any) => {
             const isStudent = item.role === 'student'
-            const profile = isStudent ? item.studentProfile : item.teacherProfile
+            const isAdmin = item.role === 'admin' || item.role === 'superadmin'
+            const profile = isStudent ? item.studentProfile : (isAdmin ? item.adminProfile : item.teacherProfile)
             
             return {
                 id: item.id,
