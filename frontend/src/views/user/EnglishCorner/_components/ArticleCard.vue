@@ -19,12 +19,10 @@ defineProps<{
       />
     </div>
     
-    <h3 class="text-lg md:text-xl font-bold text-gray-900 mb-3 leading-snug">
-      {{ title }}
+    <h3 class="text-lg md:text-xl font-bold text-gray-900 mb-3 leading-snug line-clamp-2 [&>p]:inline" v-html="title">
     </h3>
     
-    <p class="text-gray-600 text-sm leading-relaxed line-clamp-3">
-      {{ description }}
-    </p>
+    <div class="text-gray-600 text-sm leading-relaxed line-clamp-3 [&>p]:inline" v-html="description">
+    </div>
   </div>
 </template>

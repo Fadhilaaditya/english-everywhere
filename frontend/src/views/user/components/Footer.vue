@@ -38,9 +38,8 @@ import { Youtube, Instagram, ShoppingBag, Phone } from 'lucide-vue-next'
           <div>
             <p class="font-medium text-text-dark">Address:</p>
             <p>Cendana Residence Blok H8 No 6,</p>
-            <p>South Tangerang 15416</p>
-            <p>Jl. Utama No.44</p>
-            <p>Purwokerto</p>
+            <p>South Tangerang 15416</p><br>
+            <p>Jl. Soka Indah no. 13 Dukuhwaluh, Kembaran, Purwokerto 53182</p>
           </div>
           <div>
             <p class="font-medium text-text-dark">Phone number:</p>

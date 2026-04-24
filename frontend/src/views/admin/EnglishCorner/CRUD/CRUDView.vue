@@ -5,6 +5,15 @@ import Sidebar from '../../components/Sidebar.vue'
 import Header from '../../components/Header.vue'
 import { Upload, Plus, Trash2 } from 'lucide-vue-next'
 import Toast from '../../../../components/Toast.vue'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
+
+const toolbarOptions = [
+  ['bold', 'italic', 'underline'],
+  [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+  [{ 'align': [] }],
+  ['clean']
+]
 
 const route = useRoute()
 const router = useRouter()
@@ -166,12 +175,16 @@ onMounted(() => {
                     <label class="block text-gray-700 text-sm font-semibold mb-2">
                         Title<span class="text-red-500">*</span>
                     </label>
-                    <input 
-                        v-model="title"
-                        type="text" 
-                        class="w-full border border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-4 focus:ring-[#4FD1C5]/10 focus:border-[#4FD1C5] transition-all"
-                        placeholder="Article Title"
-                    >
+                    <div class="w-full">
+                        <QuillEditor 
+                            v-model:content="title"
+                            contentType="html"
+                            theme="snow"
+                            :toolbar="toolbarOptions"
+                            placeholder="Article Title"
+                            class="w-full bg-white transition-all shadow-sm rounded-b-xl override-min-h-50"
+                        />
+                    </div>
                 </div>
 
                 <!-- Description -->
@@ -179,11 +192,16 @@ onMounted(() => {
                     <label class="block text-gray-700 text-sm font-semibold mb-2">
                         Short Description (for card)<span class="text-red-500">*</span>
                     </label>
-                    <textarea 
-                        v-model="description"
-                        class="w-full border border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-4 focus:ring-[#4FD1C5]/10 focus:border-[#4FD1C5] h-28 resize-none transition-all"
-                        placeholder="Brief summary..."
-                    ></textarea>
+                    <div class="w-full">
+                        <QuillEditor 
+                            v-model:content="description"
+                            contentType="html"
+                            theme="snow"
+                            :toolbar="toolbarOptions"
+                            placeholder="Brief summary..."
+                            class="w-full bg-white transition-all shadow-sm rounded-b-xl override-min-h-100"
+                        />
+                    </div>
                 </div>
 
                 <!-- Thumbnail Upload (Only visible on Mobile here) -->
@@ -226,11 +244,16 @@ onMounted(() => {
                     </div>
                     <div class="space-y-4">
                         <div v-for="(text, index) in intro" :key="index" class="flex gap-3">
-                            <textarea 
-                                v-model="intro[index]"
-                                class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-[#4FD1C5]/10 focus:border-[#4FD1C5] min-h-[100px] transition-all"
-                                placeholder="Introductory text..."
-                            ></textarea>
+                            <div class="w-full">
+                                <QuillEditor 
+                                    v-model:content="intro[index]"
+                                    contentType="html"
+                                    theme="snow"
+                                    :toolbar="toolbarOptions"
+                                    placeholder="Introductory text..."
+                                    class="w-full bg-white transition-all shadow-sm rounded-b-xl"
+                                />
+                            </div>
                             <button @click="removeIntro(index)" class="text-gray-300 hover:text-red-500 transition-colors self-start mt-3">
                                 <Trash2 class="w-5 h-5" />
                             </button>
@@ -273,11 +296,14 @@ onMounted(() => {
                             
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Content</label>
-                                <textarea 
-                                    v-model="section.text"
-                                    class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#4FD1C5] min-h-[120px] bg-white transition-all shadow-sm"
+                                <QuillEditor 
+                                    v-model:content="section.text"
+                                    contentType="html"
+                                    theme="snow"
+                                    :toolbar="toolbarOptions"
                                     placeholder="Section content..."
-                                ></textarea>
+                                    class="w-full bg-white transition-all shadow-sm rounded-b-lg"
+                                />
                             </div>
                         </div>
                     </div>
@@ -361,3 +387,54 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+:deep(.ql-toolbar.ql-snow) {
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+  border-color: #E5E7EB;
+  background-color: #F9FAFB;
+  font-family: inherit;
+}
+:deep(.ql-container.ql-snow) {
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+  border-color: #E5E7EB;
+  font-family: inherit;
+  height: auto !important;
+  min-height: 150px;
+}
+:deep(.override-min-h-50 .ql-editor) {
+  min-height: 50px !important;
+}
+:deep(.override-min-h-50.ql-container.ql-snow) {
+  min-height: 50px !important;
+}
+:deep(.override-min-h-100 .ql-editor) {
+  min-height: 100px !important;
+}
+:deep(.override-min-h-100.ql-container.ql-snow) {
+  min-height: 100px !important;
+}
+:deep(.ql-editor) {
+  min-height: 150px;
+  font-size: 0.875rem; /* text-sm equivalent */
+}
+:deep(.ql-editor.ql-blank::before) {
+  color: #9CA3AF;
+  font-style: normal;
+}
+/* Tailwind typography overrides inside Quill */
+:deep(.ql-editor p) {
+  margin-bottom: 0.5rem;
+}
+:deep(.ql-editor ul), 
+:deep(.ql-editor ol) {
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+:deep(.ql-editor ul li), 
+:deep(.ql-editor ol li) {
+  margin-bottom: 0.25rem;
+}
+</style>
