@@ -135,7 +135,7 @@ exports.create = async (req, res) => {
                 motherName: profileData.motherName || '',
                 course: profileData.course,
                 programId: profileData.programId,
-                status: profileData.status || 'waiting list'
+                status: profileData.status || 'Waiting List'
             }, { transaction });
         } else if (role === 'teacher') {
             await db.Teacher.create({
@@ -391,7 +391,7 @@ exports.importBulk = async (req, res) => {
                     motherName: (profileData.motherName || '').toString(),
                     course: (profileData.course || '').toString(),
                     programId: programId || null,
-                    status: profileData.status || 'waiting list',
+                    status: profileData.status || 'Waiting List',
                     userId: user.id
                 };
 
