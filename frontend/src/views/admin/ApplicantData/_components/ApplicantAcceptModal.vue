@@ -55,22 +55,6 @@ const fetchPrograms = async () => {
 
 const fetchSubPrograms = async (parentId: number) => {
     try {
-<<<<<<< HEAD
-        const response = await fetch(`${API_URL}/programs/${parentId}/levels`)
-        if (response.ok) {
-            const levels = await response.json()
-            if (levels && levels.length > 0) {
-                subPrograms.value = levels
-                formData.value.programId = null
-            } else if (selectedParentProgram.value) {
-                // Fallback to parent program
-                subPrograms.value = [selectedParentProgram.value]
-                formData.value.programId = parentId
-            } else {
-                subPrograms.value = []
-                formData.value.programId = parentId
-            }
-=======
         const response = await api.get(`/programs/${parentId}/levels`)
         const levels = response.data
         if (levels && levels.length > 0) {
@@ -83,7 +67,6 @@ const fetchSubPrograms = async (parentId: number) => {
         } else {
             subPrograms.value = []
             formData.value.programId = parentId
->>>>>>> cca89c18e5f74c05ceeb05d7db317bb140bc4dc3
         }
     } catch (e) {
         console.error('Failed to fetch sub-programs', e)

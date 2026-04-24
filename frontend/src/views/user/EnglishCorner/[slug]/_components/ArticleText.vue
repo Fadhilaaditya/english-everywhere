@@ -47,8 +47,7 @@ const goBack = () => {
       </div>
 
       <!-- Title -->
-      <h1 class="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-12 leading-tight">
-        {{ article?.title }}
+      <h1 class="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-12 leading-tight [&>p]:inline [&>h1]:inline [&>h2]:inline [&>h3]:inline" v-html="article?.title">
       </h1>
 
       <!-- Featured Image -->
@@ -58,13 +57,12 @@ const goBack = () => {
 
       <!-- Main Text Content -->
       <div class="prose prose-lg max-w-none text-gray-700 font-satoshi">
-        <p v-for="(paragraph, idx) in article?.intro" :key="idx" class="mb-6 leading-relaxed">
-          {{ paragraph }}
-        </p>
+        <div v-for="(paragraph, idx) in article?.intro" :key="idx" class="mb-6 leading-relaxed text-gray-700" v-html="paragraph">
+        </div>
 
         <div v-for="(section, index) in article?.sections" :key="index" class="mb-8">
           <h3 class="text-xl md:text-2xl font-bold text-gray-900 mb-4">{{ section.title }}</h3>
-          <p class="leading-relaxed">{{ section.text }}</p>
+          <div class="leading-relaxed text-gray-700" v-html="section.text"></div>
         </div>
       </div>
 

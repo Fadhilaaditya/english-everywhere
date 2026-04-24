@@ -133,9 +133,11 @@ onMounted(() => {
                     :key="article.id"
                     class="group hover:bg-gray-50/50 transition-colors"
                 >
-                    <td class="py-5 px-4 text-sm font-medium text-gray-900">{{ article.title }}</td>
+                    <td class="py-5 px-4 text-sm font-medium text-gray-900">
+                        <div v-html="article.title" class="line-clamp-2 [&>p]:inline"></div>
+                    </td>
                     <td class="py-5 px-4 text-sm text-gray-500 max-w-xs">
-                        <p class="truncate">{{ article.description }}</p>
+                        <div v-html="article.description" class="line-clamp-2 [&>p]:inline"></div>
                     </td>
                     <td class="py-5 px-4 text-sm text-gray-500">{{ formatDate(article.createdAt) }}</td>
                     <td class="py-5 px-4">

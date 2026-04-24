@@ -79,7 +79,7 @@ onMounted(() => {
             v-for="program in filteredPrograms" 
             :key="program.id" 
             @click="$router.push({ path: '/appointment' })"
-            class="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full cursor-pointer transform hover:-translate-y-1 duration-300 h-full flex flex-col"
+            cdclass="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full cursor-pointer transform hover:-translate-y-1 duration-300 h-full flex flex-col"
         >
           <img :src="program.image" :alt="program.title" class="h-[198px] w-full object-cover flex-shrink-0" />
           
