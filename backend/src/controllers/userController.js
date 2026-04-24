@@ -201,7 +201,7 @@ exports.create = async (req, res) => {
                 specialization: profileData.specialization || '',
                 bio: profileData.bio || ''
             }, { transaction });
-        } else if (role === 'admin' || role === 'superadmin') {
+        } else if (role === 'admin') {
             await db.Admin.create({
                 userId: user.id,
                 name: fullName,
@@ -243,7 +243,7 @@ exports.delete = async (req, res) => {
         } else if (role === 'teacher') {
             // Check if there are schedules or other dependent data if necessary
             await db.Teacher.destroy({ where: { userId: id }, transaction });
-        } else if (role === 'admin' || role === 'superadmin') {
+        } else if (role === 'admin') {
             await db.Admin.destroy({ where: { userId: id }, transaction });
         }
 
@@ -278,7 +278,8 @@ exports.update = async (req, res) => {
                         }
                     ]
                 },
-                { model: db.Teacher, as: 'teacherProfile' }
+                { model: db.Teacher, as: 'teacherProfile' },
+                { model: db.Admin, as: 'adminProfile' }
             ]
         });
 
@@ -301,8 +302,8 @@ exports.update = async (req, res) => {
         await user.update(userUpdateData, { transaction });
 
         // 2. Update Associated Profile
-        if (user.role === 'student' && user.studentProfile) {
-            await user.studentProfile.update({
+        if (user.role === 'student') {
+            const studentData = {
                 name: fullName,
                 gender: profileData.gender,
                 address: profileData.address,
@@ -313,28 +314,46 @@ exports.update = async (req, res) => {
                 motherName: profileData.motherName,
                 course: profileData.course,
                 programId: profileData.programId,
-                status: profileData.status || user.studentProfile.status
-            }, { transaction });
-        } else if (user.role === 'teacher' && user.teacherProfile) {
-            await user.teacherProfile.update({
-                name: fullName || user.teacherProfile.name,
-                gender: profileData.gender || user.teacherProfile.gender,
-                address: profileData.address || user.teacherProfile.address,
-                phoneNumber: profileData.phone || user.teacherProfile.phoneNumber,
-                email: profileData.email || user.teacherProfile.email,
-                birthDate: profileData.birthDate || user.teacherProfile.birthDate,
-                specialization: profileData.specialization || user.teacherProfile.specialization,
-                bio: profileData.bio || user.teacherProfile.bio
-            }, { transaction });
-        } else if ((user.role === 'admin' || user.role === 'superadmin') && user.adminProfile) {
-            await user.adminProfile.update({
-                name: fullName || user.adminProfile.name,
-                gender: profileData.gender || user.adminProfile.gender,
-                address: profileData.address || user.adminProfile.address,
-                phoneNumber: profileData.phone || user.adminProfile.phoneNumber,
-                email: profileData.email || user.adminProfile.email,
-                birthDate: profileData.birthDate || user.adminProfile.birthDate
-            }, { transaction });
+                status: profileData.status || (user.studentProfile ? user.studentProfile.status : 'Waiting List'),
+                userId: user.id
+            };
+            if (user.studentProfile) {
+                await user.studentProfile.update(studentData, { transaction });
+            } else {
+                await db.Student.create(studentData, { transaction });
+            }
+        } else if (user.role === 'teacher') {
+            const teacherData = {
+                name: fullName !== undefined ? fullName : (user.teacherProfile ? user.teacherProfile.name : ''),
+                gender: profileData.gender !== undefined ? profileData.gender : (user.teacherProfile ? user.teacherProfile.gender : 'Male'),
+                address: profileData.address !== undefined ? profileData.address : (user.teacherProfile ? user.teacherProfile.address : ''),
+                phoneNumber: profileData.phone !== undefined ? profileData.phone : (user.teacherProfile ? user.teacherProfile.phoneNumber : '0'),
+                email: profileData.email !== undefined ? profileData.email : (user.teacherProfile ? user.teacherProfile.email : ''),
+                birthDate: profileData.birthDate !== undefined ? profileData.birthDate : (user.teacherProfile ? user.teacherProfile.birthDate : null),
+                specialization: profileData.specialization !== undefined ? profileData.specialization : (user.teacherProfile ? user.teacherProfile.specialization : ''),
+                bio: profileData.bio !== undefined ? profileData.bio : (user.teacherProfile ? user.teacherProfile.bio : ''),
+                userId: user.id
+            };
+            if (user.teacherProfile) {
+                await user.teacherProfile.update(teacherData, { transaction });
+            } else {
+                await db.Teacher.create(teacherData, { transaction });
+            }
+        } else if (user.role === 'admin') {
+            const adminData = {
+                name: fullName !== undefined ? fullName : (user.adminProfile ? user.adminProfile.name : ''),
+                gender: profileData.gender !== undefined ? profileData.gender : (user.adminProfile ? user.adminProfile.gender : 'Male'),
+                address: profileData.address !== undefined ? profileData.address : (user.adminProfile ? user.adminProfile.address : ''),
+                phoneNumber: profileData.phone !== undefined ? profileData.phone : (user.adminProfile ? user.adminProfile.phoneNumber : '0'),
+                email: profileData.email !== undefined ? profileData.email : (user.adminProfile ? user.adminProfile.email : ''),
+                birthDate: profileData.birthDate !== undefined ? profileData.birthDate : (user.adminProfile ? user.adminProfile.birthDate : null),
+                userId: user.id
+            };
+            if (user.adminProfile) {
+                await user.adminProfile.update(adminData, { transaction });
+            } else {
+                await db.Admin.create(adminData, { transaction });
+            }
         }
 
         await transaction.commit();
@@ -499,6 +518,27 @@ exports.importBulk = async (req, res) => {
 
                 if (!createdProfile) {
                     await teacher.update(teacherData, { transaction });
+                }
+            } else if (roleStr === 'admin') {
+                const adminData = {
+                    name: fullNameStr,
+                    gender,
+                    address: profileData.address || '',
+                    phoneNumber: (profileData.phone || profileData.phoneNumber || '0').toString(),
+                    email,
+                    birthPlace: (profileData.birthPlace || '').toString(),
+                    birthDate,
+                    userId: user.id
+                };
+
+                const [admin, createdProfile] = await db.Admin.findOrCreate({
+                    where: { userId: user.id },
+                    defaults: adminData,
+                    transaction
+                });
+
+                if (!createdProfile) {
+                    await admin.update(adminData, { transaction });
                 }
             }
 
