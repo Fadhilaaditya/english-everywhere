@@ -1,17 +1,4 @@
-const { execSync } = require('child_process');
-let currentBranch = 'development';
-try {
-  currentBranch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
-} catch (e) {
-  // Fallback to NODE_ENV if git fails
-  currentBranch = process.env.NODE_ENV === 'production' ? 'production' : 'development';
-}
-
-// If NODE_ENV is production, use .env.production. Otherwise default to .env.development
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
-console.log(`[CONFIG] Loading environment from ${envFile}`);
-require('dotenv').config({ path: envFile, override: true });
-require('dotenv').config(); // Fallback to .env
+require('./loadEnv');
 
 module.exports = {
     host: process.env.DB_HOST,

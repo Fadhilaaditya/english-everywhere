@@ -1,3 +1,6 @@
+// Load environment variables FIRST, before anything else
+require('./src/config/loadEnv');
+
 const app = require('./src/app');
 const config = require('./src/config/config');
 const db = require('./src/models');
