@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import api from '@/api'
+import { refreshBookingSummary } from '@/services/BookingSummaryService'
+import { calendarRange } from '@/utils/calendarRange'
 import AppointmentModal from './AppointmentModal.vue'
 import CreateScheduleModal from './CreateScheduleModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
@@ -53,11 +55,21 @@ const openDayModal = (date: Date, events: any[]) => {
 }
 
 // --- API Actions ---
+let scheduleRequest: AbortController | null = null
+const scheduleError = ref(false)
+const scheduleLoading = ref(false)
 const fetchSchedules = async () => {
+    scheduleRequest?.abort()
+    const request = new AbortController()
+    scheduleRequest = request
+    scheduleLoading.value = true
     try {
         const response = await api.get('/programs/schedules/global', {
-            params: { t: new Date().getTime() }
+            params: calendarRange(currentDate.value),
+            signal: request.signal
         })
+        if (request.signal.aborted) return
+        scheduleError.value = false
         const data = response.data
         appointments.value = data
             .filter((item: any) => {
@@ -75,7 +87,14 @@ const fetchSchedules = async () => {
                 }
             })
     } catch (e) {
+        if (request.signal.aborted) return
+        scheduleError.value = true
         console.error('Failed to fetch schedules', e)
+    } finally {
+        if (scheduleRequest === request) {
+            scheduleRequest = null
+            scheduleLoading.value = false
+        }
     }
 }
 
@@ -122,6 +141,7 @@ const executeDelete = async () => {
     if (!selectedAppointment.value) return
     try {
         await api.delete(`/programs/schedules/${selectedAppointment.value.id}`)
+        void refreshBookingSummary()
 
         showToastNotification('Schedule Deleted Successfully!')
         isModalOpen.value = false
@@ -146,6 +166,7 @@ const executeApprove = async (data: any) => {
     if (!data.id) return
     try {
         await api.put(`/programs/bookings/${data.id}/approve`, data)
+        void refreshBookingSummary()
 
         showToastNotification('Appointment Approved Successfully!')
         isModalOpen.value = false
@@ -196,6 +217,7 @@ const handleModalReject = (id: number) => {
 const executeReject = async (id: number) => {
     try {
         await api.put(`/programs/bookings/${id}/reject`)
+        void refreshBookingSummary()
         
         showToastNotification('Booking Rejected Successfully!')
         isModalOpen.value = false
@@ -283,17 +305,30 @@ let pollingInterval: any = null
 onMounted(() => {
     fetchPrograms()
     fetchSchedules() // Call once immediately
-    // Poll every 3 seconds for real-time updates
-    pollingInterval = setInterval(fetchSchedules, 3000)
+    pollingInterval = setInterval(() => {
+        if (!document.hidden && !scheduleRequest) fetchSchedules()
+    }, 3000)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
 })
 
+const refreshWhenVisible = () => {
+    if (!document.hidden) fetchSchedules()
+}
+watch(currentDate, () => {
+    appointments.value = []
+    fetchSchedules()
+})
 onUnmounted(() => {
     if (pollingInterval) clearInterval(pollingInterval)
+    scheduleRequest?.abort()
+    document.removeEventListener('visibilitychange', refreshWhenVisible)
 })
 </script>
 
 <template>
   <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-2 md:p-6">
+    <p v-if="scheduleError" role="alert" class="mb-3 text-sm text-red-600">Failed to load appointments. <button class="underline" @click="fetchSchedules">Try again</button></p>
+    <p v-else-if="scheduleLoading && appointments.length === 0" class="mb-3 text-sm text-gray-500">Loading appointments...</p>
     <!-- Header -->
     <div class="flex flex-row items-center justify-between mb-4 md:mb-8 gap-2">
        <div class="flex items-center gap-2">

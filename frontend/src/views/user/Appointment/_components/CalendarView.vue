@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { calendarRange } from '@/utils/calendarRange'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 import FormAppointmentModal from './FormAppointmentModal.vue'
@@ -34,11 +35,28 @@ const events = ref<Record<string, { id: number, type: 'AVAILABLE' | 'PENDING' | 
 
 import api from '@/api'
 
+let scheduleRequest: AbortController | null = null
+const scheduleError = ref(false)
+const scheduleLoading = ref(false)
+const loadedRange = ref('')
+const currentRangeKey = computed(() => {
+  const { startDate, endDate } = calendarRange(currentDate.value)
+  return `${startDate}:${endDate}`
+})
+const isCurrentRangeLoaded = computed(() => loadedRange.value === currentRangeKey.value)
 const fetchSchedules = async () => {
+  scheduleRequest?.abort()
+  const request = new AbortController()
+  scheduleRequest = request
+  scheduleLoading.value = true
   try {
+    const range = calendarRange(currentDate.value)
     const response = await api.get(`/programs/schedules/global`, {
-        params: { t: new Date().getTime() }
+        params: range,
+        signal: request.signal
     })
+    if (request.signal.aborted) return
+    scheduleError.value = false
     const data = response.data
     
     // Get today's date in YYYY-MM-DD format for comparison
@@ -67,8 +85,16 @@ const fetchSchedules = async () => {
       })
       return acc
     }, {})
+    loadedRange.value = `${range.startDate}:${range.endDate}`
   } catch (error) {
+    if (request.signal.aborted) return
+    scheduleError.value = true
     console.error('Error fetching schedules:', error)
+  } finally {
+    if (scheduleRequest === request) {
+      scheduleRequest = null
+      scheduleLoading.value = false
+    }
   }
 }
 
@@ -76,11 +102,22 @@ let pollingInterval: any = null
 
 onMounted(() => {
   fetchSchedules()
-  pollingInterval = setInterval(fetchSchedules, 3000)
+  pollingInterval = setInterval(() => {
+    if (!document.hidden && !scheduleRequest) fetchSchedules()
+  }, 3000)
+  document.addEventListener('visibilitychange', refreshWhenVisible)
 })
 
+const refreshWhenVisible = () => {
+  if (!document.hidden) fetchSchedules()
+}
+watch(currentDate, () => {
+  fetchSchedules()
+})
 onUnmounted(() => {
     if (pollingInterval) clearInterval(pollingInterval)
+    scheduleRequest?.abort()
+    document.removeEventListener('visibilitychange', refreshWhenVisible)
 })
 
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -186,12 +223,14 @@ const handleModalSubmit = async (payload: any) => {
     } catch (e: any) {
         const errorMsg = e.response?.data?.message || e.message || 'Something went wrong'
         showToastNotification(errorMsg, 'error')
+        if (e.response?.status === 400 || e.response?.status === 404) fetchSchedules()
     }
 }
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-2 md:p-6">
+  <div class="relative bg-white rounded-lg shadow-sm border border-gray-100 p-2 md:p-6">
+    <p v-if="scheduleError" role="alert" class="absolute z-10 top-0 right-0 rounded-lg bg-white p-2 text-sm text-red-600 shadow">Failed to load appointments. <button class="underline" @click="fetchSchedules">Try again</button></p>
     <!-- Header -->
     <div class="flex flex-row items-center justify-between mb-4 md:mb-8 gap-2">
        <div class="flex items-center gap-2">
@@ -235,7 +274,7 @@ const handleModalSubmit = async (payload: any) => {
     </div>
 
     <!-- Calendar Grid -->
-    <div class="border border-gray-200 rounded-lg overflow-hidden">
+    <div class="border border-gray-200 rounded-lg overflow-hidden" :aria-busy="scheduleLoading && !isCurrentRangeLoaded" :inert="!isCurrentRangeLoaded">
           <!-- Days Header -->
           <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
             <div v-for="day in weekDays" :key="day" class="py-2 sm:py-3 text-center text-[10px] sm:text-xs font-bold text-gray-500 uppercase border-r border-gray-200 last:border-r-0">

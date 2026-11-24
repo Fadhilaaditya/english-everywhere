@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { SquarePen, Trash2, ArrowUpDown, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import AccountEditModal from './AccountEditModal.vue'
 import Toast from '@/components/Toast.vue'
 import ConfirmationModal from './ConfirmationModal.vue'
+import CustomDropdown from '@/components/CustomDropdown.vue'
 
 import api from '@/api'
 
@@ -19,13 +20,17 @@ const itemsPerPage = 10
 const totalItems = ref(0)
 const totalPages = ref(1)
 
-const statusOptions = ['Waiting List', 'Active', 'Non Active', 'Postponed']
+const statusOptions = [
+    { label: 'All Status', value: '' },
+    ...['Waiting List', 'Active', 'Non Active', 'Postponed'].map(status => ({ label: status, value: status }))
+]
 
 const userRole = localStorage.getItem('role')
 const isSuperAdmin = userRole === 'superadmin'
 
 const roleOptions = computed(() => {
     const options = [
+        { label: 'All Role', value: '' },
         { label: 'Student', value: 'Student' },
         { label: 'Teacher', value: 'Teacher' }
     ]
@@ -40,8 +45,13 @@ const roleOptions = computed(() => {
 
 const tableError = ref('')
 const isLoading = ref(false)
+let accountsRequest: AbortController | null = null
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 const fetchAccounts = async () => {
+    accountsRequest?.abort()
+    const request = new AbortController()
+    accountsRequest = request
     try {
         isLoading.value = true
         tableError.value = ''
@@ -53,8 +63,10 @@ const fetchAccounts = async () => {
                 search: searchQuery.value,
                 role: selectedRole.value,
                 status: selectedStatus.value
-            }
+            },
+            signal: request.signal
         })
+        if (request.signal.aborted) return
         
         const data = response.data
         console.log('[DEBUG] Account API Data:', {
@@ -97,21 +109,44 @@ const fetchAccounts = async () => {
             }
         })
     } catch (e: any) {
+        if (request.signal.aborted) return
         console.error('Failed to fetch accounts', e)
         tableError.value = e.response?.data?.message || e.message
     } finally {
-        isLoading.value = false
+        if (accountsRequest === request) {
+            accountsRequest = null
+            isLoading.value = false
+        }
     }
 }
 
 // Re-fetch when page or filters change
-watch([searchQuery, selectedStatus, selectedRole], () => {
-    currentPage.value = 1
-    fetchAccounts()
+watch(searchQuery, () => {
+    clearTimeout(searchTimer)
+    accountsRequest?.abort()
+    accountsRequest = null
+    tableError.value = ''
+    isLoading.value = true
+    searchTimer = setTimeout(() => {
+        if (currentPage.value !== 1) currentPage.value = 1
+        else fetchAccounts()
+    }, 350)
+})
+
+watch([selectedStatus, selectedRole], () => {
+    clearTimeout(searchTimer)
+    if (currentPage.value !== 1) currentPage.value = 1
+    else fetchAccounts()
 })
 
 watch(currentPage, () => {
+    clearTimeout(searchTimer)
     fetchAccounts()
+})
+
+onUnmounted(() => {
+    clearTimeout(searchTimer)
+    accountsRequest?.abort()
 })
 
 const visiblePages = computed(() => {
@@ -225,33 +260,11 @@ const processDelete = async () => {
             </div>
 
             <div class="relative w-full sm:w-48">
-                <select 
-                    v-model="selectedStatus"
-                    class="w-full pl-3 pr-8 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm appearance-none bg-white font-medium text-gray-700"
-                >
-                    <option value="">All Status</option>
-                    <option v-for="status in statusOptions" :key="status" :value="status">
-                        {{ status }}
-                    </option>
-                </select>
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                    <ArrowUpDown class="w-3 h-3" />
-                </div>
+                <CustomDropdown v-model="selectedStatus" :options="statusOptions" value-key="value" label-key="label" placeholder="All Status" aria-label="Filter by status" />
             </div>
 
             <div class="relative w-full sm:w-40">
-                <select 
-                    v-model="selectedRole"
-                    class="w-full pl-3 pr-8 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4FD1C5]/50 transition-all text-sm appearance-none bg-white font-medium text-gray-700"
-                >
-                    <option value="">All Role</option>
-                    <option v-for="role in roleOptions" :key="role.value" :value="role.value">
-                        {{ role.label }}
-                    </option>
-                </select>
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                    <ArrowUpDown class="w-3 h-3" />
-                </div>
+                <CustomDropdown v-model="selectedRole" :options="roleOptions" value-key="value" label-key="label" placeholder="All Role" aria-label="Filter by role" />
             </div>
 
             <button 

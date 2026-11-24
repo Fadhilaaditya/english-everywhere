@@ -11,6 +11,7 @@ const props = defineProps<{
   class?: string
   disabled?: boolean
   searchable?: boolean
+  ariaLabel?: string
 }>()
 
 const emit = defineEmits(['update:modelValue', 'change'])
@@ -95,7 +96,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative inline-block w-full" ref="dropdownRef">
+  <div class="relative inline-block w-full" ref="dropdownRef" @keydown.esc="isOpen = false">
     <!-- Trigger -->
     <div
       class="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-[#4FD1C5] focus-within:outline-none focus-within:ring-2 focus-within:ring-[#4FD1C5]/20 transition-all text-left relative cursor-pointer"
@@ -104,7 +105,15 @@ onUnmounted(() => {
         { 'border-[#4FD1C5] ring-2 ring-[#4FD1C5]/10': isOpen },
         { 'bg-gray-50 cursor-not-allowed opacity-70': disabled }
       ]"
+      role="button"
+      :tabindex="disabled ? -1 : 0"
+      :aria-label="ariaLabel || placeholder || 'Select option'"
+      :aria-expanded="isOpen"
+      :aria-disabled="!!disabled"
+      aria-haspopup="true"
       @click="toggleDropdown"
+      @keydown.enter.self.prevent="toggleDropdown"
+      @keydown.space.self.prevent="toggleDropdown"
     >
       <div class="flex-1 min-w-0 pr-2 h-[38px] flex items-center px-4">
         <!-- Search Input -->

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Pencil, Trash2, Plus, ChevronDown, ChevronUp, FileText, CheckCircle, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import CreateBillModal from './CreateBillModal.vue'
 import PaymentService from '@/services/PaymentService'
@@ -13,15 +13,23 @@ const payments = ref<any[]>([])
 const loading = ref(true)
 const totalItems = ref(0)
 const totalPages = ref(1)
+const loadError = ref(false)
+let paymentsRequest: AbortController | null = null
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 const fetchPayments = async () => {
+    paymentsRequest?.abort()
+    const request = new AbortController()
+    paymentsRequest = request
     loading.value = true
+    loadError.value = false
     try {
         const result = await PaymentService.getAllPayments({
             page: currentPage.value,
             limit: itemsPerPage,
             search: searchQuery.value
-        });
+        }, request.signal);
+        if (request.signal.aborted) return
         
         // Handle both new paginated response and legacy array
         if (result.payments) {
@@ -35,12 +43,15 @@ const fetchPayments = async () => {
             totalPages.value = Math.ceil(rawData.length / itemsPerPage);
         }
         
-        // Fetch stats separately for better performance
-        fetchStats();
     } catch (error) {
+        if (request.signal.aborted) return
+        loadError.value = true
         console.error("Failed to load payments", error)
     } finally {
-        loading.value = false
+        if (paymentsRequest === request) {
+            paymentsRequest = null
+            loading.value = false
+        }
     }
 }
 
@@ -55,6 +66,7 @@ const fetchStats = async () => {
 
 onMounted(() => {
     fetchPayments()
+    fetchStats()
 })
 
 const buildTableData = (rawPayments: any[]) => {
@@ -124,12 +136,27 @@ const itemsPerPage = 10
 
 // Re-fetch when search or page changes
 watch(searchQuery, () => {
-    currentPage.value = 1
-    fetchPayments()
+    clearTimeout(searchTimer)
+    paymentsRequest?.abort()
+    paymentsRequest = null
+    loadError.value = false
+    loading.value = true
+    searchTimer = setTimeout(() => {
+        searchTimer = undefined
+        if (currentPage.value !== 1) currentPage.value = 1
+        else fetchPayments()
+    }, 350)
 })
 
 watch(currentPage, () => {
+    clearTimeout(searchTimer)
+    searchTimer = undefined
     fetchPayments()
+})
+
+onUnmounted(() => {
+    clearTimeout(searchTimer)
+    paymentsRequest?.abort()
 })
 
 const toggleRow = (id: string) => {
@@ -169,7 +196,7 @@ const executeApprove = async () => {
     if (pendingApproveId.value === null) return;
     try {
         await PaymentService.approvePayment(pendingApproveId.value, pendingApproveIsInstallment.value);
-        await fetchPayments();
+        await Promise.all([fetchPayments(), fetchStats()]);
     } catch (err) {
         console.error("Approval failed", err)
         alert('Failed to approve payment');
@@ -191,7 +218,7 @@ const executeDelete = async () => {
     if (pendingDeleteId.value === null) return;
     try {
         await PaymentService.deletePayment(pendingDeleteId.value);
-        await fetchPayments();
+        await Promise.all([fetchPayments(), fetchStats()]);
     } catch (error) {
         console.error("Failed to delete payment", error);
         alert("Failed to delete bill");
@@ -205,7 +232,7 @@ const handleCreateBill = async (data: any) => {
     try {
         await PaymentService.createPayment(data);
         isCreateModalOpen.value = false;
-        await fetchPayments();
+        await Promise.all([fetchPayments(), fetchStats()]);
     } catch (error) {
         console.error("Created bill failed", error)
         alert('Failed to create bill');
@@ -312,6 +339,9 @@ const handleCreateBill = async (data: any) => {
                 <tr>
                     <td colspan="8" class="py-12 text-center text-gray-500">Loading payments...</td>
                 </tr>
+            </tbody>
+            <tbody v-else-if="loadError">
+                <tr><td colspan="8" class="py-12 text-center text-red-600" role="alert">Failed to load payments. <button class="underline" @click="fetchPayments">Try again</button></td></tr>
             </tbody>
             <tbody class="divide-y divide-gray-50" v-else>
                 <template v-for="payment in payments" :key="payment.id + payment.name">
@@ -421,7 +451,7 @@ const handleCreateBill = async (data: any) => {
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="flex flex-col sm:flex-row items-center justify-between mt-6 md:mt-8 border-t border-gray-50 pt-6 gap-4">
+    <div v-if="totalPages > 1 && !loadError" class="flex flex-col sm:flex-row items-center justify-between mt-6 md:mt-8 border-t border-gray-50 pt-6 gap-4">
         <div class="text-xs md:text-sm text-gray-500 order-2 sm:order-1">
             Showing <span class="font-bold text-gray-900">{{ (currentPage - 1) * itemsPerPage + 1 }}</span> to 
             <span class="font-bold text-gray-900">{{ Math.min(currentPage * itemsPerPage, totalItems) }}</span> of 

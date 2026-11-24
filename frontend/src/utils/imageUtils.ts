@@ -41,3 +41,19 @@ export const cloudinaryOptimize = (url: string | undefined, options: { width?: n
     return url;
   }
 };
+
+/** Responsive widths for public Cloudinary image-upload URLs; leave other URLs untouched. */
+export const cloudinaryResponsiveSrcset = (url: string | null | undefined): string | undefined => {
+  if (!url) return undefined
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname !== 'res.cloudinary.com' || !parsed.pathname.includes('/image/upload/')) return undefined
+    // Signed delivery URLs cannot safely accept injected transformations.
+    if (/\/upload\/s--[^/]+--\//.test(parsed.pathname)) return undefined
+    return [360, 640, 900, 1200]
+      .map(width => `${cloudinaryOptimize(url, { width, crop: 'scale' })} ${width}w`)
+      .join(', ')
+  } catch {
+    return undefined
+  }
+}

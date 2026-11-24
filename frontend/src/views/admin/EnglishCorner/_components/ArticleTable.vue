@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import api from '@/api'
 import { useRouter } from 'vue-router'
 import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
@@ -15,6 +15,9 @@ const itemsPerPage = 10
 const totalItems = ref(0)
 const totalPages = ref(1)
 const isLoading = ref(false)
+const loadError = ref(false)
+let articlesRequest: AbortController | null = null
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 // Toast State
 const showToast = ref(false)
@@ -28,15 +31,21 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
 }
 
 const fetchArticles = async () => {
+    articlesRequest?.abort()
+    const request = new AbortController()
+    articlesRequest = request
     try {
         isLoading.value = true
+        loadError.value = false
         const response = await api.get('/articles', {
             params: {
                 page: currentPage.value,
                 limit: itemsPerPage,
                 search: searchQuery.value
-            }
+            },
+            signal: request.signal
         })
+        if (request.signal.aborted) return
         const data = response.data
         if (data && data.articles) {
             articles.value = data.articles
@@ -53,20 +62,38 @@ const fetchArticles = async () => {
             articles.value = []
         }
     } catch (error) {
+        if (request.signal.aborted) return
+        loadError.value = true
         console.error('Error fetching articles:', error)
     } finally {
-        isLoading.value = false
+        if (articlesRequest === request) {
+            articlesRequest = null
+            isLoading.value = false
+        }
     }
 }
 
 // Re-fetch when search or page changes
 watch(searchQuery, () => {
-    currentPage.value = 1
-    fetchArticles()
+    clearTimeout(searchTimer)
+    articlesRequest?.abort()
+    articlesRequest = null
+    loadError.value = false
+    isLoading.value = true
+    searchTimer = setTimeout(() => {
+        if (currentPage.value !== 1) currentPage.value = 1
+        else fetchArticles()
+    }, 350)
 })
 
 watch(currentPage, () => {
+    clearTimeout(searchTimer)
     fetchArticles()
+})
+
+onUnmounted(() => {
+    clearTimeout(searchTimer)
+    articlesRequest?.abort()
 })
 
 const handleCreate = () => {
@@ -146,7 +173,7 @@ onMounted(() => {
                     <td colspan="4" class="py-12 text-center text-gray-500">Loading articles...</td>
                 </tr>
             </tbody>
-            <tbody class="divide-y divide-gray-50" v-else>
+            <tbody class="divide-y divide-gray-50" v-else-if="!loadError">
                 <tr 
                     v-for="article in articles" 
                     :key="article.id"
@@ -218,7 +245,10 @@ onMounted(() => {
     </div>
 
     <!-- No Results -->
-    <div v-if="articles.length === 0 && !isLoading" class="py-12 text-center text-gray-400 italic font-medium">
+    <div v-if="loadError && !isLoading" role="alert" class="py-12 text-center text-red-600">
+        Failed to load articles. <button class="underline" @click="fetchArticles">Try again</button>
+    </div>
+    <div v-else-if="articles.length === 0 && !isLoading" class="py-12 text-center text-gray-400 italic font-medium">
         No articles found matching "{{ searchQuery }}"
     </div>
     <Toast 

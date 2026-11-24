@@ -1,12 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Upload, Calendar, Clock, Image as ImageIcon, Trash2, X } from 'lucide-vue-next'
+import { Upload, Trash2, X } from 'lucide-vue-next'
 import Toast from '../../../../components/Toast.vue'
 import api from '@/api'
 
+interface EventDetails {
+  id: number
+  title: string
+  price: string | null
+  desc: string | null
+  date: string
+  time: string | null
+  image: string | null
+  images: string[] | null
+  category: string | null
+  location: string | null
+}
+
 const props = defineProps<{
   isOpen: boolean
-  event?: any
+  event?: EventDetails | null
 }>()
 
 const emit = defineEmits(['close', 'success'])
@@ -39,6 +52,7 @@ const title = computed(() => isEditMode.value ? 'Edit Events' : 'Create Events')
 const submitButtonText = computed(() => isEditMode.value ? 'Save' : 'Submit')
 
 const isUploading = ref(false)
+const isSaving = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const previewImage = ref<string | null>(null)
 
@@ -82,19 +96,34 @@ const uploadToCloudinary = async (file: File) => {
     }
 }
 
-watch(() => props.event, (newVal) => {
-    // ... logic remains same, just ensuring context
+watch(() => props.event, (event) => {
+    const images = Array.isArray(event?.images) ? [...event.images] : []
+    if (event?.image && !images.includes(event.image)) images.unshift(event.image)
+
+    formData.value = {
+        title: event?.title ?? '',
+        price: event?.price ?? '',
+        desc: event?.desc ?? '',
+        date: event?.date?.slice(0, 10) ?? '',
+        time: event?.time ?? '',
+        image: event?.image || images[0] || '',
+        images,
+        category: event?.category ?? '',
+        location: event?.location ?? ''
+    }
 }, { immediate: true })
 
 const handleSubmit = async () => {
+    if (isSaving.value || isUploading.value) return
     if (!formData.value.title || !formData.value.image) {
         showNotification('Title and Poster are required', 'error')
         return
     }
 
     try {
+        isSaving.value = true
         if (isEditMode.value) {
-            await api.put(`/events/${props.event.id}`, formData.value)
+            await api.put(`/events/${props.event!.id}`, formData.value)
         } else {
             await api.post('/events', formData.value)
         }
@@ -104,6 +133,8 @@ const handleSubmit = async () => {
     } catch (error) {
         console.error('Error saving event:', error)
         showNotification('Failed to save event', 'error')
+    } finally {
+        isSaving.value = false
     }
 }
 
@@ -273,9 +304,10 @@ const removeImage = (index: number) => {
             </button>
             <button 
                 @click="handleSubmit"
-                class="px-12 py-3.5 rounded-xl bg-[#4FD1C5] text-white text-sm font-bold hover:bg-[#3dbdb0] transition-all active:scale-95 shadow-lg shadow-[#4FD1C5]/20"
+                :disabled="isSaving || isUploading"
+                class="px-12 py-3.5 rounded-xl bg-[#4FD1C5] text-white text-sm font-bold hover:bg-[#3dbdb0] transition-all active:scale-95 shadow-lg shadow-[#4FD1C5]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {{ submitButtonText }}
+                {{ isSaving ? 'Saving...' : submitButtonText }}
             </button>
         </div>
 

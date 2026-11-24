@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import api from '@/api'
 import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import EventModal from './EventModal.vue'
@@ -16,6 +16,8 @@ const itemsPerPage = 10
 const totalItems = ref(0)
 const totalPages = ref(1)
 const isLoading = ref(false)
+let eventsRequest: AbortController | null = null
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 // Toast State
 const showToast = ref(false)
@@ -29,6 +31,9 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
 }
 
 const fetchEvents = async () => {
+  eventsRequest?.abort()
+  const request = new AbortController()
+  eventsRequest = request
   try {
     isLoading.value = true
     const response = await api.get('/events', {
@@ -36,8 +41,10 @@ const fetchEvents = async () => {
         page: currentPage.value,
         limit: itemsPerPage,
         search: searchQuery.value
-      }
+      },
+      signal: request.signal
     })
+    if (request.signal.aborted) return
     const data = response.data
     if (data && data.events) {
       events.value = data.events
@@ -54,20 +61,37 @@ const fetchEvents = async () => {
       events.value = []
     }
   } catch (error) {
+    if (request.signal.aborted) return
     console.error('Error fetching events:', error)
+    showNotification('Failed to load events', 'error')
   } finally {
-    isLoading.value = false
+    if (eventsRequest === request) {
+      eventsRequest = null
+      isLoading.value = false
+    }
   }
 }
 
 // Re-fetch when search or page changes
 watch(searchQuery, () => {
-    currentPage.value = 1
-    fetchEvents()
+    clearTimeout(searchTimer)
+    eventsRequest?.abort()
+    eventsRequest = null
+    isLoading.value = true
+    searchTimer = setTimeout(() => {
+        if (currentPage.value !== 1) currentPage.value = 1
+        else fetchEvents()
+    }, 350)
 })
 
 watch(currentPage, () => {
+    clearTimeout(searchTimer)
     fetchEvents()
+})
+
+onUnmounted(() => {
+    clearTimeout(searchTimer)
+    eventsRequest?.abort()
 })
 
 const handleCreate = () => {

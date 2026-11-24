@@ -1,0 +1,11 @@
+{
+  "name": "english-everywhere-ai-tools",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20.19.0" },
+  "scripts": {
+    "generate": "node sync-config.mjs",
+    "check": "node sync-config.mjs --check",
+    "test": "node --test sync-config.test.mjs"
+  }
+}

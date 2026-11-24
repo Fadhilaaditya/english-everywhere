@@ -11,8 +11,8 @@ import {
   LogOut
 } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
-import api from '@/api'
+import { ref } from 'vue'
+import { useBookingSummary } from '@/services/BookingSummaryService'
 
 const router = useRouter()
 const route = useRoute()
@@ -37,42 +37,7 @@ const menuItems = ref([
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 
-const checkNewApplicants = async () => {
-    try {
-        const response = await api.get('/programs/bookings/all')
-        if (response.status === 200) {
-            const data = response.data
-            
-            // 1. Check for new PENDING bookings (Appointment dot)
-            const hasPending = data.some((b: any) => b.status === 'PENDING')
-            const appointmentMenu = menuItems.value.find(item => item.name === 'Appointment')
-            if (appointmentMenu) {
-                appointmentMenu.hasNotification = hasPending
-            }
-
-            // 2. Check for new ACCEPTED bookings that are unread (Applicant Data dot)
-            const hasNewAccepted = data.some((b: any) => b.status === 'ACCEPTED' && b.isRead === false)
-            const applicantMenu = menuItems.value.find(item => item.name === 'Applicant Data')
-            if (applicantMenu) {
-                applicantMenu.hasNotification = hasNewAccepted
-            }
-        }
-    } catch (e) {
-        console.error('Failed to check notification status', e)
-    }
-}
-
-let pollingInterval: any = null
-
-onMounted(() => {
-  checkNewApplicants()
-  // Poll every 3 seconds for real-time notifications
-  pollingInterval = setInterval(checkNewApplicants, 3000)
-})
-
-onUnmounted(() => {
-    if (pollingInterval) clearInterval(pollingInterval)
-})
+const { summary } = useBookingSummary()
 
 const isActive = (path: string) => {
   if (path === '/admin' && route.path === '/admin') return true
@@ -124,7 +89,7 @@ const emit = defineEmits(['close'])
           
           <!-- Red Dot Notification -->
           <div 
-            v-if="item.hasNotification" 
+            v-if="(item.name === 'Appointment' && (summary?.pendingAppointments ?? 0) > 0) || (item.name === 'Applicant Data' && (summary?.unreadApplicants ?? 0) > 0)"
             class="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-red-500 rounded-full"
           ></div>
         </router-link>

@@ -7,9 +7,20 @@
 # Dependencies
 node_modules/
 
+#Development plan
+dev-plan/
+
 # OS files
 .DS_Store
 Thumbs.db
 
 # Build outputs
 build/
+
+# Generated OpenCode project configuration (source: tools/ai)
+/opencode.json
+/.opencode/.tools-ai-manifest.json
+/.opencode/agents/ee-*.md
+/.opencode/commands/ee-*.md
+/.opencode/skills/ee-*/
+

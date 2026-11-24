@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import api from '@/api'
+import { refreshBookingSummary } from '@/services/BookingSummaryService'
 import { Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import ApplicantAcceptModal from './ApplicantAcceptModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
@@ -17,6 +18,9 @@ const itemsPerPage = 10
 const totalItems = ref(0)
 const totalPages = ref(1)
 const isLoading = ref(false)
+const loadError = ref(false)
+let applicantsRequest: AbortController | null = null
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 // Delete Modal State
 const isDeleteModalOpen = ref(false)
@@ -35,16 +39,22 @@ const showToastNotification = (message: string, type: 'success' | 'error' = 'suc
 }
 
 const fetchApplicants = async (isSilent = false) => {
+    applicantsRequest?.abort()
+    const request = new AbortController()
+    applicantsRequest = request
     try {
         if (!isSilent) isLoading.value = true
+        loadError.value = false
         const response = await api.get('/programs/bookings/all', {
             params: {
                 status: 'ACCEPTED,BOOKED',
                 page: currentPage.value,
                 limit: itemsPerPage,
                 search: searchQuery.value
-            }
+            },
+            signal: request.signal
         })
+        if (request.signal.aborted) return
         const data = response.data
         let bookingList = []
         
@@ -71,19 +81,34 @@ const fetchApplicants = async (isSilent = false) => {
             fullData: item
         }))
     } catch (e) {
+        if (request.signal.aborted) return
+        loadError.value = true
         console.error('Failed to fetch applicants', e)
     } finally {
-        if (!isSilent) isLoading.value = false
+        if (applicantsRequest === request) {
+            applicantsRequest = null
+            isLoading.value = false
+        }
     }
 }
 
 // Re-fetch when search or page changes
 watch(searchQuery, () => {
-    currentPage.value = 1
-    fetchApplicants()
+    clearTimeout(searchTimer)
+    applicantsRequest?.abort()
+    applicantsRequest = null
+    loadError.value = false
+    isLoading.value = true
+    searchTimer = setTimeout(() => {
+        searchTimer = undefined
+        if (currentPage.value !== 1) currentPage.value = 1
+        else fetchApplicants()
+    }, 350)
 })
 
 watch(currentPage, () => {
+    clearTimeout(searchTimer)
+    searchTimer = undefined
     fetchApplicants()
 })
 
@@ -98,6 +123,7 @@ let pollingInterval: any = null
 const markAsRead = async () => {
     try {
         await api.put('/programs/bookings/mark-read', { status: 'ACCEPTED,BOOKED' })
+        void refreshBookingSummary()
     } catch (e) {
         console.error('Failed to mark as read', e)
     }
@@ -107,11 +133,21 @@ onMounted(() => {
     fetchApplicants()
     markAsRead()
     // Poll every 3 seconds for real-time updates (silently)
-    pollingInterval = setInterval(() => fetchApplicants(true), 3000)
+    pollingInterval = setInterval(() => {
+        if (!document.hidden && !applicantsRequest && !searchTimer) fetchApplicants(true)
+    }, 3000)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
 })
+
+const refreshWhenVisible = () => {
+    if (!document.hidden && !searchTimer && !applicantsRequest) fetchApplicants(true)
+}
 
 onUnmounted(() => {
     if (pollingInterval) clearInterval(pollingInterval)
+    clearTimeout(searchTimer)
+    applicantsRequest?.abort()
+    document.removeEventListener('visibilitychange', refreshWhenVisible)
 })
 
 const handleAccept = (applicant: any) => {
@@ -122,6 +158,7 @@ const handleAccept = (applicant: any) => {
 const handlePassTest = async (id: number) => {
     try {
         await api.put(`/programs/bookings/${id}/accept`)
+        void refreshBookingSummary()
         showToastNotification('Student marked as passed test (ACCEPTED)', 'success')
         fetchApplicants()
     } catch (e) {
@@ -135,6 +172,7 @@ const handleModalSubmit = (data: any) => {
     showToastNotification('Student Account Created Successfully!', 'success')
     isModalOpen.value = false
     fetchApplicants()
+    void refreshBookingSummary()
 }
 
 const handleDelete = (id: number) => {
@@ -148,6 +186,7 @@ const confirmDelete = async () => {
     isDeleting.value = true
     try {
         await api.delete(`/programs/bookings/${applicantToDelete.value}`)
+        void refreshBookingSummary()
         showToastNotification('Applicant deleted and schedule reverted to available', 'success')
         fetchApplicants()
         isDeleteModalOpen.value = false
@@ -200,6 +239,9 @@ const confirmDelete = async () => {
                     <td colspan="5" class="py-12 text-center text-gray-500">Loading applicants...</td>
                 </tr>
             </tbody>
+            <tbody v-else-if="loadError">
+                <tr><td colspan="5" class="py-12 text-center text-red-600" role="alert">Failed to load applicants. <button class="underline" @click="fetchApplicants()">Try again</button></td></tr>
+            </tbody>
             <tbody class="divide-y divide-gray-100" v-else>
             <tr v-for="applicant in applicants" :key="applicant.id" class="hover:bg-gray-50/50">
                 <td class="py-6 px-6 text-sm font-medium text-gray-900">{{ applicant.name }}</td>
@@ -236,7 +278,7 @@ const confirmDelete = async () => {
         </div>
 
         <!-- Pagination -->
-        <div v-if="totalPages > 1" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-50 pt-6">
+        <div v-if="totalPages > 1 && !loadError" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-50 pt-6">
             <p class="text-sm text-gray-500">
                 Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, totalItems) }} of {{ totalItems }} applicants
             </p>
@@ -271,7 +313,7 @@ const confirmDelete = async () => {
         </div>
 
         <!-- No Results -->
-        <div v-if="applicants.length === 0 && !isLoading" class="py-12 text-center text-gray-500 italic">
+        <div v-if="applicants.length === 0 && !isLoading && !loadError" class="py-12 text-center text-gray-500 italic">
             No applicants found matching "{{ searchQuery }}"
         </div>
     </div>

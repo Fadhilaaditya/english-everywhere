@@ -1,0 +1,1 @@
+function s(a){const e=new Date(a.getFullYear(),a.getMonth(),1),g=(e.getDay()+6)%7,t=new Date(e.getFullYear(),e.getMonth(),1-g),o=new Date(t.getFullYear(),t.getMonth(),t.getDate()+41),r=n=>`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}-${String(n.getDate()).padStart(2,"0")}`;return{startDate:r(t),endDate:r(o)}}export{s as c};

@@ -4,8 +4,8 @@ export default {
   // === Admin Endpoints ===
 
   // Get all payments for admin table with optional pagination and search
-  async getAllPayments(params?: any) {
-    const response = await api.get('/payments', { params });
+  async getAllPayments(params?: { page?: number; limit?: number; search?: string }, signal?: AbortSignal) {
+    const response = await api.get('/payments', { params, signal });
     return response.data;
   },
 

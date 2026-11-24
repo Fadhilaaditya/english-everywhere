@@ -42,6 +42,19 @@ exports.findAll = async (req, res) => {
   }
 };
 
+// Public homepage cards do not need the nested levels used by admin forms.
+exports.findHomePrograms = async (req, res) => {
+  try {
+    const data = await Program.findAll({
+      where: { parentId: null },
+      attributes: ["id", "title", "desc", "image", "category"],
+    });
+    return res.send(data);
+  } catch (err) {
+    return res.status(500).send({ message: "Gagal mengambil data program." });
+  }
+};
+
 // 2.1 Ambil detail levels untuk sebuah program
 exports.getLevels = async (req, res) => {
   const parentId = req.params.id;
@@ -272,27 +285,34 @@ exports.updateScheduleDirectly = async (req, res) => {
 
 // 9. Booking Appointment (New multi-slot logic)
 exports.bookAppointment = async (req, res) => {
-  const scheduleId = req.params.scheduleId;
+  const scheduleId = Number(req.params.scheduleId);
+  if (!Number.isSafeInteger(scheduleId) || scheduleId < 1 || !/^[1-9]\d*$/.test(req.params.scheduleId)) {
+    return res.status(400).send({ message: "ID jadwal tidak valid." });
+  }
+  if (typeof req.body?.applicantName !== "string" || !req.body.applicantName.trim() || req.body.applicantName.length > 255) {
+    return res.status(400).send({ message: "Nama pendaftar wajib diisi (maksimal 255 karakter)." });
+  }
   try {
-    const schedule = await ProgramSchedule.findByPk(scheduleId, {
-      include: [{ model: db.AppointmentBooking, as: "bookings" }],
-    });
+    const result = await db.sequelize.transaction({
+      isolationLevel: db.Sequelize.Transaction.ISOLATION_LEVELS.READ_COMMITTED,
+    }, async (transaction) => {
+      // Serialize registrations for the same slot before reading its capacity.
+      const schedule = await ProgramSchedule.findByPk(scheduleId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!schedule) return { status: 404, body: { message: "Jadwal tidak ditemukan." } };
 
-    if (!schedule) {
-      return res.status(404).send({ message: "Jadwal tidak ditemukan." });
-    }
-
-    const currentBookings = schedule.bookings.filter(
-      (b) => b.status !== "REJECTED",
-    ).length;
-
-    if (currentBookings >= schedule.maxSlots) {
-      return res.status(400).send({ message: "Slot sudah penuh." });
-    }
-
-    const booking = await db.AppointmentBooking.create({
+      const currentBookings = await db.AppointmentBooking.count({
+        where: { scheduleId, status: { [Op.ne]: "REJECTED" } },
+        transaction,
+      });
+      if (currentBookings >= schedule.maxSlots) {
+        return { status: 400, body: { message: "Slot sudah penuh." } };
+      }
+      const booking = await db.AppointmentBooking.create({
       scheduleId: scheduleId,
-      applicantName: req.body.applicantName,
+      applicantName: req.body.applicantName.trim(),
       applicantGender: req.body.applicantGender,
       applicantAddress: req.body.applicantAddress,
       applicantFather: req.body.applicantFather,
@@ -302,9 +322,10 @@ exports.bookAppointment = async (req, res) => {
       applicantPhone: req.body.applicantPhone,
       applicantEmail: req.body.applicantEmail,
       status: "PENDING",
+      }, { transaction });
+      return { status: 201, body: booking };
     });
-
-    res.status(201).send(booking);
+    return res.status(result.status).send(result.body);
   } catch (err) {
     res.status(500).send({ message: "Gagal melakukan booking." });
   }
@@ -383,6 +404,34 @@ exports.getAllBookings = async (req, res) => {
     res.status(500).send({
       message: err.message || "Some error occurred while retrieving bookings."
     });
+  }
+};
+
+// Small admin-only aggregate; date follows the requesting browser's local calendar.
+exports.getBookingSummary = async (req, res) => {
+  const { date } = req.query;
+  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).send({ message: "Tanggal harus berformat YYYY-MM-DD." });
+  }
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+    return res.status(400).send({ message: "Tanggal tidak valid." });
+  }
+  try {
+    const relevant = { status: { [Op.in]: ["ACCEPTED", "BOOKED"] } };
+    const [pendingAppointments, unreadApplicants, totalApplicants, scheduledToday] = await Promise.all([
+      db.AppointmentBooking.count({ where: { status: "PENDING" } }),
+      db.AppointmentBooking.count({ where: { status: "ACCEPTED", isRead: false } }),
+      db.AppointmentBooking.count({ where: relevant }),
+      db.AppointmentBooking.count({
+        where: relevant,
+        include: [{ model: ProgramSchedule, as: "schedule", attributes: [], where: { date }, required: true }],
+      }),
+    ]);
+    return res.send({ pendingAppointments, unreadApplicants, totalApplicants, scheduledToday });
+  } catch (error) {
+    console.error("Failed to retrieve booking summary:", error.message);
+    return res.status(500).send({ message: "Gagal mengambil ringkasan booking." });
   }
 };
 

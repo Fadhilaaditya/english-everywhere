@@ -1,55 +1,29 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import api from '@/api'
+import { computed } from 'vue'
+import { useBookingSummary } from '@/services/BookingSummaryService'
 
-const bookings = ref<any[]>([])
-
-const fetchBookings = async () => {
-    try {
-        const response = await api.get('/programs/bookings/all')
-        bookings.value = response.data
-    } catch (e) {
-        console.error('Failed to fetch bookings', e)
-    }
-}
+const { summary, error, refresh } = useBookingSummary()
 
 const stats = computed(() => {
-    const tableRelevantBookings = bookings.value.filter(b => ['ACCEPTED', 'BOOKED'].includes(b.status))
-    
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
-    
-    const scheduledToday = tableRelevantBookings.filter(b => {
-        return b.schedule?.date === today
-    }).length
-
     return [
         { 
             label: 'Total Applicants', 
-            value: tableRelevantBookings.length, 
+            value: summary.value?.totalApplicants ?? '—',
             color: 'text-gray-900'
         },
         { 
             label: 'Scheduled Today', 
-            value: scheduledToday, 
+            value: summary.value?.scheduledToday ?? '—',
             color: 'text-orange-500'
         }
     ]
 })
 
-let pollingInterval: any = null
-
-onMounted(() => {
-    fetchBookings()
-    pollingInterval = setInterval(fetchBookings, 3000)
-})
-
-onUnmounted(() => {
-    if (pollingInterval) clearInterval(pollingInterval)
-})
 </script>
 
 <template>
+ <div>
+  <p v-if="error" role="alert" class="mb-2 text-sm text-red-600">Failed to load applicant summary. <button class="underline" @click="refresh">Try again</button></p>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 bg-white border border-gray-100 rounded-2xl md:rounded-[32px] overflow-hidden mb-6 md:mb-8 shadow-sm w-full">
     <div
       v-for="(item, index) in stats"
@@ -64,4 +38,5 @@ onUnmounted(() => {
       <span class="text-2xl md:text-4xl font-bold" :class="item.color">{{ item.value }}</span>
     </div>
   </div>
+ </div>
 </template>

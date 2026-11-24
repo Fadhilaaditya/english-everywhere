@@ -8,6 +8,9 @@ module.exports = (app) => {
   // Memanggil exports.findAll di controller
   router.get("/", programs.findAll);
 
+  // Lightweight public cards; keep before /:id.
+  router.get("/home", programs.findHomePrograms);
+
   // 1.1 Retrieve Levels for a Program
   router.get("/:id/levels", programs.getLevels);
 
@@ -51,6 +54,11 @@ module.exports = (app) => {
 
   // 11. Get all bookings globally (Admin)
   router.get("/bookings/all", [verifyToken, isAdmin], programs.getAllBookings);
+  // Do not inherit the permissive substring role matching in isAdmin.
+  router.get("/bookings/summary", [verifyToken, (req, res, next) => {
+    if (req.userRole === "admin" || req.userRole === "superadmin") return next();
+    return res.status(403).send({ message: "Require Admin Role!" });
+  }], programs.getBookingSummary);
 
   // 12. Delete individual booking
   router.delete("/bookings/:id", [verifyToken, isAdmin], programs.deleteBooking);

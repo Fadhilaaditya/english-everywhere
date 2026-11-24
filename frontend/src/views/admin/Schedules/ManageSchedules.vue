@@ -13,6 +13,12 @@ const schedules = ref<any[]>([])
 const programs = ref<any[]>([])
 const teachers = ref<any[]>([])
 const classrooms = ref<any[]>([])
+const isLoadingReferences = ref(true)
+const referenceError = ref(false)
+const scheduleError = ref(false)
+const isLoadingSchedules = ref(true)
+let scheduleRequest: AbortController | null = null
+let referenceRequest: AbortController | null = null
 const selectedCourseId = ref<number | null>(null)
 const selectedTeacherId = ref<number | null>(null)
 const currentDate = ref(new Date())
@@ -56,35 +62,59 @@ const triggerToast = (message: string, type: 'success' | 'error' = 'success') =>
 
 // --- API Actions ---
 const fetchData = async () => {
+  referenceRequest?.abort()
+  const request = new AbortController()
+  referenceRequest = request
+  isLoadingReferences.value = true
+  referenceError.value = false
   try {
-    const [resP, resT, resC] = await Promise.all([
-      api.get('/programs'),
-      api.get('/teachers'),
-      api.get('/classrooms'),
+    const [resP, resT, resC] = await Promise.allSettled([
+      api.get('/programs', { signal: request.signal }),
+      api.get('/teachers', { signal: request.signal }),
+      api.get('/classrooms', { signal: request.signal }),
     ])
-    programs.value = Array.isArray(resP.data) ? resP.data : resP.data.data || []
-    teachers.value = Array.isArray(resT.data) ? resT.data : resT.data.data || []
-    classrooms.value = Array.isArray(resC.data) ? resC.data : resC.data.data || []
-  } catch (e) {
-    triggerToast('Gagal mengambil data guru/program/kelas', 'error')
+    if (request.signal.aborted) return
+    if (resP.status === 'fulfilled') programs.value = Array.isArray(resP.value.data) ? resP.value.data : resP.value.data.data || []
+    if (resT.status === 'fulfilled') teachers.value = Array.isArray(resT.value.data) ? resT.value.data : resT.value.data.data || []
+    if (resC.status === 'fulfilled') classrooms.value = Array.isArray(resC.value.data) ? resC.value.data : resC.value.data.data || []
+    referenceError.value = [resP, resT, resC].some(result => result.status === 'rejected')
+  } finally {
+    if (referenceRequest === request) {
+      referenceRequest = null
+      isLoadingReferences.value = false
+    }
   }
 }
 
 const fetchSchedules = async () => {
+  scheduleRequest?.abort()
+  const request = new AbortController()
+  scheduleRequest = request
+  isLoadingSchedules.value = true
+  scheduleError.value = false
   try {
-    const params: any = {}
+    const params: { programId?: number; teacherId?: number } = {}
     if (selectedCourseId.value) params.programId = selectedCourseId.value
     if (selectedTeacherId.value) params.teacherId = selectedTeacherId.value
 
-    const res = await api.get('/teacher-schedules', { params })
+    const res = await api.get('/teacher-schedules', { params, signal: request.signal })
+    if (request.signal.aborted) return
     schedules.value = res.data
   } catch (e) {
+    if (request.signal.aborted) return
+    scheduleError.value = true
     console.error('Error fetching schedules:', e)
+  } finally {
+    if (scheduleRequest === request) {
+      scheduleRequest = null
+      isLoadingSchedules.value = false
+    }
   }
 }
 
 // --- Handlers ---
 const handleDayClick = (dayData: any) => {
+  if (isLoadingReferences.value || referenceError.value || isLoadingSchedules.value || scheduleError.value) return
   const d = dayData.date
   const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
@@ -110,6 +140,7 @@ const handleDayClick = (dayData: any) => {
 }
 
 const handleEventClick = (event: any) => {
+  if (isLoadingReferences.value || referenceError.value || isLoadingSchedules.value || scheduleError.value) return
   selectedAppointment.value = event
   form.value = {
     ...event,
@@ -177,14 +208,21 @@ const confirmDelete = async () => {
 }
 
 // --- Lifecycle ---
-let pollingInterval: any = null
-onMounted(async () => {
-  await fetchData()
-  await fetchSchedules()
-  pollingInterval = setInterval(fetchSchedules, 30000)
+let pollingInterval: ReturnType<typeof setInterval> | undefined
+const refreshWhenVisible = () => {
+  if (!document.hidden && !scheduleRequest) void fetchSchedules()
+}
+onMounted(() => {
+  void fetchData()
+  void fetchSchedules()
+  pollingInterval = setInterval(refreshWhenVisible, 30000)
+  document.addEventListener('visibilitychange', refreshWhenVisible)
 })
 onUnmounted(() => {
   if (pollingInterval) clearInterval(pollingInterval)
+  referenceRequest?.abort()
+  scheduleRequest?.abort()
+  document.removeEventListener('visibilitychange', refreshWhenVisible)
 })
 watch([selectedCourseId, selectedTeacherId], () => {
   fetchSchedules()
@@ -208,12 +246,16 @@ watch([selectedCourseId, selectedTeacherId], () => {
 
         <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">Schedules</h1>
 
+        <p v-if="referenceError" role="alert" class="mb-3 text-sm text-red-600">Gagal mengambil data guru/program/kelas. <button class="underline" @click="fetchData">Coba lagi</button></p>
+        <p v-else-if="isLoadingReferences" role="status" class="mb-3 text-sm text-gray-500">Memuat data guru/program/kelas...</p>
+        <p v-if="scheduleError" role="alert" class="mb-3 text-sm text-red-600">Gagal mengambil jadwal. <button class="underline" @click="fetchSchedules">Coba lagi</button></p>
+
         <ScheduleCalendar
           v-model:current-date="currentDate"
           v-model:selected-course-id="selectedCourseId"
           v-model:selected-teacher-id="selectedTeacherId"
           :schedules="schedules"
-          :is-loading="false"
+          :is-loading="isLoadingSchedules"
           :programs="programs"
           :teachers="teachers"
           @day-click="handleDayClick"
