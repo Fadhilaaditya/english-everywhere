@@ -1,18 +1,31 @@
 <script setup lang="ts">
 import { Calendar, Clock, X, MapPin, Image as ImageIcon } from 'lucide-vue-next'
-import { onUnmounted, watch, computed } from 'vue'
+import { onUnmounted, watch, computed, ref } from 'vue'
 import { cloudinaryOptimize } from '@/utils/imageUtils'
+import api from '@/api'
 
 // Swiper imports
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Pagination, Navigation, Autoplay } from 'swiper/modules'
+import { Pagination, Navigation, A11y } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/navigation'
 
+interface EventDetail {
+  id: number
+  title: string
+  price?: string | null
+  desc?: string | null
+  date?: string | null
+  time?: string | null
+  location?: string | null
+  image?: string | null
+  images?: string[] | null
+}
+
 const props = defineProps<{
   isOpen: boolean
-  event: any
+  event: EventDetail | null
   disableRegistration?: boolean
 }>()
 
@@ -22,12 +35,56 @@ const handleClose = () => {
   emit('close')
 }
 
+const detail = ref<EventDetail | null>(null)
+const loadingDetail = ref(false)
+const detailError = ref(false)
+const failedImages = ref<Set<string>>(new Set())
+let detailRequest: AbortController | null = null
+const displayEvent = computed(() => detail.value ?? props.event)
+
 const eventImages = computed(() => {
-    if (props.event?.images && Array.isArray(props.event.images) && props.event.images.length > 0) {
-        return props.event.images
-    }
-    return props.event?.image ? [props.event.image] : []
+    const event = displayEvent.value
+    const images = Array.isArray(event?.images) ? event.images.filter((image): image is string => typeof image === 'string' && image.trim().length > 0) : []
+    if (event?.image && !images.includes(event.image)) images.unshift(event.image)
+    return images
 })
+
+const fetchEventDetail = async () => {
+  if (!props.isOpen || !props.event?.id) return
+  detailRequest?.abort()
+  const request = new AbortController()
+  detailRequest = request
+  loadingDetail.value = true
+  detailError.value = false
+  try {
+    const response = await api.get<EventDetail>(`/events/${props.event.id}`, { signal: request.signal })
+    if (!request.signal.aborted) detail.value = response.data
+  } catch (error) {
+    if (!request.signal.aborted) {
+      detailError.value = true
+      console.error('Error fetching event details:', error)
+    }
+  } finally {
+    if (detailRequest === request) {
+      detailRequest = null
+      loadingDetail.value = false
+    }
+  }
+}
+
+watch([() => props.isOpen, () => props.event?.id], ([open]) => {
+  detailRequest?.abort()
+  detailRequest = null
+  detail.value = null
+  loadingDetail.value = false
+  detailError.value = false
+  failedImages.value = new Set()
+  if (open) void fetchEventDetail()
+}, { immediate: true })
+
+const markImageFailed = (image: string) => {
+  failedImages.value = new Set([...failedImages.value, image])
+}
 
 // Lock body scroll when modal is open
 watch(() => props.isOpen, (newVal: boolean) => {
@@ -39,6 +96,7 @@ watch(() => props.isOpen, (newVal: boolean) => {
 })
 
 onUnmounted(() => {
+  detailRequest?.abort()
   document.body.style.overflow = ''
 })
 </script>
@@ -50,32 +108,38 @@ onUnmounted(() => {
 
       <div class="relative w-full max-w-[961px] bg-white rounded-[40px] shadow-2xl px-8 py-8 flex flex-col md:flex-row gap-8 max-h-[95vh] overflow-y-auto my-auto">
         
-        <button @click="handleClose" class="absolute top-3 right-3 z-20 hover:bg-gray-100 p-2 rounded-full transition-colors cursor-pointer text-gray-500 bg-white/80 backdrop-blur-sm shadow-sm md:bg-transparent md:bg-none md:shadow-none">
+        <button aria-label="Close event details" @click="handleClose" class="absolute top-3 right-3 z-20 hover:bg-gray-100 p-2 rounded-full transition-colors cursor-pointer text-gray-500 bg-white/80 backdrop-blur-sm shadow-sm md:bg-transparent md:bg-none md:shadow-none">
           <X class="w-6 h-6" />
         </button>
 
         <!-- Price Badge -->
         <span class="absolute top-12 left-12 md:top-8 md:left-auto md:right-16 bg-[#52D1C6] text-white px-4 py-1.5 rounded-full text-sm md:text-base font-bold shadow-xl z-20 whitespace-nowrap transform transition-all hover:scale-105">
-            {{ event?.price }} 
+            {{ displayEvent?.price }}
         </span>
 
         <!-- Image Carousel -->
         <div class="w-full md:w-[360px] flex-shrink-0 relative">
            <swiper
                 v-if="eventImages.length > 0"
-                :modules="[Pagination, Navigation, Autoplay]"
+                :key="`${displayEvent?.id}-${eventImages.length}`"
+                :modules="[Pagination, Navigation, A11y]"
                 :slides-per-view="1"
-                :pagination="{ clickable: true }"
+                :pagination="eventImages.length > 1 ? { clickable: true } : false"
                 :navigation="eventImages.length > 1"
-                :autoplay="{ delay: 3000, disableOnInteraction: false }"
+                :a11y="{ prevSlideMessage: 'Previous photo', nextSlideMessage: 'Next photo' }"
                 class="w-full h-full rounded-3xl shadow-md aspect-[5/6] overflow-hidden"
            >
                 <swiper-slide v-for="(img, index) in eventImages" :key="index">
                     <img 
+                      v-if="!failedImages.has(img)"
                       :src="cloudinaryOptimize(img, { width: 600, height: 720, crop: 'fill' })" 
-                      :alt="event?.title" 
+                      :alt="`${displayEvent?.title || 'Event'} - photo ${index + 1} of ${eventImages.length}`"
                       class="w-full h-full object-cover" 
+                      :loading="index === 0 ? 'eager' : 'lazy'"
+                      decoding="async"
+                      @error="markImageFailed(img)"
                     />
+                    <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center text-sm text-gray-500">Image unavailable</div>
                 </swiper-slide>
            </swiper>
            <div v-else class="w-full h-full bg-gray-100 rounded-3xl flex items-center justify-center aspect-[5/6]">
@@ -86,28 +150,30 @@ onUnmounted(() => {
         <div class="flex-1 flex flex-col">
           <div class="flex items-start mb-4">
               <h2 class="text-md md:text-xl font-bold text-gray-900 leading-snug flex-1 pr-32">
-                  {{ event?.title }}
+                  {{ displayEvent?.title }}
               </h2>
           </div>
 
           <div class="text-gray-600 space-y-3 mb-6 text-base leading-relaxed flex-1">
               <div class="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed font-poppins">
-                  {{ event?.desc }}
+                  <p v-if="loadingDetail" role="status">Loading event details...</p>
+                  <p v-else-if="detailError" role="alert">Failed to load event details. <button class="underline" @click="fetchEventDetail">Try again</button></p>
+                  <template v-else>{{ displayEvent?.desc }}</template>
               </div>
           </div>
 
           <div class="flex flex-col gap-2 pb-6 border-gray-100 mb-2">
                <div class="flex items-center gap-3 text-gray-700">
                    <Calendar class="w-5 h-5 flex-shrink-0" />
-                   <span class="font-medium text-sm">{{ event?.date }}</span> 
+                   <span class="font-medium text-sm">{{ displayEvent?.date }}</span>
                </div>
                 <div class="flex items-center gap-3 text-gray-700">
                     <Clock class="w-5 h-5 flex-shrink-0" />
-                    <span class="font-medium text-sm">{{ event?.time }}</span> 
+                    <span class="font-medium text-sm">{{ displayEvent?.time }}</span>
                 </div>
-                <div v-if="event?.location" class="flex items-center gap-3 text-gray-700">
+                <div v-if="displayEvent?.location" class="flex items-center gap-3 text-gray-700">
                     <MapPin class="w-5 h-5 flex-shrink-0" />
-                    <span class="font-medium text-sm">{{ event?.location }}</span> 
+                    <span class="font-medium text-sm">{{ displayEvent?.location }}</span>
                 </div>
             </div>
 
